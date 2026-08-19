@@ -228,12 +228,29 @@ export interface Wrinkler {
 	[key: string]: any;
 }
 
-/** A tier definition from `Game.Tiers` (price multiplier, unlock threshold). */
+/**
+ * A tier definition from `Game.Tiers`. Numeric tiers 1-14 are the standard
+ * content tiers; `'synergy1'`/`'synergy2'`/`'fortune'` are special tiers. The
+ * engine appends `.upgrades` to each tier as tiered content is declared.
+ */
 export interface Tier {
-	name?: string;
+	name: string;
+	/** Building level at which the tier unlocks (-1 = special/always). */
+	unlock: number;
+	/** Building level at which the tier's achievements unlock (standard tiers only). */
+	achievUnlock?: number;
+	/** Row in the icon sheet for this tier's content icons. */
+	iconRow: number;
+	color: string;
+	/** 1 for the special (synergy/fortune) tiers. */
+	special?: number;
+	/** Upgrade name required to unlock a special tier. */
+	req?: string;
 	price: number;
+	/** Filled by the engine as tiered upgrades are declared for this tier. */
+	upgrades?: Upgrade[];
+	/** Upgrade name that "unshackles" the tier (extra production), if any. */
 	unshackleUpgrade?: string;
-	achievUnlock: number;
 	[key: string]: any;
 }
 
