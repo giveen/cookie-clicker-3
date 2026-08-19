@@ -26,6 +26,8 @@
  * sheet (customIcons.png) and store-icon sheet (customBuildings.png) are NOT used:
  * the vanilla icons render correctly for the pilot and keep this self-contained.
  */
+import type { Building, Game as EngineGame } from '../engine/types';
+
 (function () {
 	if (window.__cc3Binverter) return;
 	window.__cc3Binverter = 1;
@@ -73,7 +75,7 @@
 	/* ------------------------------------------------------------------ */
 	/* Content declaration — runs in the 'create' hook (before LoadSave). */
 	/* ------------------------------------------------------------------ */
-	function declare(Game: any) {
+	function declare(Game: EngineGame) {
 		if (declared.done || Game.Objects[NAME]) return;
 		declared.done = true;
 
@@ -93,17 +95,18 @@
 			2,   // iconColumn (tiered content icon column — the Farm column)
 			art,
 			0,   // price (ignored: the n=19 auto-curve sets basePrice/baseCps)
-			function (m: any) {
+			function (m: Building) {
 				let mult = 1;
 				mult *= Game.GetTieredCpsMult(m);
 				mult *= Game.magicCpS(m.name);
 				return m.baseCps * mult;
 			},
-			function (this: any) {
+			function (this: Building) {
 				// Unlock this building's tiered upgrades + tiered achievements when bought,
 				// and the grandma synergy once the SpecialGrandmaUnlock threshold is met.
+				// (this.grandma is set by the GrandmaSynergy declaration above.)
 				Game.UnlockTiered(this);
-				if (this.amount >= Game.SpecialGrandmaUnlock && Game.Objects['Grandma'].amount > 0) Game.Unlock(this.grandma.name);
+				if (this.amount >= Game.SpecialGrandmaUnlock && Game.Objects['Grandma'].amount > 0) Game.Unlock(this.grandma!.name);
 			}
 		);
 
@@ -162,17 +165,19 @@
 	/* handlers) and wire up this building's canvas + hover + mute icon,      */
 	/* exactly as CCSE.NewBuilding does.                                     */
 	/* ------------------------------------------------------------------ */
-	function setupBuildingDom(Game: any, me: any) {
+	function setupBuildingDom(Game: EngineGame, me: Building) {
 		Game.BuildStore();
 		if (me.id <= 0) return;
-		me.canvas = window.l('rowCanvas' + me.id);
-		me.ctx = me.canvas.getContext('2d', { alpha: false });
+		// l() returns HTMLElement | null; the engine built this as a <canvas>.
+		const canvas = window.l('rowCanvas' + me.id) as HTMLCanvasElement;
+		me.canvas = canvas;
+		me.ctx = canvas.getContext('2d', { alpha: false });
 		me.pics = [];
 		if (window.AddEvent) {
-			window.AddEvent(me.canvas, 'mouseover', function () { me.mouseOn = true; });
-			window.AddEvent(me.canvas, 'mouseout', function () { me.mouseOn = false; });
-			window.AddEvent(me.canvas, 'mousemove', function (e: any) {
-				var box = me.canvas.getBounds();
+			window.AddEvent(canvas, 'mouseover', function () { me.mouseOn = true; });
+			window.AddEvent(canvas, 'mouseout', function () { me.mouseOn = false; });
+			window.AddEvent(canvas, 'mousemove', function (e: MouseEvent) {
+				var box = canvas.getBounds();
 				me.mousePos[0] = e.pageX - box.left;
 				me.mousePos[1] = e.pageY - box.top;
 			});
@@ -192,7 +197,7 @@
 	/* ------------------------------------------------------------------ */
 	/* Presentation: re-assert the custom store icon each draw tick.       */
 	/* ------------------------------------------------------------------ */
-	function drawIcon(Game: any) {
+	function drawIcon(Game: EngineGame) {
 		const me = Game.Objects[NAME];
 		if (!me) return;
 		const url = 'url(' + STORE_ICON + ')';
@@ -205,7 +210,7 @@
 	/* ------------------------------------------------------------------ */
 	/* Logic: win the level achievement.                                   */
 	/* ------------------------------------------------------------------ */
-	function check(Game: any) {
+	function check(Game: EngineGame) {
 		const me = Game.Objects[NAME];
 		if (me && me.levelAchiev10 && !me.levelAchiev10.won && me.level >= 10) Game.Win(LEVEL_ACHIEVEMENT);
 	}
@@ -214,7 +219,7 @@
 	/* Persistence — vanilla=0 content is not saved by the engine, so we   */
 	/* save/restore our own building + upgrades + achievements.            */
 	/* ------------------------------------------------------------------ */
-	function save(Game: any) {
+	function save(Game: EngineGame) {
 		const me = Game.Objects[NAME];
 		if (!me) return '';
 		const boughtUpgs = [];
@@ -236,7 +241,7 @@
 		].join('@');
 	}
 
-	function load(Game: any, str: string) {
+	function load(Game: EngineGame, str: string) {
 		if (!str) return;
 		const me = Game.Objects[NAME];
 		if (!me) return;

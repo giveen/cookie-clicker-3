@@ -1,5 +1,7 @@
 /* CC3 language module for "dutch" (ported from the 2.048 loc/NL.js file).
  * The engine's AddLanguage() consumes { id, name, strings } at boot. */
+import type { LanguageData } from "../types";
+
 export default { id: "NL", name: "dutch", strings: {
 
 	"": {
@@ -3305,4 +3307,4 @@ export default { id: "NL", name: "dutch", strings: {
 	"[Achievement name 588]All the stars in heaven": "Alle sterren in de lucht"
 
 }
-};
+} satisfies LanguageData;

@@ -1,5 +1,7 @@
 /* CC3 language module for "japanese" (ported from the 2.048 loc/JA.js file).
  * The engine's AddLanguage() consumes { id, name, strings } at boot. */
+import type { LanguageData } from "../types";
+
 export default { id: "JA", name: "japanese", strings: {
 
 	"": {
@@ -3305,4 +3307,4 @@ export default { id: "JA", name: "japanese", strings: {
 	"[Achievement name 588]All the stars in heaven": "天に光る全ての星よ"
 
 }
-};
+} satisfies LanguageData;

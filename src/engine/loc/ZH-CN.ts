@@ -1,5 +1,7 @@
 /* CC3 language module for "chinese" (ported from the 2.048 loc/ZH-CN.js file).
  * The engine's AddLanguage() consumes { id, name, strings } at boot. */
+import type { LanguageData } from "../types";
+
 export default { id: "ZH-CN", name: "chinese", strings: {
 
 	"": {
@@ -3305,4 +3307,4 @@ export default { id: "ZH-CN", name: "chinese", strings: {
 	"[Achievement name 588]All the stars in heaven": "天堂裡所有的星星"
 
 }
-};
+} satisfies LanguageData;

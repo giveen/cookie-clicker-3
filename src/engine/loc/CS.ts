@@ -1,5 +1,7 @@
 /* CC3 language module for "czech" (ported from the 2.048 loc/CS.js file).
  * The engine's AddLanguage() consumes { id, name, strings } at boot. */
+import type { LanguageData } from "../types";
+
 export default { id: "CS", name: "czech", strings: {
 
 	"": {
@@ -3305,4 +3307,4 @@ export default { id: "CS", name: "czech", strings: {
 	"[Achievement name 588]All the stars in heaven": "Všechny hvězdy na nebi"
 
 }
-};
+} satisfies LanguageData;

@@ -1,5 +1,7 @@
 /* CC3 language module for "italian" (ported from the 2.048 loc/IT.js file).
  * The engine's AddLanguage() consumes { id, name, strings } at boot. */
+import type { LanguageData } from "../types";
+
 export default { id: "IT", name: "italian", strings: {
 
 	"": {
@@ -3305,4 +3307,4 @@ export default { id: "IT", name: "italian", strings: {
 	"[Achievement name 588]All the stars in heaven": "Tutte le stelle in cielo"
 
 }
-};
+} satisfies LanguageData;

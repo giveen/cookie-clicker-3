@@ -1,5 +1,7 @@
 /* CC3 language module for "german" (ported from the 2.048 loc/DE.js file).
  * The engine's AddLanguage() consumes { id, name, strings } at boot. */
+import type { LanguageData } from "../types";
+
 export default { id: "DE", name: "german", strings: {
 
 	"": {
@@ -3326,4 +3328,4 @@ export default { id: "DE", name: "german", strings: {
 	"[Achievement name 588]All the stars in heaven": "Alle Sterne am Himmel"
 
 }
-};
+} satisfies LanguageData;

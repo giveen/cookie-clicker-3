@@ -1,5 +1,7 @@
 /* CC3 language module for "portuguese" (ported from the 2.048 loc/PT-BR.js file).
  * The engine's AddLanguage() consumes { id, name, strings } at boot. */
+import type { LanguageData } from "../types";
+
 export default { id: "PT-BR", name: "portuguese", strings: {
 
 	"": {
@@ -3305,4 +3307,4 @@ export default { id: "PT-BR", name: "portuguese", strings: {
 	"[Achievement name 588]All the stars in heaven": "Todas as estrelas do céu"
 
 }
-};
+} satisfies LanguageData;

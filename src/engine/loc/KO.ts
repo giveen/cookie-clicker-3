@@ -1,5 +1,7 @@
 /* CC3 language module for "korean" (ported from the 2.048 loc/KO.js file).
  * The engine's AddLanguage() consumes { id, name, strings } at boot. */
+import type { LanguageData } from "../types";
+
 export default { id: "KO", name: "korean", strings: {
 
 	"": {
@@ -3180,4 +3182,4 @@ export default { id: "KO", name: "korean", strings: {
 	"[Achievement name 588]All the stars in heaven": "천상의 모든 별"
 
 }
-};
+} satisfies LanguageData;

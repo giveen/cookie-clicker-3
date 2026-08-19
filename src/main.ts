@@ -20,6 +20,7 @@ import './engine/main';
  * during Game.Load, before LoadSave). */
 import './extras/blackHoleInverter';
 import './styles/main.css';
+import type { Cc3AnimStats, Game as EngineGame, LanguageData } from './engine/types';
 
 /* Error surface: paint uncaught boot/runtime errors to the DOM so they're
  * visible without DevTools. Always on in the dev server; in the production
@@ -35,7 +36,11 @@ if (debugSurface) {
 		document.body.appendChild(d);
 	};
 	window.addEventListener('error', (e) => show('ERR', e.message + ' @ ' + (e.filename || '') + ':' + (e.lineno || '')));
-	window.addEventListener('unhandledrejection', (e) => show('REJ', e.reason && e.reason.stack ? e.reason.stack : String(e.reason)));
+	window.addEventListener('unhandledrejection', (e) => {
+		// e.reason is unknown; the original read .stack off it untyped — same logic, cast at the boundary.
+		const r = e.reason as { stack?: string } | null | undefined;
+		show('REJ', r && r.stack ? r.stack : String(e.reason));
+	});
 }
 
 /* Debug-only QA seed (requires ?debug=1, then ?qa or ?qa=cookies).
@@ -333,6 +338,18 @@ if (debugSurface && params.get('qa') === 'perf') {
 // breakpoint), then Game.Reincarnate(1) (the actual reset), and checks:
 // chips+prestige were granted, the run was reset (buildings cleared), and the
 // prestige state (chips, prestige, resets) was kept. Usage: ?debug=1&qa=ascend
+/** The ascend probe's own two-phase state, parked on Game (index-signature field). */
+interface AscendQaState {
+	phase: number;
+	out: HTMLDivElement;
+	hc0: number;
+	hc1?: number;
+	prestige0: number;
+	prestige1?: number;
+	resets0: number;
+	cursor0: number;
+	t: number;
+}
 if (debugSurface && params.get('qa') === 'ascend') {
 	const tick = window.setInterval(() => {
 		const G = window.Game;
@@ -357,7 +374,7 @@ if (debugSurface && params.get('qa') === 'ascend') {
 			}
 			return;
 		}
-		const a = G.__qaAscend;
+		const a = G.__qaAscend as AscendQaState;
 		if (a.phase === 1) {
 			if (G.OnAscend === 1 || Date.now() - a.t > 8000) {
 				a.phase = 2;
@@ -369,8 +386,9 @@ if (debugSurface && params.get('qa') === 'ascend') {
 		} else if (a.phase === 2) {
 			if (Date.now() - a.t > 2000) {
 				const cursorAfter = G.Objects['Cursor'].amount;
-				const chipsOk = a.hc1 > a.hc0 && G.heavenlyChips === a.hc1;
-				const prestigeOk = a.prestige1 > a.prestige0 && G.prestige === a.prestige1;
+				// hc1/prestige1 were set in the phase 1 -> 2 transition above
+				const chipsOk = a.hc1! > a.hc0 && G.heavenlyChips === a.hc1;
+				const prestigeOk = a.prestige1! > a.prestige0 && G.prestige === a.prestige1;
 				const resetsOk = G.resets > a.resets0;
 				const resetOk = cursorAfter === 0;
 				const backOk = G.OnAscend === 0;
@@ -408,7 +426,7 @@ if (debugSurface && params.get('qa') === 'offline') {
 		// for a few seconds of game time (G.T) so the save has fully loaded and the
 		// offline gain (computed during load) has been applied before we touch state.
 		if (!G || !G.ready || !G.Objects || G.T < 90) return;
-		let marker = null;
+		let marker: { base: number; cps: number; expected: number } | null = null;
 		try { marker = JSON.parse(localStorage.getItem('__qaOffline') || 'null'); } catch (e: any) { /* ignore */ }
 		if (marker) {
 			// Phase 2: the engine already computed + granted the offline gain on boot.
@@ -442,7 +460,7 @@ if (debugSurface && params.get('qa') === 'offline') {
 			// Synchronous block: the 30Hz loop cannot interrupt it, so WriteSave's
 			// lastDate=Game.time stays at the (past) value we just set.
 			const past = Date.now() - awayMs;
-			Game.time = past; Game.lastDate = past; Game.toSave = false;
+			G.time = past; G.lastDate = past; G.toSave = false;
 			G.WriteSave();
 			localStorage.setItem('__qaOffline', JSON.stringify({ base, cps, expected: (awayMs / 1000) * cps }));
 			out().textContent = '[QA-offline] phase 1: 100 cursors (CpS ' + cps.toFixed(2) + '), saved with lastDate 1h ago, reloading to trigger the offline gain...';
@@ -520,7 +538,7 @@ if (debugSurface && params.get('qa') === 'a11y') {
 	const tick = window.setInterval(() => {
 		const G = window.Game;
 		if (!G || !G.ready || !G.prefs || G.T < 90) return;
-		let marker = null;
+		let marker: unknown = null;
 		try { marker = JSON.parse(localStorage.getItem('__qaA11y') || 'null'); } catch (e: any) { /* ignore */ }
 		if (marker) {
 			// Phase 2: screen-reader mode should be active (products are <button>s).
@@ -568,6 +586,9 @@ if (debugSurface && params.get('qa') === 'a11y') {
 // one to spawn, makes it fully visible, checks the CpS debuff, then pops it — the
 // pop resolves on the next loop tick (UpdateWrinklers), so verification runs one
 // interval later. Usage: ?debug=1&qa=wrinkler
+/** State the wrinkler probe parks on Game between its two ticks. */
+interface WrinklerQaBefore { popped: number; cookies: number; }
+interface WrinklerQaDef { debuffOk: boolean; cpsBefore: number; debuff: number; }
 if (debugSurface && params.get('qa') === 'wrinkler') {
 	const out = () => {
 		let d = document.getElementById('__dbgqa');
@@ -611,8 +632,8 @@ if (debugSurface && params.get('qa') === 'wrinkler') {
 		G.__qaWrinklerDone = 1;
 		try {
 			const me = G.wrinklers[0];
-			const before = G.__qaWrinkBefore;
-			const d = G.__qaWrinkDef;
+			const before = G.__qaWrinkBefore as WrinklerQaBefore;
+			const d = G.__qaWrinkDef as WrinklerQaDef | undefined;
 			const poppedOk = G.wrinklersPopped > before.popped && me.phase === 0;
 			const refund = G.cookies - before.cookies;
 			const refundOk = refund >= 550;      // ~1100 refund (1000 x 1.1), well above drift
@@ -719,7 +740,7 @@ if (debugSurface && params.get('qa') === 'onecol') {
 			ok('--cc3Scale CSS var published', body.style.getPropertyValue('--cc3Scale') === String(G.scale), 'var=' + body.style.getPropertyValue('--cc3Scale') + ', scale=' + G.scale);
 			// --- tab bar + columns ---
 			const bar = document.getElementById('oneColTabs');
-			const tabs = Array.prototype.slice.call(document.querySelectorAll('#oneColTabs button'));
+			const tabs = Array.from(document.querySelectorAll<HTMLButtonElement>('#oneColTabs button'));
 			ok('tab bar visible with 3 tabs', !!bar && tabs.length === 3 && getComputedStyle(bar).display === 'flex', 'display=' + (bar ? getComputedStyle(bar).display : 'n/a') + ', tabs=' + tabs.length);
 			const shown = (id: string) => { const r = document.getElementById(id)!.getBoundingClientRect(); return r.width >= 100 && r.height >= 100; };
 			const hidden = (id: string) => getComputedStyle(document.getElementById(id)!).display === 'none';
@@ -763,6 +784,15 @@ if (debugSurface && params.get('qa') === 'onecol') {
 // column mode is forced with &oneCol=1; assumes an English profile (the
 // Beautify number format the display parsing relies on).
 // Usage: ?debug=1&qa=anim&oneCol=1
+/** The anim probe's multi-phase state, parked on Game (index-signature field). */
+interface AnimQaState {
+	phase: number;
+	t0: number;
+	v: number[];
+	all: string[];
+	id1?: string;
+	id2?: string;
+}
 if (debugSurface && params.get('qa') === 'anim') {
 	const out = () => {
 		let d = document.getElementById('__dbgqa');
@@ -781,10 +811,12 @@ if (debugSurface && params.get('qa') === 'anim') {
 		const G = window.Game;
 		const A = window.__cc3Anim;
 		if (!G || !G.ready || !G.prefs || !A || G.T < 30) return;
-		let st = G.__qaAnim;
+		let st: AnimQaState | undefined = G.__qaAnim;
 		if (!st) {
-			G.__qaAnim = st = { phase: 0, t0: 0, v: [], all: [] };
-			const ok = (label: string, pass: boolean, extra?: string) => st.all.push('[QA-anim] ' + (pass ? 'PASS' : 'FAIL') + ' ' + label + (extra !== undefined ? ' (' + extra + ')' : ''));
+			const s: AnimQaState = { phase: 0, t0: 0, v: [], all: [] };
+			st = s;
+			G.__qaAnim = s;
+			const ok = (label: string, pass: boolean, extra?: string) => s.all.push('[QA-anim] ' + (pass ? 'PASS' : 'FAIL') + ' ' + label + (extra !== undefined ? ' (' + extra + ')' : ''));
 			// --- boot fade: the 0.35s animation has long finished; the name persists ---
 			const wAnim = getComputedStyle(document.getElementById('wrapper')!).animationName;
 			ok('boot fade: #wrapper ran cc3BootIn', wAnim === 'cc3BootIn', wAnim);
@@ -793,7 +825,7 @@ if (debugSurface && params.get('qa') === 'anim') {
 			// --- one-column column slide-in (this probe runs with &oneCol=1) ---
 			const body = document.body;
 			if (body.classList.contains('oneColumn')) {
-				const tabs = Array.prototype.slice.call(document.querySelectorAll('#oneColTabs button'));
+				const tabs = Array.from(document.querySelectorAll<HTMLButtonElement>('#oneColTabs button'));
 				tabs[1].click();
 				ok('tab switch: middle column enters with cc3ColIn', getComputedStyle(document.getElementById('sectionMiddle')!).animationName === 'cc3ColIn', getComputedStyle(document.getElementById('sectionMiddle')!).animationName);
 				tabs[2].click();
@@ -815,8 +847,8 @@ if (debugSurface && params.get('qa') === 'anim') {
 		}
 		if (st.phase === 1) {
 			const ok = (label: string, pass: boolean, extra?: string) => st.all.push('[QA-anim] ' + (pass ? 'PASS' : 'FAIL') + ' ' + label + (extra !== undefined ? ' (' + extra + ')' : ''));
-			// t0+250ms: note #1 has landed with its slide-in
-			const n1 = document.getElementById(st.id1);
+			// t0+250ms: note #1 has landed with its slide-in (id1 set in phase 0)
+			const n1 = document.getElementById(st.id1!);
 			ok('note 1: .note entered with cc3NoteIn', !!n1 && getComputedStyle(n1).animationName === 'cc3NoteIn', n1 ? getComputedStyle(n1).animationName : '(missing)');
 			st.v.push(readDisplay());
 			st.phase = 2;
@@ -834,9 +866,9 @@ if (debugSurface && params.get('qa') === 'anim') {
 		}
 		if (st.phase === 3) {
 			const ok = (label: string, pass: boolean, extra?: string) => st.all.push('[QA-anim] ' + (pass ? 'PASS' : 'FAIL') + ' ' + label + (extra !== undefined ? ' (' + extra + ')' : ''));
-			// DOM order in #notes is oldest-first; look both notes up by id
-			const n1 = document.getElementById(st.id1);
-			const n2 = document.getElementById(st.id2);
+			// DOM order in #notes is oldest-first; look both notes up by id (set in phase 0/2)
+			const n1 = document.getElementById(st.id1!);
+			const n2 = document.getElementById(st.id2!);
 			ok('note 2: new note enters with cc3NoteIn', !!n2 && getComputedStyle(n2).animationName === 'cc3NoteIn');
 			ok('note 1: no entrance replay after the #notes rebuild (.cc3Seen)', !!n1 && n1.classList.contains('cc3Seen'), n1 ? (n1.className || '(no class)') : '(missing)');
 			st.v.push(readDisplay());
@@ -848,8 +880,8 @@ if (debugSurface && params.get('qa') === 'anim') {
 			const midJump = v1 > v0 && v1 >= 0.05 * target && v1 <= 0.999 * target;
 			const nonDec = v2 >= v1 && v3 >= v2;
 			const converged = v3 >= target - Math.max(20, 0.02 * target);
-			ok('smooth counter: display mid-count-up at t0+250ms', midJump, st.v.map((x: any) => Math.round(x)).join(' -> '));
-			ok('smooth counter: display never decreases', nonDec, st.v.map((x: any) => Math.round(x)).join(' -> '));
+			ok('smooth counter: display mid-count-up at t0+250ms', midJump, st.v.map((x: number) => Math.round(x)).join(' -> '));
+			ok('smooth counter: display never decreases', nonDec, st.v.map((x: number) => Math.round(x)).join(' -> '));
 			ok('smooth counter: display converged to the real cookie value', converged, 'display ' + Math.round(v3) + ' vs cookies ' + Math.round(target));
 			ok('smooth counter: rAF hook ran at display rate (active, re-anchored each tick)', A.counter.active === true && A.counter.anchors >= G.T - 35 && A.counter.frames >= (G.T - 30) * 0.9, 'frames=' + A.counter.frames + ' anchors=' + A.counter.anchors + ' writes=' + A.counter.writes + ' ticks=' + G.T);
 			st.phase = 4;
@@ -900,7 +932,7 @@ if (debugSurface && params.get('qa') === 'anim') {
 			ok('fancy off: body.noMotion published', document.body.classList.contains('noMotion') && A.motion === false);
 			ok('fancy off: the smooth counter hook stopped', A.counter.active === false);
 			ok('fancy off: the CSS motion gates went quiet', getComputedStyle(document.getElementById('wrapper')!).animationName === 'none');
-			out().textContent = st.all.join('\n') + '\n[QA-anim] ' + (st.all.every((l: any) => l.indexOf('PASS') !== -1) ? 'PASS: the CC3 polish (v3.0 animation pass) verified' : 'FAIL: see the lines above');
+			out().textContent = st.all.join('\n') + '\n[QA-anim] ' + (st.all.every((l: string) => l.indexOf('PASS') !== -1) ? 'PASS: the CC3 polish (v3.0 animation pass) verified' : 'FAIL: see the lines above');
 			window.clearInterval(tick);
 		}
 	}, 250);
@@ -909,9 +941,9 @@ if (debugSurface && params.get('qa') === 'anim') {
 /* ----------------------------------------------------------------- i18n */
 // Language files are ESM modules; Vite code-splits each into its own chunk.
 /* Generic = the module namespace shape at runtime: each loc file is
- * `export default { id, name, strings }`, so the resolved module is
- * `{ default: { id, name, strings } }` (plural strings are [one, many] arrays). */
-const langModules = import.meta.glob<{ default: { id: string; name: string; strings: Record<string, string | string[]> } }>(
+ * `export default { id, name, strings }` (a LanguageData), so the resolved
+ * module is `{ default: LanguageData }` (plural strings are [one, many] arrays). */
+const langModules = import.meta.glob<{ default: LanguageData }>(
 	'./engine/loc/*.ts',
 );
 
@@ -999,12 +1031,14 @@ if (swEnabled) {
 				? false
 				: null;
 	const COLS = ['left', 'middle', 'right'];
-	const tabs = Array.prototype.slice.call(document.querySelectorAll('#oneColTabs button'));
+	const tabs = Array.from(document.querySelectorAll<HTMLButtonElement>('#oneColTabs button'));
 	let activeCol = 'left';
 	let currentOneCol: boolean | null = null;
 
-	const setCol = (col: string) => {
-		activeCol = COLS.indexOf(col) === -1 ? 'left' : col;
+	// dataset.col is string | undefined; undefined falls through to 'left'
+	// exactly as the original indexOf(col) === -1 check did.
+	const setCol = (col: string | undefined) => {
+		activeCol = col && COLS.indexOf(col) !== -1 ? col : 'left';
 		document.body.dataset.col = activeCol;
 		for (const t of tabs) t.setAttribute('aria-pressed', String(t.dataset.col === activeCol));
 	};
@@ -1014,7 +1048,7 @@ if (swEnabled) {
 	const desiredOneCol = () =>
 		force === null ? Math.min(window.innerWidth, window.screen.width) <= ONE_COL_MAX_W : force;
 
-	const applyMode = (G: any) => {
+	const applyMode = (G: EngineGame) => {
 		const on = desiredOneCol();
 		if (on === currentOneCol) return;
 		currentOneCol = on;
@@ -1076,7 +1110,7 @@ if (swEnabled) {
    tests/qa.spec.js). */
 (function () {
 	const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
-	const stats = {
+	const stats: Cc3AnimStats = {
 		motion: true,
 		noMotionClass: false,
 		counter: { active: false, frames: 0, anchors: 0, writes: 0 },

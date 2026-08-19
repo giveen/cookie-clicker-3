@@ -1,5 +1,7 @@
 /* CC3 language module for "french" (ported from the 2.048 loc/FR.js file).
  * The engine's AddLanguage() consumes { id, name, strings } at boot. */
+import type { LanguageData } from "../types";
+
 export default { id: "FR", name: "french", strings: {
 
 	"": {
@@ -3286,4 +3288,4 @@ export default { id: "FR", name: "french", strings: {
 	"[Achievement name 588]All the stars in heaven": "Toutes les étoiles du firmament"
 
 }
-};
+} satisfies LanguageData;

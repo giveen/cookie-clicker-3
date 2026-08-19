@@ -1,5 +1,7 @@
 /* CC3 language module for "spanish" (ported from the 2.048 loc/ES.js file).
  * The engine's AddLanguage() consumes { id, name, strings } at boot. */
+import type { LanguageData } from "../types";
+
 export default { id: "ES", name: "spanish", strings: {
 
 	"": {
@@ -3305,4 +3307,4 @@ export default { id: "ES", name: "spanish", strings: {
 	"[Achievement name 588]All the stars in heaven": "Todas las estrellas en el cielo"
 
 }
-};
+} satisfies LanguageData;

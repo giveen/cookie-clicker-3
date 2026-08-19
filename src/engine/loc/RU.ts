@@ -1,5 +1,7 @@
 /* CC3 language module for "russian" (ported from the 2.048 loc/RU.js file).
  * The engine's AddLanguage() consumes { id, name, strings } at boot. */
+import type { LanguageData } from "../types";
+
 export default { id: "RU", name: "russian", strings: {
 
 	"": {
@@ -3305,4 +3307,4 @@ export default { id: "RU", name: "russian", strings: {
 	"[Achievement name 588]All the stars in heaven": "Все звезды на небесах"
 
 }
-};
+} satisfies LanguageData;
