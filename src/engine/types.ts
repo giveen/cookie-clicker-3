@@ -55,19 +55,27 @@ export interface LanguageData {
  * from `base` (`base + '.webp'` / `base + 'Background.webp'`) by the engine.
  * `xV`/`yV` are the tile grid dimensions; `x`/`y` the offset of the first
  * frame; `rows`/`frames` the animation layout.
+ *
+ * Every field is optional: the engine fills defaults at draw time
+ * (art.h||48, art.rows||1, art.frames||1, …) and some buildings (Cursor)
+ * pass a bare `{}` because they draw from the icon grid instead.
  */
 export interface Art {
-	pic?: string;
+	/**
+	 * Sprite path, or (Grandma) a function of the icon "type" that picks the
+	 * procedural sprite name at draw time. `base` resolves both when set.
+	 */
+	pic?: string | ((i: string) => string);
 	bg?: string;
 	base?: string;
-	xV: number;
-	yV: number;
-	w: number;
-	h: number;
-	x: number;
-	y: number;
-	rows: number;
-	frames: number;
+	xV?: number;
+	yV?: number;
+	w?: number;
+	h?: number;
+	x?: number;
+	y?: number;
+	rows?: number;
+	frames?: number;
 	[key: string]: unknown;
 }
 
@@ -348,6 +356,8 @@ export interface Game {
 	buyBulk: number;
 	elderWrath: number;
 	wrinklersPopped: number;
+	/** Frames remaining on an active Elder Pact (0 = none). */
+	pledgeT: number;
 	noteId: number;
 	cookieClicks: number;
 
@@ -377,6 +387,16 @@ export interface Game {
 	AchievementsN: number;
 	AchievementsOwned: number;
 	BuildingsOwned: number;
+	/** Upgrade names in the grandma-synergy pool (set by Game.GrandmaSynergy). */
+	GrandmaSynergies: string[];
+	/** Upgrades grouped by store pool ('kitten', 'cookie', 'prestige', …). */
+	UpgradesByPool: Record<string, Upgrade[]>;
+	/**
+	 * The most recently declared content item (Object/Upgrade/Achievement
+	 * constructors set it); vanilla content declarations use it to attach
+	 * per-building extras (minigameUrl, displayName, iconFunc, …).
+	 */
+	last: any;
 	Tiers: Record<number | string, Tier>;
 	buffs: Record<string, Buff>;
 	shimmers: Shimmer[];
@@ -421,6 +441,8 @@ export interface Game {
 	/* --- shimmers / wrinklers --- */
 	shimmer: new (type: string, obj?: unknown, noCount?: number) => Shimmer;
 	SpawnWrinkler(me: Wrinkler): void;
+	/** Pop all on-screen wrinklers at once (e.g. when the Elder Pact resolves). */
+	CollectWrinklers(): void;
 
 	/* --- seasonal specials --- */
 	UpdateSpecial(): void;
@@ -428,12 +450,20 @@ export interface Game {
 	UpgradeDragon(): void;
 
 	/* --- content / unlock API --- */
-	Unlock(name: string): void;
+	Unlock(name: string | string[]): void;
+	Lock(name: string): void;
 	UnlockTiered(me: Building): void;
 	Win(name: string): void;
 	GetTieredCpsMult(me: Building): number;
 	magicCpS(name: string): number;
-	Has(upgrade: string | Upgrade): boolean;
+	/** Aura multiplier for a named aura (0 when the aura is not active). */
+	auraMult(what: string): number;
+	/** Read a mod-registered effect value by tag (falls back to 1, or `def`). */
+	eff(name: string, def?: number): number;
+	/** Core CpS curve: `base * 2^mult + bonus`. */
+	ComputeCps(base: number, mult: number, bonus?: number): number;
+	/** 0/1 numeric: the engine does arithmetic on the result (`bought`). */
+	Has(upgrade: string | Upgrade): number;
 	SetTier(building: string | Building, tier: number | string): void;
 	GetIcon(building: string, tier: number | string): number[];
 	CountsAsAchievementOwned(pool: string): boolean;

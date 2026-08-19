@@ -28,6 +28,12 @@ declare global {
 	 * surface (named members checked; dynamic legacy surface via index sig). */
 	const Game: GameSurface;
 
+	/* Bare engine globals the typed content modules read unqualified (the
+	 * engine publishes both on window via its Object.assign(window, …) shim,
+	 * which is also what makes them resolve at runtime inside ESM modules). */
+	const loc: LocFn;
+	const choose: <T>(arr: readonly T[]) => T;
+
 	/* The engine polyfills Element.prototype.getBounds (scaled, plain-object
 	 * rect) at module eval; declare that DOM extension. */
 	interface Element {
