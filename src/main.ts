@@ -1,24 +1,24 @@
 /* Cookie Clicker 3 — entry point.
  *
  * Wires the ported 2.048 engine into a modern module pipeline:
- *   config.js        publishes VERSION/BETA/App before the engine evaluates
- *   engine/base64.js native btoa/atob save encoding
- *   engine/main.js   the engine itself (classic script -> ES module)
+ *   config.ts         publishes VERSION/BETA/App before the engine evaluates
+ *   engine/base64.ts  native btoa/atob save encoding
+ *   engine/main.ts    the engine itself (classic script -> ES module)
  *
  * The engine still bootstraps on the window `load` event (see the bottom of
- * engine/main.js). It asks this module for language files and minigame
+ * engine/main.ts). It asks this module for language files and minigame
  * scripts via `window.loadLangModule` / `window.loadMinigameModule`; both are
  * backed by static Vite dynamic imports, so they bundle, tree-split and
  * resolve correctly in dev and in the production build.
  */
-import './config.js';
-import './engine/base64.js';
-import './engine/main.js';
+import './config';
+import './engine/base64';
+import './engine/main';
 /* CC3 extras: content mods built on the engine's own mod API (no CCSE).
- * Must be imported after engine/main.js so Game.registerMod exists at module
+ * Must be imported after engine/main.ts so Game.registerMod exists at module
  * eval; each self-registers (its content is declared in the 'create' hook
  * during Game.Load, before LoadSave). */
-import './extras/blackHoleInverter.js';
+import './extras/blackHoleInverter';
 import './styles/main.css';
 
 /* Error surface: paint uncaught boot/runtime errors to the DOM so they're
@@ -27,7 +27,7 @@ import './styles/main.css';
 const params = new URLSearchParams(window.location.search);
 const debugSurface = import.meta.env.DEV || params.has('debug');
 if (debugSurface) {
-	const show = (label, text) => {
+	const show = (label: string, text: string) => {
 		const d = document.createElement('pre');
 		d.id = '__dbg';
 		d.style.cssText = 'position:fixed;top:0;left:0;z-index:99999;background:#b00020;color:#fff;padding:8px;max-width:80vw;white-space:pre-wrap;font:12px/140% monospace;';
@@ -74,7 +74,7 @@ if (debugSurface && params.has('qa') && params.get('qa') !== 'golden' && params.
 					G.recalculateGains = 1;
 					if (G.LoadMinigames) G.LoadMinigames();
 				}
-			} catch (e) {
+			} catch (e: any) {
 				console.error('QA seed failed:', e);
 			}
 			if (qaMode === 'cookies') window.clearInterval(tick); // done seeding
@@ -87,7 +87,7 @@ if (debugSurface && params.has('qa') && params.get('qa') !== 'golden' && params.
 				try {
 					if (farm.switchMinigame) farm.switchMinigame(1);
 					if (farm.refresh) farm.refresh();
-				} catch (e) {
+				} catch (e: any) {
 					console.error('QA open minigame failed:', e);
 				}
 			}
@@ -127,7 +127,7 @@ if (debugSurface && params.get('qa') === 'golden') {
 				'\n[QA-golden] after-frenzy CpS=' + after.toFixed(2) + ' (ratio ' + (before > 0 ? (after / before).toFixed(2) : '∞') + '×, expect ~7×)' +
 				'\n[QA-golden] Frenzy buff=' + (buff ? 'ACTIVE (mult ' + buff.arg1 + ')' : 'MISSING') +
 				'\n[QA-golden] shimmers ' + shimmersBefore + ' -> ' + G.shimmers.length + ' (spawn+pop lifecycle)';
-		} catch (e) {
+		} catch (e: any) {
 			out.textContent = '[QA-golden] ERROR: ' + e.constructor.name + ': ' + e.message;
 		}
 		window.clearInterval(tick);
@@ -180,7 +180,7 @@ if (debugSurface && params.get('qa') === 'save') {
 				'\n[QA-save] after import: cookies=' + G.cookies.toFixed(3) + ' cursors=' + G.Objects['Cursor'].amount + ' grandmas=' + G.Objects['Grandma'].amount + ' cps=' + G.cookiesPs.toFixed(2) +
 				'\n[QA-save] checks: cookies=' + cookiesOk + ' cursors=' + cursorsOk + ' grandmas=' + grandmasOk + ' cps=' + cpsOk +
 				'\n[QA-save] ' + (pass ? 'PASS: export->import round-trip restored state' : 'FAIL: state mismatch');
-		} catch (e) {
+		} catch (e: any) {
 			out.textContent = '[QA-save] ERROR: ' + e.constructor.name + ': ' + e.message;
 		}
 		window.clearInterval(tick);
@@ -204,9 +204,9 @@ if (debugSurface && params.get('qa') === 'binverter') {
 		document.body.appendChild(out);
 		try {
 			const me = G.Objects[NAME];
-			const lines = [];
+			const lines: string[] = [];
 			let pass = true;
-			const chk = (label, cond) => { lines.push((cond ? 'PASS: ' : 'FAIL: ') + label); if (!cond) pass = false; };
+			const chk = (label: string, cond: boolean) => { lines.push((cond ? 'PASS: ' : 'FAIL: ') + label); if (!cond) pass = false; };
 
 			// 1. declaration + store/canvas DOM (vanilla has 19 buildings, id 0-18, so the inverter is id 19)
 			chk('building declared as id 19', me.id === 19);
@@ -257,7 +257,7 @@ if (debugSurface && params.get('qa') === 'binverter') {
 			chk('upgrade "Blacker holes" restored bought (got ' + (up ? up.bought : 'n/a') + ')', !!(up && up.bought === 1));
 
 			out.textContent = lines.join('\n') + '\n[QA-binverter] ' + (pass ? 'PASS: Black Hole Inverter verified end to end' : 'FAIL: see checks above');
-		} catch (e) {
+		} catch (e: any) {
 			out.textContent = '[QA-binverter] ERROR: ' + e.constructor.name + ': ' + e.message;
 		}
 		window.clearInterval(tick);
@@ -288,7 +288,7 @@ if (debugSurface && params.get('qa') === 'perf') {
 				}
 				G.recalculateGains = 1;
 				if (G.LoadMinigames) G.LoadMinigames();
-			} catch (e) {
+			} catch (e: any) {
 				console.error('QA perf seed failed:', e);
 			}
 		}
@@ -298,7 +298,7 @@ if (debugSurface && params.get('qa') === 'perf') {
 			G.__qaPerfStarted = 1;
 			const farm = G.Objects['Farm'];
 			if (farm && !farm.onMinigame && farm.switchMinigame) {
-				try { farm.switchMinigame(1); if (farm.refresh) farm.refresh(); } catch (e) { console.error('QA perf open failed:', e); }
+				try { farm.switchMinigame(1); if (farm.refresh) farm.refresh(); } catch (e: any) { console.error('QA perf open failed:', e); }
 			}
 			const out = document.createElement('div');
 			out.id = '__dbgqa';
@@ -351,7 +351,7 @@ if (debugSurface && params.get('qa') === 'ascend') {
 				G.__qaAscend = { phase: 1, out, hc0: G.heavenlyChips, prestige0: G.prestige, resets0: G.resets, cursor0: G.Objects['Cursor'].amount, t: Date.now() };
 				out.textContent = '[QA-ascend] seeded cookiesEarned=1e15, calling Game.Ascend(1)... (wait for the ~5s intro)';
 				G.Ascend(1);
-			} catch (e) {
+			} catch (e: any) {
 				out.textContent = '[QA-ascend] ERROR seed: ' + e.message;
 				window.clearInterval(tick);
 			}
@@ -409,7 +409,7 @@ if (debugSurface && params.get('qa') === 'offline') {
 		// offline gain (computed during load) has been applied before we touch state.
 		if (!G || !G.ready || !G.Objects || G.T < 90) return;
 		let marker = null;
-		try { marker = JSON.parse(localStorage.getItem('__qaOffline') || 'null'); } catch (e) { /* ignore */ }
+		try { marker = JSON.parse(localStorage.getItem('__qaOffline') || 'null'); } catch (e: any) { /* ignore */ }
 		if (marker) {
 			// Phase 2: the engine already computed + granted the offline gain on boot.
 			if (G.__qaOfflineDone) return;
@@ -423,8 +423,8 @@ if (debugSurface && params.get('qa') === 'offline') {
 					'\n[QA-offline] current cookies    = ' + Math.round(G.cookies) +
 					'\n[QA-offline] gained while away  = ' + Math.round(earned) + '   (expected ~' + Math.round(marker.expected) + ' = 3600s x ' + marker.cps.toFixed(2) + ' CpS)' +
 					'\n[QA-offline] ' + (ok ? 'PASS: offline gain granted on load (timeOffline x CpS; Perfect idling = 100% no-cap)' : 'CHECK: gain outside expected band');
-				try { localStorage.removeItem('__qaOffline'); } catch (e) { /* ignore */ }
-			} catch (e) { out().textContent = '[QA-offline] verify error: ' + e.message; }
+				try { localStorage.removeItem('__qaOffline'); } catch (e: any) { /* ignore */ }
+			} catch (e: any) { out().textContent = '[QA-offline] verify error: ' + e.message; }
 			window.clearInterval(tick);
 			return;
 		}
@@ -452,7 +452,7 @@ if (debugSurface && params.get('qa') === 'offline') {
 			// reloaded page (fresh document, marker still present).
 			window.clearInterval(tick);
 			setTimeout(() => location.reload(), 400);
-		} catch (e) { out().textContent = '[QA-offline] ERROR: ' + e.message; }
+		} catch (e: any) { out().textContent = '[QA-offline] ERROR: ' + e.message; }
 	}, 250);
 }
 
@@ -500,7 +500,7 @@ if (debugSurface && params.get('qa') === 'special') {
 				? '[QA-special] PASS: seasonal specials (Santa + Dragon) unlock and act'
 				: '[QA-special] CHECK: see above');
 			out().textContent = '[QA-special] seasonal specials (Santa + Dragon tabs)\n' + lines.join('\n');
-		} catch (e) { out().textContent = '[QA-special] ERROR: ' + e.message + '\n' + (e.stack || ''); }
+		} catch (e: any) { out().textContent = '[QA-special] ERROR: ' + e.message + '\n' + (e.stack || ''); }
 		window.clearInterval(tick);
 	}, 250);
 }
@@ -521,7 +521,7 @@ if (debugSurface && params.get('qa') === 'a11y') {
 		const G = window.Game;
 		if (!G || !G.ready || !G.prefs || G.T < 90) return;
 		let marker = null;
-		try { marker = JSON.parse(localStorage.getItem('__qaA11y') || 'null'); } catch (e) { /* ignore */ }
+		try { marker = JSON.parse(localStorage.getItem('__qaA11y') || 'null'); } catch (e: any) { /* ignore */ }
 		if (marker) {
 			// Phase 2: screen-reader mode should be active (products are <button>s).
 			if (G.__qaA11yDone) return;
@@ -537,8 +537,8 @@ if (debugSurface && params.get('qa') === 'a11y') {
 					'\n[QA-a11y] #product0 tag          = ' + tag +
 					'\n[QA-a11y] #product0 aria-labelledby = ' + (aria || '(none)') +
 					'\n[QA-a11y] ' + (ok ? 'PASS: screen-reader mode renders store products as accessible <button aria-labelledby=...>' : 'CHECK: expected a <button> with aria-labelledby');
-				try { localStorage.removeItem('__qaA11y'); } catch (e) { /* ignore */ }
-			} catch (e) { out().textContent = '[QA-a11y] verify error: ' + e.message; }
+				try { localStorage.removeItem('__qaA11y'); } catch (e: any) { /* ignore */ }
+			} catch (e: any) { out().textContent = '[QA-a11y] verify error: ' + e.message; }
 			window.clearInterval(tick);
 			return;
 		}
@@ -557,7 +557,7 @@ if (debugSurface && params.get('qa') === 'a11y') {
 			// render path.
 			window.clearInterval(tick);
 			setTimeout(() => location.reload(), 400);
-		} catch (e) { out().textContent = '[QA-a11y] ERROR: ' + e.message; }
+		} catch (e: any) { out().textContent = '[QA-a11y] ERROR: ' + e.message; }
 	}, 250);
 }
 
@@ -604,7 +604,7 @@ if (debugSurface && params.get('qa') === 'wrinkler') {
 				me.hp = -10;                     // triggers the pop on the next tick
 				G.__qaWrinkDef = { debuffOk, cpsBefore, debuff };
 				out().textContent = lines.join('\n');
-			} catch (e) { out().textContent = '[QA-wrinkler] ERROR: ' + e.message + '\n' + (e.stack || ''); G.__qaWrinklerDone = 1; window.clearInterval(tick); }
+			} catch (e: any) { out().textContent = '[QA-wrinkler] ERROR: ' + e.message + '\n' + (e.stack || ''); G.__qaWrinklerDone = 1; window.clearInterval(tick); }
 			return;
 		}
 		// Seed 2: the pop has resolved (a loop tick ran UpdateWrinklers). Verify.
@@ -628,7 +628,7 @@ if (debugSurface && params.get('qa') === 'wrinkler') {
 					: '[QA-wrinkler] CHECK: see above'
 			];
 			out().textContent = lines.join('\n');
-		} catch (e) { out().textContent = '[QA-wrinkler] verify error: ' + e.message; }
+		} catch (e: any) { out().textContent = '[QA-wrinkler] verify error: ' + e.message; }
 		window.clearInterval(tick);
 	}, 250);
 }
@@ -649,7 +649,7 @@ if (debugSurface && params.get('qa') === 'icon') {
 		G.__qaIconDone = 1;
 		try {
 			const rows = ['[QA-icon] store icon diagnostics'];
-			const inspect = (id) => {
+			const inspect = (id: string) => {
 				const el = document.getElementById(id);
 				if (!el) { rows.push(id + ': (not found)'); return; }
 				const cs = getComputedStyle(el);
@@ -665,7 +665,7 @@ if (debugSurface && params.get('qa') === 'icon') {
 			inspect('productIconOff1');   // "off" layer (Grandma, the dimmed one)
 			inspect('productIcon0');      // "on" layer (Cursor)
 			out().textContent = rows.join('\n');
-		} catch (e) { out().textContent = '[QA-icon] ERROR: ' + e.message + '\n' + (e.stack || ''); }
+		} catch (e: any) { out().textContent = '[QA-icon] ERROR: ' + e.message + '\n' + (e.stack || ''); }
 		window.clearInterval(tick);
 	}, 250);
 }
@@ -688,7 +688,7 @@ if (debugSurface && params.get('qa') === 'onecol') {
 		// skew the gap-to-tab-bar check)
 		const settling = ['sectionLeft', 'sectionMiddle', 'sectionRight'].some((id) => {
 			const el = document.getElementById(id);
-			return el.getAnimations && el.getAnimations().length > 0;
+			return el!.getAnimations && el!.getAnimations().length > 0;
 		});
 		if (settling) return;
 		G.__qaOneCol = 1;
@@ -696,8 +696,8 @@ if (debugSurface && params.get('qa') === 'onecol') {
 		out.id = '__dbgqa';
 		out.style.cssText = 'position:fixed;top:0;left:0;z-index:99999;background:#fff;color:#060;font:12px monospace;white-space:pre-wrap;max-width:640px;';
 		document.body.appendChild(out);
-		const lines = [];
-		const ok = (label, pass, extra) => {
+		const lines: string[] = [];
+		const ok = (label: string, pass: boolean, extra?: string) => {
 			lines.push('[QA-onecol] ' + (pass ? 'PASS' : 'FAIL') + ' ' + label + (extra !== undefined ? ' (' + extra + ')' : ''));
 		};
 		try {
@@ -713,7 +713,7 @@ if (debugSurface && params.get('qa') === 'onecol') {
 			// --- mode state ---
 			ok('body.oneColumn + data-col=left at boot', body.dataset.col === 'left', 'data-col=' + body.dataset.col);
 			ok('Game.minLayoutW drops 800 -> 400', G.minLayoutW === 400, 'minLayoutW=' + G.minLayoutW);
-			const vp = document.querySelector('meta[name=viewport]');
+			const vp = document.querySelector<HTMLMetaElement>('meta[name=viewport]');
 			ok('viewport meta swapped to device-width', !!(vp && vp.content.indexOf('width=device-width') === 0), vp ? vp.content : 'meta missing');
 			ok('Game.scale sane (0.3 .. 1.5)', G.scale >= 0.3 && G.scale <= 1.5, 'scale=' + G.scale);
 			ok('--cc3Scale CSS var published', body.style.getPropertyValue('--cc3Scale') === String(G.scale), 'var=' + body.style.getPropertyValue('--cc3Scale') + ', scale=' + G.scale);
@@ -721,14 +721,14 @@ if (debugSurface && params.get('qa') === 'onecol') {
 			const bar = document.getElementById('oneColTabs');
 			const tabs = Array.prototype.slice.call(document.querySelectorAll('#oneColTabs button'));
 			ok('tab bar visible with 3 tabs', !!bar && tabs.length === 3 && getComputedStyle(bar).display === 'flex', 'display=' + (bar ? getComputedStyle(bar).display : 'n/a') + ', tabs=' + tabs.length);
-			const shown = (id) => { const r = document.getElementById(id).getBoundingClientRect(); return r.width >= 100 && r.height >= 100; };
-			const hidden = (id) => getComputedStyle(document.getElementById(id)).display === 'none';
-			const colRect = (id) => document.getElementById(id).getBoundingClientRect();
+			const shown = (id: string) => { const r = document.getElementById(id)!.getBoundingClientRect(); return r.width >= 100 && r.height >= 100; };
+			const hidden = (id: string) => getComputedStyle(document.getElementById(id)!).display === 'none';
+			const colRect = (id: string) => document.getElementById(id)!.getBoundingClientRect();
 			ok('left column shown, middle+right hidden', shown('sectionLeft') && hidden('sectionMiddle') && hidden('sectionRight'));
 			const fullW = window.innerWidth / G.scale;
 			const lw = colRect('sectionLeft').width;
 			ok('active column is full-width', Math.abs(lw - fullW) < 2, 'col=' + lw.toFixed(1) + 'px, expect~' + fullW.toFixed(1) + 'px');
-			const gap = colRect('sectionLeft').bottom - bar.getBoundingClientRect().top;
+			const gap = colRect('sectionLeft').bottom - bar!.getBoundingClientRect().top;
 			ok('column stops right above the tab bar', Math.abs(gap) < 2, 'gap=' + gap.toFixed(2) + 'px');
 			// --- tab switching ---
 			tabs[1].click();
@@ -738,7 +738,7 @@ if (debugSurface && params.get('qa') === 'onecol') {
 			ok('aria-pressed tracks the active tab', tabs.map((t) => t.getAttribute('aria-pressed')).join(',') === 'false,false,true', tabs.map((t) => t.getAttribute('aria-pressed')).join(','));
 			// --- cookie click path in the one-column layout ---
 			tabs[0].click();
-			const r = document.getElementById('bigCookie').getBoundingClientRect();
+			const r = document.getElementById('bigCookie')!.getBoundingClientRect();
 			const cx = (r.left + r.right) / 2;
 			ok('cookie on-screen and horizontally centered', r.top >= 0 && r.bottom <= window.innerHeight && Math.abs(cx - window.innerWidth / 2) < 5, 'center-x=' + cx.toFixed(1) + 'px vs viewport-mid ' + (window.innerWidth / 2).toFixed(1) + 'px');
 			const clicksBefore = G.cookieClicks;
@@ -746,7 +746,7 @@ if (debugSurface && params.get('qa') === 'onecol') {
 			G.ClickCookie(null, 5);
 			ok('cookie click earns cookies (ClickCookie path)', G.cookieClicks === clicksBefore + 1 && G.cookies >= cookiesBefore + 5 - 1e-6, cookiesBefore.toFixed(1) + ' -> ' + G.cookies.toFixed(1) + ' cookies, ' + clicksBefore + ' -> ' + G.cookieClicks + ' clicks');
 			out.textContent = lines.join('\n') + '\n[QA-onecol] ' + (lines.every((l) => l.indexOf('PASS') !== -1) ? 'PASS: one-column responsive mode verified' : 'FAIL: see the lines above');
-		} catch (e) {
+		} catch (e: any) {
 			out.textContent = lines.join('\n') + '\n[QA-onecol] ERROR: ' + e.constructor.name + ': ' + e.message;
 		}
 		window.clearInterval(tick);
@@ -771,7 +771,7 @@ if (debugSurface && params.get('qa') === 'anim') {
 	};
 	// Parse the #cookies display: full digits below 1e6 ("999,999"), word
 	// units at/above it ("4.655 million", per the port's Beautify format).
-	const DISPLAY_UNITS = { million: 1e6, billion: 1e9, trillion: 1e12, quadrillion: 1e15, quintillion: 1e18 };
+	const DISPLAY_UNITS: Record<string, number> = { million: 1e6, billion: 1e9, trillion: 1e12, quadrillion: 1e15, quintillion: 1e18 };
 	const readDisplay = () => {
 		const el = document.getElementById('cookies');
 		const m = el ? el.textContent.match(/([\d,]+(?:\.\d+)?)\s*(million|billion|trillion|quadrillion|quintillion)?/) : null;
@@ -784,9 +784,9 @@ if (debugSurface && params.get('qa') === 'anim') {
 		let st = G.__qaAnim;
 		if (!st) {
 			G.__qaAnim = st = { phase: 0, t0: 0, v: [], all: [] };
-			const ok = (label, pass, extra) => st.all.push('[QA-anim] ' + (pass ? 'PASS' : 'FAIL') + ' ' + label + (extra !== undefined ? ' (' + extra + ')' : ''));
+			const ok = (label: string, pass: boolean, extra?: string) => st.all.push('[QA-anim] ' + (pass ? 'PASS' : 'FAIL') + ' ' + label + (extra !== undefined ? ' (' + extra + ')' : ''));
 			// --- boot fade: the 0.35s animation has long finished; the name persists ---
-			const wAnim = getComputedStyle(document.getElementById('wrapper')).animationName;
+			const wAnim = getComputedStyle(document.getElementById('wrapper')!).animationName;
 			ok('boot fade: #wrapper ran cc3BootIn', wAnim === 'cc3BootIn', wAnim);
 			// --- a fresh profile (fancy=1, no reduced-motion) keeps motion on ---
 			ok('motion on for a fresh profile', A.motion === true && !document.body.classList.contains('noMotion'), 'noMotion=' + document.body.classList.contains('noMotion'));
@@ -795,9 +795,9 @@ if (debugSurface && params.get('qa') === 'anim') {
 			if (body.classList.contains('oneColumn')) {
 				const tabs = Array.prototype.slice.call(document.querySelectorAll('#oneColTabs button'));
 				tabs[1].click();
-				ok('tab switch: middle column enters with cc3ColIn', getComputedStyle(document.getElementById('sectionMiddle')).animationName === 'cc3ColIn', getComputedStyle(document.getElementById('sectionMiddle')).animationName);
+				ok('tab switch: middle column enters with cc3ColIn', getComputedStyle(document.getElementById('sectionMiddle')!).animationName === 'cc3ColIn', getComputedStyle(document.getElementById('sectionMiddle')!).animationName);
 				tabs[2].click();
-				ok('tab switch: right column enters with cc3ColIn', getComputedStyle(document.getElementById('sectionRight')).animationName === 'cc3ColIn');
+				ok('tab switch: right column enters with cc3ColIn', getComputedStyle(document.getElementById('sectionRight')!).animationName === 'cc3ColIn');
 				tabs[0].click(); // back to the cookie column
 			} else {
 				ok('one-column mode active (run the probe with &oneCol=1)', false);
@@ -814,7 +814,7 @@ if (debugSurface && params.get('qa') === 'anim') {
 			return;
 		}
 		if (st.phase === 1) {
-			const ok = (label, pass, extra) => st.all.push('[QA-anim] ' + (pass ? 'PASS' : 'FAIL') + ' ' + label + (extra !== undefined ? ' (' + extra + ')' : ''));
+			const ok = (label: string, pass: boolean, extra?: string) => st.all.push('[QA-anim] ' + (pass ? 'PASS' : 'FAIL') + ' ' + label + (extra !== undefined ? ' (' + extra + ')' : ''));
 			// t0+250ms: note #1 has landed with its slide-in
 			const n1 = document.getElementById(st.id1);
 			ok('note 1: .note entered with cc3NoteIn', !!n1 && getComputedStyle(n1).animationName === 'cc3NoteIn', n1 ? getComputedStyle(n1).animationName : '(missing)');
@@ -833,7 +833,7 @@ if (debugSurface && params.get('qa') === 'anim') {
 			return;
 		}
 		if (st.phase === 3) {
-			const ok = (label, pass, extra) => st.all.push('[QA-anim] ' + (pass ? 'PASS' : 'FAIL') + ' ' + label + (extra !== undefined ? ' (' + extra + ')' : ''));
+			const ok = (label: string, pass: boolean, extra?: string) => st.all.push('[QA-anim] ' + (pass ? 'PASS' : 'FAIL') + ' ' + label + (extra !== undefined ? ' (' + extra + ')' : ''));
 			// DOM order in #notes is oldest-first; look both notes up by id
 			const n1 = document.getElementById(st.id1);
 			const n2 = document.getElementById(st.id2);
@@ -848,8 +848,8 @@ if (debugSurface && params.get('qa') === 'anim') {
 			const midJump = v1 > v0 && v1 >= 0.05 * target && v1 <= 0.999 * target;
 			const nonDec = v2 >= v1 && v3 >= v2;
 			const converged = v3 >= target - Math.max(20, 0.02 * target);
-			ok('smooth counter: display mid-count-up at t0+250ms', midJump, st.v.map((x) => Math.round(x)).join(' -> '));
-			ok('smooth counter: display never decreases', nonDec, st.v.map((x) => Math.round(x)).join(' -> '));
+			ok('smooth counter: display mid-count-up at t0+250ms', midJump, st.v.map((x: any) => Math.round(x)).join(' -> '));
+			ok('smooth counter: display never decreases', nonDec, st.v.map((x: any) => Math.round(x)).join(' -> '));
 			ok('smooth counter: display converged to the real cookie value', converged, 'display ' + Math.round(v3) + ' vs cookies ' + Math.round(target));
 			ok('smooth counter: rAF hook ran at display rate (active, re-anchored each tick)', A.counter.active === true && A.counter.anchors >= G.T - 35 && A.counter.frames >= (G.T - 30) * 0.9, 'frames=' + A.counter.frames + ' anchors=' + A.counter.anchors + ' writes=' + A.counter.writes + ' ticks=' + G.T);
 			st.phase = 4;
@@ -863,11 +863,11 @@ if (debugSurface && params.get('qa') === 'anim') {
 		if (st.phase === 4) {
 			// wait for the intro to cross the breakpoint (75 ticks ≈ 2.5s)
 			if (G.AscendTimer < G.AscendBreakpoint) return;
-			const ok = (label, pass, extra) => st.all.push('[QA-anim] ' + (pass ? 'PASS' : 'FAIL') + ' ' + label + (extra !== undefined ? ' (' + extra + ')' : ''));
+			const ok = (label: string, pass: boolean, extra?: string) => st.all.push('[QA-anim] ' + (pass ? 'PASS' : 'FAIL') + ' ' + label + (extra !== undefined ? ' (' + extra + ')' : ''));
 			// the flash + shake run 900ms and we are <=250ms past the crossing
 			const flash = document.getElementById('cc3Flash');
 			ok('ascend flash: #cc3Flash fired at the breakpoint', A.ascendFlashes === 1 && !!flash && flash.classList.contains('cc3On'), 'ascendFlashes=' + A.ascendFlashes + ', class=' + (flash ? flash.className : '(missing)'));
-			ok('ascend shake: #game got cc3Shake', document.getElementById('game').classList.contains('cc3Shake'));
+			ok('ascend shake: #game got cc3Shake', document.getElementById('game')!.classList.contains('cc3Shake'));
 			// fast-forward the intro's end (chips + prestige are granted)
 			G.AscendTimer = G.AscendDuration;
 			st.phase = 5;
@@ -884,7 +884,7 @@ if (debugSurface && params.get('qa') === 'anim') {
 		if (st.phase === 6) {
 			// outlast the 1s reincarnate animation AND the 900ms flash cleanup
 			if (G.OnAscend !== 0 || Date.now() - st.t0 < 1600) return;
-			const ok = (label, pass, extra) => st.all.push('[QA-anim] ' + (pass ? 'PASS' : 'FAIL') + ' ' + label + (extra !== undefined ? ' (' + extra + ')' : ''));
+			const ok = (label: string, pass: boolean, extra?: string) => st.all.push('[QA-anim] ' + (pass ? 'PASS' : 'FAIL') + ' ' + label + (extra !== undefined ? ' (' + extra + ')' : ''));
 			ok('ascend flash: the overlay was cleaned up afterwards', !document.getElementById('cc3Flash'));
 			ok('reincarnate: the run reset (Cursor back to 0)', G.Objects['Cursor'].amount === 0);
 			// --- in-game "Fancy graphics" opt-out: flip it off and check the gates ---
@@ -896,11 +896,11 @@ if (debugSurface && params.get('qa') === 'anim') {
 		}
 		if (st.phase === 7) {
 			if (Date.now() - st.t0 < 300) return; // a few frames for the rAF hook to react
-			const ok = (label, pass, extra) => st.all.push('[QA-anim] ' + (pass ? 'PASS' : 'FAIL') + ' ' + label + (extra !== undefined ? ' (' + extra + ')' : ''));
+			const ok = (label: string, pass: boolean, extra?: string) => st.all.push('[QA-anim] ' + (pass ? 'PASS' : 'FAIL') + ' ' + label + (extra !== undefined ? ' (' + extra + ')' : ''));
 			ok('fancy off: body.noMotion published', document.body.classList.contains('noMotion') && A.motion === false);
 			ok('fancy off: the smooth counter hook stopped', A.counter.active === false);
-			ok('fancy off: the CSS motion gates went quiet', getComputedStyle(document.getElementById('wrapper')).animationName === 'none');
-			out().textContent = st.all.join('\n') + '\n[QA-anim] ' + (st.all.every((l) => l.indexOf('PASS') !== -1) ? 'PASS: the CC3 polish (v3.0 animation pass) verified' : 'FAIL: see the lines above');
+			ok('fancy off: the CSS motion gates went quiet', getComputedStyle(document.getElementById('wrapper')!).animationName === 'none');
+			out().textContent = st.all.join('\n') + '\n[QA-anim] ' + (st.all.every((l: any) => l.indexOf('PASS') !== -1) ? 'PASS: the CC3 polish (v3.0 animation pass) verified' : 'FAIL: see the lines above');
 			window.clearInterval(tick);
 		}
 	}, 250);
@@ -908,10 +908,15 @@ if (debugSurface && params.get('qa') === 'anim') {
 
 /* ----------------------------------------------------------------- i18n */
 // Language files are ESM modules; Vite code-splits each into its own chunk.
-const langModules = import.meta.glob('./engine/loc/*.js');
+/* Generic = the module namespace shape at runtime: each loc file is
+ * `export default { id, name, strings }`, so the resolved module is
+ * `{ default: { id, name, strings } }` (plural strings are [one, many] arrays). */
+const langModules = import.meta.glob<{ default: { id: string; name: string; strings: Record<string, string | string[]> } }>(
+	'./engine/loc/*.ts',
+);
 
 window.loadLangModule = function (file, done, fail) {
-	const key = `./engine/loc/${file}.js`;
+	const key = `./engine/loc/${file}.ts`;
 	if (!langModules[key]) {
 		if (fail) fail(new Error(`Unknown language module: ${file}`));
 		return;
@@ -927,11 +932,13 @@ window.loadLangModule = function (file, done, fail) {
 
 /* ------------------------------------------------------------ minigames */
 // Keys match the `minigameUrl` values the engine assigns to buildings.
-const minigameModules = {
-	'minigameGarden.js': () => import('./engine/minigameGarden.js'),
-	'minigameGrimoire.js': () => import('./engine/minigameGrimoire.js'),
-	'minigameMarket.js': () => import('./engine/minigameMarket.js'),
-	'minigamePantheon.js': () => import('./engine/minigamePantheon.js'),
+const minigameModules: Record<string, () => Promise<unknown>> = {
+	// Keys must stay the classic '…js' strings: the engine (engine/main.ts)
+	// assigns them verbatim as building.minigameUrl; only the specifiers moved to .ts.
+	'minigameGarden.js': () => import('./engine/minigameGarden'),
+	'minigameGrimoire.js': () => import('./engine/minigameGrimoire'),
+	'minigameMarket.js': () => import('./engine/minigameMarket'),
+	'minigamePantheon.js': () => import('./engine/minigamePantheon'),
 };
 
 window.loadMinigameModule = function (url) {
@@ -942,10 +949,10 @@ window.loadMinigameModule = function (url) {
 
 /* ----------------------------------------------- engine UI hooks (no
  * inline handlers anymore: these replace the original onclick/onmouseout). */
-document.getElementById('tooltip').addEventListener('mouseout', () => {
+document.getElementById('tooltip')!.addEventListener('mouseout', () => {
 	window.Game.tooltip.hide();
 });
-document.getElementById('promptClose').addEventListener('click', () => {
+document.getElementById('promptClose')!.addEventListener('click', () => {
 	window.PlaySound('snd/tickOff.mp3');
 	window.Game.ClosePrompt();
 });
@@ -983,7 +990,7 @@ if (swEnabled) {
 	// the real safe-area insets (env() is 0 without it). In a plain browser the
 	// insets are 0 anyway, so this only changes full-screen PWA behavior.
 	const VP_DEVICE = 'width=device-width, initial-scale=1, viewport-fit=cover';
-	const vp = document.querySelector('meta[name=viewport]');
+	const vp = document.querySelector<HTMLMetaElement>('meta[name=viewport]');
 	const vpClassic = vp ? vp.content : null;
 	const force =
 		params.get('oneCol') === '1' || params.get('oneCol') === 'on'
@@ -994,9 +1001,9 @@ if (swEnabled) {
 	const COLS = ['left', 'middle', 'right'];
 	const tabs = Array.prototype.slice.call(document.querySelectorAll('#oneColTabs button'));
 	let activeCol = 'left';
-	let currentOneCol = null;
+	let currentOneCol: boolean | null = null;
 
-	const setCol = (col) => {
+	const setCol = (col: string) => {
 		activeCol = COLS.indexOf(col) === -1 ? 'left' : col;
 		document.body.dataset.col = activeCol;
 		for (const t of tabs) t.setAttribute('aria-pressed', String(t.dataset.col === activeCol));
@@ -1007,13 +1014,13 @@ if (swEnabled) {
 	const desiredOneCol = () =>
 		force === null ? Math.min(window.innerWidth, window.screen.width) <= ONE_COL_MAX_W : force;
 
-	const applyMode = (G) => {
+	const applyMode = (G: any) => {
 		const on = desiredOneCol();
 		if (on === currentOneCol) return;
 		currentOneCol = on;
 		document.body.classList.toggle('oneColumn', on);
 		if (G) G.minLayoutW = on ? 400 : 800;
-		if (vp) vp.content = on ? VP_DEVICE : vpClassic;
+		if (vp) vp.content = on ? VP_DEVICE : vpClassic!;
 	};
 
 	// The engine registers its own window 'resize' listener and calls Game.resize() once at
@@ -1082,7 +1089,7 @@ if (swEnabled) {
 	let lastT = -1;
 	let ax = 0, aC = 0, at = 0;
 	let lastStr = '';
-	const renderCookies = (v) => {
+	const renderCookies = (v: number) => {
 		const G = window.Game;
 		const el = document.getElementById('cookies');
 		if (!el) return;
@@ -1158,8 +1165,8 @@ if (swEnabled) {
 	}
 
 	/* --- the frame loop ------------------------------------------------------ */
-	let wasOff = null;
-	const frame = (now) => {
+	let wasOff: boolean | null = null;
+	const frame = (now: number) => {
 		window.requestAnimationFrame(frame);
 		const G = window.Game;
 		if (!G || !G.ready || !G.prefs) return;

@@ -12,6 +12,10 @@
  *    (window.loadLangModule / window.loadMinigameModule, provided by the entry)
  *  - converts loc/*.js into ESM language modules
  *
+ * All outputs are .ts (the TS conversion): the engine/minigame ports carry
+ * `// @ts-nocheck` + an `export {}` module marker (1:1 behavior, verbatim
+ * code); the loc modules are typed by inference (export default object).
+ *
  * Re-run only when the upstream engine source changes.
  */
 import { readFileSync, writeFileSync, copyFileSync, mkdirSync, readdirSync } from 'node:fs';
@@ -131,17 +135,20 @@ function implicitGlobals(code) {
 }
 
 /* ---------------------------------------------------------------- main.js */
-const mainPath = join(ENG, 'main.js');
+const mainPath = join(ENG, 'main.ts');
 let code = stripBom(readFileSync(join(SRC, 'main.js'), 'utf8'));
 const declared = topLevelNames(code);
 const implicit = implicitGlobals(code);
 console.log(`main.js: ${declared.length} top-level bindings, ${implicit.length} implicit globals [${implicit.join(', ')}]`);
 
 // 1. Declare the implicit globals so ESM strict mode accepts the assignments.
+//    The output is a .ts file with type-checking disabled: this is a verbatim
+//    2.048 port and the TS conversion must not change its behavior.
+const nocheck = '// @ts-nocheck — legacy 2.048 port, kept verbatim for the 1:1 TS conversion; type-checking intentionally disabled here.\n';
 const implicitVars = implicit.length
   ? `/* CC3: the original relied on implicit globals; declare them for module strict mode. */\nvar ${implicit.join(', ')};\n\n`
   : '';
-code = implicitVars + code;
+code = nocheck + implicitVars + code;
 
 // 2. Boot hook: window.onload -> addEventListener('load').
 if (!code.includes('window.addEventListener(\'load\',')) {
@@ -345,6 +352,10 @@ code = applyMinLayoutW(code);
 code = toWebP(code);
 code = applyConcatExt(code);
 code = rewriteBareFilenames(code);
+// Explicit module marker: the file is always an ESM module at runtime (Vite
+// bundles it as such); the marker keeps its top-level declarations out of the
+// TS global scope. Zero runtime effect.
+code = code + '\n/* CC3: explicit module marker — at runtime this file is always an ESM module\n * (Vite bundles it as such), and this keeps its top-level var/function\n * declarations out of the TS global scope. Zero runtime effect. */\nexport {};\n';
 writeFileSync(mainPath, code);
 console.log('wrote', mainPath);
 
@@ -370,8 +381,14 @@ for (const file of readdirSync(SRC)) {
   if (imp.length) m = header + m;
   m = toWebP(m); // images ship as WebP (see toWebP above)
   m = rewriteBareFilenames(m);
-  writeFileSync(join(ENG, file), m);
-  console.log(`wrote ${file} (implicit: ${imp.join(', ') || 'none'})`);
+  // .ts output: @ts-nocheck (verbatim legacy port) + explicit module marker
+  // (always an ESM module at runtime; keeps top-level decls out of TS globals).
+  const tsFile = file.replace(/\.js$/, '.ts');
+  m = '// @ts-nocheck — legacy 2.048 port, kept verbatim for the 1:1 TS conversion; type-checking intentionally disabled here.\n'
+    + m
+    + '\n/* CC3: explicit module marker — at runtime this file is always an ESM module\n * (Vite bundles it as such), and this keeps its top-level var/function\n * declarations out of the TS global scope. Zero runtime effect. */\nexport {};\n';
+  writeFileSync(join(ENG, tsFile), m);
+  console.log(`wrote ${tsFile} (implicit: ${imp.join(', ') || 'none'})`);
 }
 
 /* -------------------------------------------------------------------- loc */
@@ -392,8 +409,9 @@ for (const file of readdirSync(join(SRC, 'loc'))) {
     body,
     '}\n};',
   ].join('\n');
-  writeFileSync(join(locDir, file), toWebP(out));
-  console.log('wrote loc/' + file);
+  const tsFile = file.replace(/\.js$/, '.ts');
+  writeFileSync(join(locDir, tsFile), toWebP(out));
+  console.log('wrote loc/' + tsFile);
 }
 
 console.log('transform complete');

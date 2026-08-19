@@ -7,7 +7,7 @@
 # deploy: only runs when the tests pass (and never on PRs). Replaces the
 #        gh-pages branch with the fresh dist/ (peaceiris/actions-gh-pages).
 #        The relocatable build (base './') serves from the repo subpath, and
-#        the per-build service-worker cache stamp (vite.config.js) makes each
+#        the per-build service-worker cache stamp (vite.config.ts) makes each
 #        deploy self-updating for returning players.
 
 name: Test & Deploy

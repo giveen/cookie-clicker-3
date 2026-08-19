@@ -9,13 +9,13 @@ const utf8Encoder = new TextEncoder();
 const utf8Decoder = new TextDecoder('utf-8');
 
 export const Base64 = {
-	encode(input) {
+	encode(input: string) {
 		const bytes = utf8Encoder.encode(input);
 		let binary = '';
 		for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
 		return btoa(binary);
 	},
-	decode(input) {
+	decode(input: string) {
 		const binary = atob(input.replace(/[^A-Za-z0-9+/=]/g, ''));
 		const bytes = new Uint8Array(binary.length);
 		for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);

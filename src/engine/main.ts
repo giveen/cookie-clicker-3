@@ -1,3 +1,4 @@
+// @ts-nocheck — legacy 2.048 port, kept verbatim for the 1:1 TS conversion; type-checking intentionally disabled here.
 /* CC3: the original relied on implicit globals; declare them for module strict mode. */
 var Audio, localStorageGet, localStorageSet, Music, PlayCue, TopBarOffset, LASTHEAVENLYSELECTED, ON, OFF;
 
@@ -16028,3 +16029,8 @@ Object.assign(window, {
 	Timer,
 	Game
 });
+
+/* CC3: explicit module marker — at runtime these files are always ESM modules
+ * (Vite bundles them as such), and this keeps their top-level var/function
+ * declarations out of the TS global scope. Zero runtime effect. */
+export {};

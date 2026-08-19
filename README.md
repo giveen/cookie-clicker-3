@@ -1,12 +1,13 @@
 # Cookie Clicker 3
 
-A modern, from-scratch rebuild of the tooling around [Cookie Clicker 2.048](https://github.com/DiSCooooo/Cookie-Clicker-2.048) (itself a port of Orteil's [Cookie Clicker](http://orteil.dashnet.org/cookieclicker/)). The game code is the original 2.048 engine, ported into ES modules and served by a zero-runtime-dependency Vite pipeline — no jQuery, no IE polyfills, no CDN requests, no ads, no trackers.
+A modern, from-scratch rebuild of the tooling around [Cookie Clicker 2.048](https://github.com/DiSCooooo/Cookie-Clicker-2.048) (itself a port of Orteil's [Cookie Clicker](http://orteil.dashnet.org/cookieclicker/)). The game code is the original 2.048 engine, ported into TypeScript ES modules and served by a zero-runtime-dependency Vite pipeline — no jQuery, no IE polyfills, no CDN requests, no ads, no trackers.
 
 ## What "modernized" means here
 
 | Area | 2.048 (2022) | Cookie Clicker 3 |
 | --- | --- | --- |
 | Module system | One 890 KB classic `<script>` + runtime `<script>` injection for minigames and languages | ES modules throughout; minigames and languages are code-split Vite chunks loaded with dynamic `import()` |
+| Language | ES5-ish sloppy-mode classic script (JS) | TypeScript: full `strict` type-checking on all CC3-written code; the verbatim 2.048 engine port is `.ts` with `// @ts-nocheck` (typing it would mean rewriting it) |
 | Build | None (static files) | Vite 5: dev server with HMR, production bundle with per-chunk code splitting and minification |
 | Save encoding | 2007-era WebToolkit Base64 (pure JS, UTF-8 double-encoding) | Native `btoa`/`atob` + `TextEncoder`/`TextDecoder`, byte-compatible with 2.048 saves |
 | Line endings / encoding | CRLF, BOMs | LF, no BOMs (normalized at port time) |
@@ -14,7 +15,7 @@ A modern, from-scratch rebuild of the tooling around [Cookie Clicker 2.048](http
 | Boot hook | `window.onload = …` + inline `onclick`/`onmouseout` handlers | `addEventListener('load', …)` + listeners attached in the entry module |
 | Legacy DOM bugs | Relied on sloppy-mode behavior (implicit globals, mutating the read-only `DOMRect` returned by `getBoundingClientRect()`) | Fixed for strict mode: implicit globals are declared and republished, `getBounds()` builds a fresh plain object |
 | Offline / PWA | — | Web app manifest + service worker (cache-first, best-effort caching) so the game boots offline |
-| Motion polish | UI rendered at the 30Hz loop rate; hard column/tab switches | The CC3 polish pass (v3.0): display-refresh-rate smooth cookie counter, one-column column slide-in, notification slide-in, ascend-intro flash + shake. Transform/opacity only; respects the in-game "Fancy graphics" toggle and `prefers-reduced-motion` (see "CC3 polish" in `src/styles/main.css` + `src/main.js`, verified by `?qa=anim`) |
+| Motion polish | UI rendered at the 30Hz loop rate; hard column/tab switches | The CC3 polish pass (v3.0): display-refresh-rate smooth cookie counter, one-column column slide-in, notification slide-in, ascend-intro flash + shake. Transform/opacity only; respects the in-game "Fancy graphics" toggle and `prefers-reduced-motion` (see "CC3 polish" in `src/styles/main.css` + `src/main.ts`, verified by `?qa=anim`) |
 | Ads / tracking / IE shims | AdSense, Facebook pixel, cookieconsent CDN, excanvas, IE conditional comments | Removed |
 
 The engine itself was **not** rewritten line-by-line: it is the authentic 2.048 code, transformed mechanically (see below) so it runs as strict-mode ES modules. Behavior, numbers, puns and all are the original.
@@ -23,18 +24,20 @@ The engine itself was **not** rewritten line-by-line: it is the authentic 2.048 
 
 ```
 index.html              app shell (all ids the engine expects)
+tsconfig.json           TypeScript config (strict; tsc --noEmit is the type gate)
 src/
-  main.js               entry: module wiring, language + minigame dynamic imports, PWA
-  config.js             VERSION / BETA / App, published before the engine evaluates
+  main.ts               entry: module wiring, language + minigame dynamic imports, PWA
+  config.ts             VERSION / BETA / App, published before the engine evaluates
+  globals.d.ts          the engine's `window` surface (boundary for the glue code)
   styles/main.css       ported + modernized stylesheet (self-hosted @font-face)
   assets/fonts/         Merriweather Black woff2 subsets (bundled by Vite)
   engine/
-    base64.js           native Base64 save encoding
-    main.js             the 2.048 engine as an ES module (+ globals shim)
-    minigameGarden.js   minigame modules (dynamic import, code-split)
-    minigameGrimoire.js
-    minigameMarket.js
-    minigamePantheon.js
+    base64.ts           native Base64 save encoding
+    main.ts             the 2.048 engine as an ES module (+ globals shim; @ts-nocheck)
+    minigameGarden.ts   minigame modules (dynamic import, code-split; @ts-nocheck)
+    minigameGrimoire.ts
+    minigameMarket.ts
+    minigamePantheon.ts
     loc/                language modules (EN, FR, DE, NL, CS, PL, IT, ES,
                         PT-BR, JA, ZH-CN, KO, RU) — one chunk per language
 public/
@@ -65,8 +68,9 @@ What it does:
 4. **Modern loading** — the runtime `<script src=…>` injection used for language files and minigame scripts is replaced by `window.loadLangModule` / `window.loadMinigameModule`, backed by static Vite dynamic imports (so they code-split in the production build).
 5. **`getBounds()` fix** — modern `getBoundingClientRect()` returns an immutable `DOMRect`; the original mutated it in place (a silent no-op in sloppy mode). It now computes a fresh plain object, which also makes `Game.scale` actually work.
 6. **Globals shim** — appends `Object.assign(window, { …all engine top-level bindings… })` so the minigame modules and the legacy mod API (`Game.LoadMod`) keep resolving their free variables against `window`.
-7. **Language files** — each `loc/*.js` (`AddLanguage('XX', …, {…})`) is rewritten to `export default { id, name, strings }`.
+7. **Language files** — each `loc/*.js` (`AddLanguage('XX', …, {…})`) is rewritten to `export default { id, name, strings }` (as a `.ts` file; the object literal is valid TS and passes the strict check).
 8. **Strict-mode bug fixes** — the original is a sloppy-mode classic script, so it contains bare assignments to undeclared identifiers (implicit globals) that throw `ReferenceError` in strict-mode ESM. The transform fixes the known ones (`mysterious` in `crateTooltip`, `arr2` in `grabProps`, `name` in `CalculateGains`, `buff` in the Sugar-frenzy handler, `icon` in the Market `goodTooltip`); `scripts/scan-implicit-globals.mjs` is a scope-aware checker used to find them — the whole tree currently reports zero.
+9. **TypeScript output** — the engine and minigame ports are emitted as `.ts` with a `// @ts-nocheck` header and an `export {}` module marker (they are verbatim 2.048 code; the marker keeps their top-level declarations out of the TS global scope, matching how Vite already treats them as ES modules). Re-running the port reproduces the checked-in files, including those markers.
 
 ## Developing
 
@@ -78,14 +82,15 @@ npm run dev        # http://localhost:5173
 ## Building
 
 ```
-npm run build      # outputs dist/
+npm run typecheck  # tsc --noEmit: strict type-check, no emit
+npm run build      # typecheck, then outputs dist/
 npm run preview    # serve dist/ at http://localhost:4173
 ```
 
-The build is relocatable (`base: './'`), so `dist/` can be dropped onto any static host, including a GitHub Pages subpath.
+The build is relocatable (`base: './'`), so `dist/` can be dropped onto any static host, including a GitHub Pages subpath. `tsc --noEmit` is the type gate (Vite/esbuild only strips types and does not type-check); the type config lives in `tsconfig.json` (full `strict`, TS 7). The verbatim engine port is excluded from checking via per-file `// @ts-nocheck`; everything CC3-written (entry, config, base64, extras, the build config) is checked, with the engine's `window` boundary declared in `src/globals.d.ts`.
 
 Every build also stamps the service worker's cache name with a content hash of
-`dist/` (the `cc3:stamp-service-worker` plugin in `vite.config.js` rewrites the
+`dist/` (the `cc3:stamp-service-worker` plugin in `vite.config.ts` rewrites the
 `__BUILD__` placeholder in `public/sw.js`). That is what makes a deploy
 self-updating for returning players: when any file changes, the stamped
 `sw.js` differs byte-for-byte, the browser installs the new worker on the next

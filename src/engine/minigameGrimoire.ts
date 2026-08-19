@@ -1,3 +1,4 @@
+// @ts-nocheck — legacy 2.048 port, kept verbatim for the 1:1 TS conversion; type-checking intentionally disabled here.
 var M={};
 M.parent=Game.Objects['Wizard tower'];
 M.parent.minigame=M;
@@ -502,3 +503,7 @@ M.launch=function()
 	M.init(l('rowSpecial'+M.parent.id));
 }
 var M=0;
+/* CC3: explicit module marker — at runtime these files are always ESM modules
+ * (Vite bundles them as such), and this keeps their top-level var/function
+ * declarations out of the TS global scope. Zero runtime effect. */
+export {};

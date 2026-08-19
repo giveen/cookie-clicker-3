@@ -73,7 +73,7 @@
 	/* ------------------------------------------------------------------ */
 	/* Content declaration — runs in the 'create' hook (before LoadSave). */
 	/* ------------------------------------------------------------------ */
-	function declare(Game) {
+	function declare(Game: any) {
 		if (declared.done || Game.Objects[NAME]) return;
 		declared.done = true;
 
@@ -93,13 +93,13 @@
 			2,   // iconColumn (tiered content icon column — the Farm column)
 			art,
 			0,   // price (ignored: the n=19 auto-curve sets basePrice/baseCps)
-			function (m) {
+			function (m: any) {
 				let mult = 1;
 				mult *= Game.GetTieredCpsMult(m);
 				mult *= Game.magicCpS(m.name);
 				return m.baseCps * mult;
 			},
-			function () {
+			function (this: any) {
 				// Unlock this building's tiered upgrades + tiered achievements when bought,
 				// and the grandma synergy once the SpecialGrandmaUnlock threshold is met.
 				Game.UnlockTiered(this);
@@ -162,7 +162,7 @@
 	/* handlers) and wire up this building's canvas + hover + mute icon,      */
 	/* exactly as CCSE.NewBuilding does.                                     */
 	/* ------------------------------------------------------------------ */
-	function setupBuildingDom(Game, me) {
+	function setupBuildingDom(Game: any, me: any) {
 		Game.BuildStore();
 		if (me.id <= 0) return;
 		me.canvas = window.l('rowCanvas' + me.id);
@@ -171,7 +171,7 @@
 		if (window.AddEvent) {
 			window.AddEvent(me.canvas, 'mouseover', function () { me.mouseOn = true; });
 			window.AddEvent(me.canvas, 'mouseout', function () { me.mouseOn = false; });
-			window.AddEvent(me.canvas, 'mousemove', function (e) {
+			window.AddEvent(me.canvas, 'mousemove', function (e: any) {
 				var box = me.canvas.getBounds();
 				me.mousePos[0] = e.pageX - box.left;
 				me.mousePos[1] = e.pageY - box.top;
@@ -192,7 +192,7 @@
 	/* ------------------------------------------------------------------ */
 	/* Presentation: re-assert the custom store icon each draw tick.       */
 	/* ------------------------------------------------------------------ */
-	function drawIcon(Game) {
+	function drawIcon(Game: any) {
 		const me = Game.Objects[NAME];
 		if (!me) return;
 		const url = 'url(' + STORE_ICON + ')';
@@ -205,7 +205,7 @@
 	/* ------------------------------------------------------------------ */
 	/* Logic: win the level achievement.                                   */
 	/* ------------------------------------------------------------------ */
-	function check(Game) {
+	function check(Game: any) {
 		const me = Game.Objects[NAME];
 		if (me && me.levelAchiev10 && !me.levelAchiev10.won && me.level >= 10) Game.Win(LEVEL_ACHIEVEMENT);
 	}
@@ -214,7 +214,7 @@
 	/* Persistence — vanilla=0 content is not saved by the engine, so we   */
 	/* save/restore our own building + upgrades + achievements.            */
 	/* ------------------------------------------------------------------ */
-	function save(Game) {
+	function save(Game: any) {
 		const me = Game.Objects[NAME];
 		if (!me) return '';
 		const boughtUpgs = [];
@@ -236,7 +236,7 @@
 		].join('@');
 	}
 
-	function load(Game, str) {
+	function load(Game: any, str: string) {
 		if (!str) return;
 		const me = Game.Objects[NAME];
 		if (!me) return;
@@ -289,7 +289,7 @@
 				Game.registerHook('check', function () { check(Game); });
 			},
 			save: function () { return save(Game); },
-			load: function (str) { load(Game, str); },
+			load: function (str: string) { load(Game, str); },
 		});
 		return true;
 	}

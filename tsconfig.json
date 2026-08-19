@@ -1,0 +1,31 @@
+{
+	/* Cookie Clicker 3 — TypeScript 7 config.
+	 *
+	 * The ported 2.048 engine (src/engine/main.ts + the four minigames) is a
+	 * 1:1 verbatim port of ~4 MB of 2022-era classic script; those files carry
+	 * `// @ts-nocheck` so their behavior stays byte-for-byte what master's .js
+	 * was. Everything else — the glue (src/main.ts), config, base64, extras —
+	 * is checked under full strict. Vite (esbuild) strips types at build time,
+	 * so `tsc --noEmit` is the type gate and never emits.
+	 */
+	"compilerOptions": {
+		/* The build target stays es2020 (Vite); this only feeds type-checking libs. */
+		"target": "ES2022",
+		"lib": ["ES2022", "DOM", "DOM.Iterable"],
+		"module": "ESNext",
+		"moduleResolution": "bundler",
+		/* import.meta.env / import.meta.glob typing, plus node for vite.config.ts. */
+		"types": ["vite/client", "node"],
+		"strict": true,
+		"noUnusedLocals": true,
+		"noUnusedParameters": true,
+		"noFallthroughCasesInSwitch": true,
+		"forceConsistentCasingInFileNames": true,
+		"isolatedModules": true,
+		"verbatimModuleSyntax": true,
+		"erasableSyntaxOnly": true,
+		"skipLibCheck": true,
+		"noEmit": true
+	},
+	"include": ["src", "vite.config.ts"]
+}

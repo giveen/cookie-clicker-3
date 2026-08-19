@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite';
+import { defineConfig, type Plugin } from 'vite';
 import { createHash } from 'node:crypto';
 import { readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -11,7 +11,7 @@ import { join } from 'node:path';
 // `url(img/…)` -> `url(../img/…)` in the built CSS so the refs resolve back to
 // `dist/img/…`. Source CSS is left untouched (still correct in dev, where the
 // CSS is served from the root).
-function fixPublicAssetUrls() {
+function fixPublicAssetUrls(): Plugin {
 	let applied = false;
 	return {
 		name: 'cc3:fix-public-asset-urls',
@@ -43,8 +43,8 @@ function fixPublicAssetUrls() {
 //     the previous build's cache;
 //   - an identical rebuild => identical hash => no needless SW churn.
 // The build fails loudly if the placeholder is missing (template out of sync).
-function stampServiceWorker() {
-	let outDir;
+function stampServiceWorker(): Plugin {
+	let outDir: string;
 	return {
 		name: 'cc3:stamp-service-worker',
 		apply: 'build',
@@ -59,7 +59,7 @@ function stampServiceWorker() {
 				return;
 			}
 			const hash = createHash('sha256');
-			const walk = (dir) => {
+			const walk = (dir: string) => {
 				for (const name of readdirSync(dir).sort()) {
 					if (dir === outDir && name === 'sw.js') continue; // not the stamp's own input
 					const p = join(dir, name);
