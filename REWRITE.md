@@ -1,6 +1,6 @@
 # Cookie Clicker 3 — Architectural Rewrite Status
 
-_Last updated: 2026-08-20 (session checkpoint after Phase 2, slice 4)._
+_Last updated: 2026-08-20 (session checkpoint after Phase 2, slice 5 — Phase 2 complete)._
 
 ## TL;DR
 
@@ -15,19 +15,21 @@ This document tracks the **architectural rewrite**: restructuring the 16k-line
 engine into idiomatic typed TypeScript modules and classes, with the hard
 constraint that **runtime behavior stays identical to `master`** at every step.
 
-**Current state: Phase 2, slice 4 complete.** The engine's tier table, all
-19 vanilla building declarations, all 786 vanilla upgrade declarations, and
-all 501 vanilla achievement declarations now live in the typed content
-layer, and every line of CC3's own code (glue, extras, localization, QA)
-type-checks under `tsc` strict. The game builds and passes all 15 Playwright
-QA probes at every commit.
+**Current state: Phase 2 complete (all five content slices).** The
+engine's tier table, all 19 vanilla building declarations, all 786 vanilla
+upgrade declarations, all 501 vanilla achievement declarations, and the
+foolObjects joke-business map + its localization loop now live in the typed
+content layer, and every line of CC3's own code (glue, extras,
+localization, QA) type-checks under `tsc` strict. The game builds and
+passes all 15 Playwright QA probes at every commit. Next: Phase 3 (core
+classes).
 
 ## Branch / commit state
 
 | Branch  | HEAD      | Meaning                                                        |
 | ------- | --------- | -------------------------------------------------------------- |
 | `master`| `dafffc6` | The finished, deployable CC3 (deploy gate). Untouched by the rewrite. |
-| `rewrite` (work) | `65040d2` | The rewrite, built on top of the 1:1 conversion.        |
+| `rewrite` (work) | `9198b34` | The rewrite, built on top of the 1:1 conversion.        |
 
 Rewrite history (old → new):
 
@@ -39,6 +41,7 @@ b2bef7e  Rewrite Phase 2 (slice 1): extract tier table into typed content layer
 94092c1  Rewrite: add REWRITE.md status document
 66a11ff  Rewrite Phase 2 (slice 3): extract vanilla upgrade content into typed module
 65040d2  Rewrite Phase 2 (slice 4): extract vanilla achievement content into typed module
+9198b34  Rewrite Phase 2 (slice 5): extract foolObjects map + localization loop into typed module
 ```
 
 ## What "1:1" means here, and how it's enforced
@@ -90,7 +93,7 @@ compile time) and individually documented, runtime-preserving renames.
   escape hatch**: legacy engine code may throw non-`Error` values, and
   narrowing them would change behavior.
 
-### Phase 2 — content extraction (in progress)
+### Phase 2 — content extraction (complete)
 
 Content is moved out of the engine's giant `Game.Init` body into
 `src/engine/content/` as typed modules. The engine calls the module's
@@ -164,6 +167,24 @@ inline literals, making verbatim extraction 1:1.
    (tsgo TS2403), the four write-only `var achiev=` binding drops, and one
    compile-erased `achievUnlock!` non-null assertion.
 
+- **Slice 5 — foolObjects (commit `9198b34`).**
+   `src/engine/content/foolObjects.ts` (52 lines):
+   `declareVanillaFoolObjects(Game)` holds the `Game.foolObjects`
+   joke-business map (20 entries: the 19 buildings → joke name/desc/icon,
+   plus `'Unknown'`) and its `if (true)//if (!EN)` localization loop —
+   33 lines (old 8,611–8,643, immediately after the building block), cut
+   verbatim with **zero deltas**: no annotations, no renames, no dropped
+   bindings; the block type-checks as-is against `Game`'s index
+   signature. All the boundary work: `LocFn`'s first param widened
+   `string` → `string | undefined` (faithful contract — see the type
+   finding below) and a new `FindLocStringByPart: (match: string) =>
+   string | undefined` ambient in `globals.d.ts` (published on window by
+   the engine's shim, read bare by the module, same treatment as
+   `loc`/`LBeautify`/`choose`). The engine's `Game.Init` now makes one
+   call per content area: `Game.Tiers = TIERS`,
+   `declareVanillaBuildings`, `declareVanillaUpgrades`,
+   `declareVanillaAchievements`, `declareVanillaFoolObjects`.
+
 Documented runtime-preserving deviations in slice 2 (all diff-verified):
 local `i`→`j` loop rename in Grandma's CpS (a `var`-scope clash only visible
 once typed), unused Grandma `pic` param renamed `_i`, and the Chancemaker
@@ -218,14 +239,23 @@ last value (JS object-literal semantics).
 - **tsgo infers a container `this` for property function expressions**:
   `Game.X=function(){ return this; }` infers `this` as the `Game` object,
   so the moved `Game.Achievement` ctor needed an explicit `this: any`.
+- **`loc` accepts an `undefined` id at runtime — and the code relies on it
+  being falsy.** `loc` indexes its string tables with the raw key
+  (`locStrings[id]`); a key that `FindLocStringByPart` reports as missing
+  falls through to `return baseline||id`, i.e. `undefined` when both are
+  absent. Verbatim call sites depend on that falsy result
+  (`loc(FindLocStringByPart(…)) || fallback`), and the engine has one
+  unguarded `loc(FindLocStringByPart(…))` call in the building refresh —
+  so `LocFn`'s first param is `string | undefined`, not `string`.
 
 ## Architecture notes / invariants to preserve
 
-- The engine (`src/engine/main.ts`, currently 12,797 lines after slice 4) is a module that
+- The engine (`src/engine/main.ts`, currently 12,770 lines after slice 5) is a module that
   still builds `Game` at runtime as `var Game = {}` inside one giant
   `Game.Init` body. It remains `@ts-nocheck` until Phases 3–4 restructure it;
   it can receive imports (it already imports `content/tiers`,
-  `content/buildings`, `content/upgrades`, and `content/achievements`).
+  `content/buildings`, `content/upgrades`, `content/achievements`, and
+  `content/foolObjects`).
 - Content ctors are called as **plain functions** (not `new`) with **string**
   building names (`TieredUpgrade(name, desc, building, tier)`, etc.);
   `.order` is assigned post-call. Keep this call style until the ctors
@@ -249,21 +279,23 @@ last value (JS object-literal semantics).
   local `var order/pool/power` (that shadows the bridge and silently
   breaks every assignment). Slice 4 (achievements) inherited it: its
   `var order=0` became a bare assignment and the moved `Game.Achievement`
-  ctor reads the engine's module-scope var.
+  ctor reads the engine's module-scope var. Slice 5 (foolObjects) needed
+  no bridge at all — a data map plus a loc loop, no ctor declarations.
 
 ## What remains
 
-### Phase 2 — finish content extraction (same proven pattern)
+### Phase 2 — content extraction (complete)
 
-| Slice | Content | Size / location in `src/engine/main.ts` |
-| ----- | ------- | ---------------------------------------- |
-| ~~3~~ | ~~Upgrades~~ | **done — commit `66a11ff`** (786 declarations incl. 233 `Game.NewUpgradeCookie`; see above) |
-| ~~4~~ | ~~Achievements~~ | **done — commit `65040d2`** (501 declarations + 46 bank + 46 cps calls; see above) |
-| 5 | `Game.foolObjects` (building → joke business name/desc/icon map) + its localization loop | immediately after the building block (~line 8900 region) |
+All five content slices are extracted; every entry in the original
+`Game.Init` content region now lives in `src/engine/content/`.
 
-Each slice: verbatim cut → typed wrapper function → mechanical annotations →
-engine wired to the call → diff-verify against original → `tsc` + `build` +
-15 QA probes → commit.
+| Slice | Content | Result |
+| ----- | ------- | ------ |
+| ~~1~~ | ~~Tiers~~ | **done — commit `b2bef7e`** (14 numeric + 3 special tiers) |
+| ~~2~~ | ~~Buildings~~ | **done — commit `1ab1ff5`** (19 `new Game.Object`) |
+| ~~3~~ | ~~Upgrades~~ | **done — commit `66a11ff`** (786 declarations incl. 233 `Game.NewUpgradeCookie`) |
+| ~~4~~ | ~~Achievements~~ | **done — commit `65040d2`** (501 declarations + 46 bank + 46 cps calls) |
+| ~~5~~ | ~~foolObjects + loc loop~~ | **done — commit `9198b34`** (20-entry map + `if (true)` loc loop; zero deltas) |
 
 ### Phase 3 — core classes
 
