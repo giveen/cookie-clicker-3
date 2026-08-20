@@ -66,6 +66,22 @@ declare global {
 	const PlaySound: PlaySoundFn;
 	const getUpgradeName: (name: string) => string;
 	const tinyIcon: (icon: number | number[], css?: string) => string;
+	/* Icon CSS generator (engine function declaration, published on window):
+	 * [x,y] (or [x,y,url]) → background-image/position CSS string. */
+	const writeIcon: (icon: number | number[]) => string;
+	/* Asset accessor (engine var, published on window): the loaded Image for
+	 * `what`, loaded-on-demand if unknown, else the blank placeholder
+	 * canvas — `any` for both the mixed return and the occasional
+	 * non-string key the legacy code passes. */
+	const Pic: (what: any) => any;
+	/* The per-language width factors; `Langs[locId].w` scales the
+	 * "long product name" threshold in the building refresh. */
+	const Langs: Record<string, any>;
+	/* Current engine language id ('NONE' until a language is loaded). */
+	const locId: string;
+	/* Top-bar height offset in px (32 normally, 0 in 'offWeb' mode); read by
+	 * the building ctor's levelUp closure when placing sparkles. */
+	const TopBarOffset: number;
 	/* Engine shorthand for document.getElementById. `any`: the verbatim
 	 * content dereferences the returned element (`.value`, `.innerHTML`)
 	 * without null guards or input-casts, as the original code did. */

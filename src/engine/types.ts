@@ -16,6 +16,7 @@
  *    maps, ad-hoc mod properties). Named members are typed and checked; the
  *    index signature only covers what the engine really treats dynamically.
  */
+import type { Building as BuildingClass } from './core/building';
 
 /* ====================================================================== */
 /* Language data (src/engine/loc/*.ts)                                    */
@@ -134,78 +135,20 @@ export interface Achievement {
 	[key: string]: any;
 }
 
-/** A building (the engine's `Game.Object` content primitive). */
-export interface Building {
-	id: number;
-	name: string;
-	dname: string;
-	displayName: string;
-	single: string;
-	plural: string;
-	bsingle: string;
-	bplural: string;
-	actionName?: string;
-	extraName?: string;
-	extraPlural?: string;
-	desc: string;
-	baseDesc?: string;
-	ddesc?: string;
-	basePrice: number;
-	price: number;
-	bulkPrice: number;
-	baseCps: number;
-	/** CpS value, or a function evaluated as `me.cps(me)` for dynamic buildings. */
-	cps: number | ((me: Building) => number);
-	storedCps: number;
-	storedTotalCps: number;
-	totalCookies: number;
-	amount: number;
-	bought: number;
-	highest: number;
-	free: number;
-	level: number;
-	locked: number;
-	unlocked: number;
-	vanilla: number;
-	n: number;
-	icon: number;
-	iconColumn: number;
-	art: Art;
-	iconFunc?: () => [number, number];
-	buyFunction?: ((this: Building) => void) | 0;
-	canvas: HTMLCanvasElement | null;
-	ctx: CanvasRenderingContext2D | null;
-	pics: unknown[];
-	mouseOn: boolean;
-	mousePos: number[];
-	muted: number;
-	tieredUpgrades: Record<number | string, Upgrade>;
-	tieredAchievs: Record<number | string, Achievement>;
-	productionAchievs: { pow: number; achiev: Achievement }[];
-	synergies: Upgrade[];
-	fortune: number | Upgrade;
-	grandma?: Upgrade;
-	levelAchiev10?: Achievement;
-	minigameUrl: string | 0;
-	minigameName: string | 0;
-	onMinigame: boolean;
-	minigameLoaded: boolean;
-	minigameLoading: boolean;
-	/* The loaded minigame instance (an object owned by the minigame module,
-	 * with its own full surface: computeStepT, computeMapBounds, …). */
-	minigame?: any;
-	eachFrame: number;
-	buy(amount?: number): number | undefined;
-	sell(amount?: number, silent?: number): number | undefined;
-	getPrice(n: number): number;
-	getSumPrice(amount: number): number;
-	switchMinigame(on: number | boolean): void;
-	refresh(): void;
-	redraw(): void;
-	mute(n: number): void;
-	getBounds(): { left: number; top: number; width: number; height: number };
-	[key: string]: any;
-}
+/**
+ * A building (the engine's `Game.Object` content primitive). Phase 3 slice 2
+ * turned this from a description into an implementation: `BuildingClass`
+ * (src/engine/core/building.ts) *is* the `Building` type. The member list
+ * moved onto the class — `declare`d there (erased at compile time, so the
+ * runtime instance shape is unchanged from the original plain object).
+ * Documented deltas vs the old interface: `muted` is `boolean | number`
+ * (the ctor initializes it to `false`, the engine assigns 0/1), `canvas`
+ * and `ctx` are `any` (the engine's `fillPattern` polyfill is not part of
+ * the lib `CanvasRenderingContext2D` type), and `baseCps` keeps its `number`
+ * contract although the ctor mirrors `cps` 1:1 (a function for the dynamic
+ * n=0 buildings) — the cast lives on the class side.
+ */
+export type Building = BuildingClass;
 
 /** A buff entry in `Game.buffs` (e.g. 'Frenzy'). `arg1` is the primary argument. */
 export interface Buff {
@@ -481,17 +424,9 @@ export interface Game {
 	registerHook(hook: string, func: () => void): void;
 
 	/* --- content constructors (modding API) --- */
-	Object: new (
-		name: string,
-		commonName: string,
-		desc: string,
-		icon: number,
-		iconColumn: number,
-		art: Art,
-		price: number,
-		cps: number | ((me: Building) => number),
-		buyFunction?: (this: Building) => void,
-	) => Building;
+	/* Phase 3 slice 2: the real class (core/building.ts) — the engine
+	 * assigns `Game.Object = Building`; call sites are unchanged. */
+	Object: typeof BuildingClass;
 	Upgrade: new (name: string, desc: string, price: number, icon: number | number[], buyFunction?: () => void) => Upgrade;
 	/* Runtime ctor (name: string, desc: string, icon: number | number[])
 	 * with a `prototype` (getType/toggle), now assigned from the checked
