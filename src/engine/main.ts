@@ -5,6 +5,8 @@ import { declareVanillaBuildings } from './content/buildings';
 import { declareVanillaUpgrades } from './content/upgrades';
 import { declareVanillaAchievements } from './content/achievements';
 import { declareVanillaFoolObjects } from "./content/foolObjects";
+/* CC3 rewrite (phase 3): the Game singleton is now a real class instance from the typed core layer. */
+import { Game } from "./core/game";
 /* CC3: the original relied on implicit globals; declare them for module strict mode. */
 var Audio, localStorageGet, localStorageSet, Music, PlayCue, TopBarOffset, LASTHEAVENLYSELECTED, ON, OFF;
 /* CC3 rewrite (slice 3): the vanilla-content order/pool/power bookkeeping.
@@ -977,13 +979,13 @@ Timer.say=function(label)
 {
 	if (!Game.sesame) return;
 	Timer.labels[label]='<div style="border-top:1px solid #ccc;">'+label+'</div>';
-}
+}; // CC3 rewrite (phase 3, slice 1): explicit semicolon. The original code had no semicolon here and relied on ASI: the next line was 'var Game={}' (now an import from core/game.ts), a statement starter that forced the break. Without it, the MODDING IIFE below parses as a chained call on this function expression and crashes the engine at boot.
 
 
 /*=====================================================================================
 GAME INITIALIZATION
 =======================================================================================*/
-var Game={};
+/* CC3 rewrite (phase 3, slice 1): the original `var Game={}` now lives in the typed core layer (core/game.ts) as a real class instance; the engine imports and mutates that one object, exactly as before. */
 
 (function(){
 	/*=====================================================================================

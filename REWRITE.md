@@ -1,6 +1,6 @@
 # Cookie Clicker 3 — Architectural Rewrite Status
 
-_Last updated: 2026-08-20 (session checkpoint after Phase 2, slice 5 — Phase 2 complete)._
+_Last updated: 2026-08-20 (Phase 3 in progress — slice 1: Game core class)._
 
 ## TL;DR
 
@@ -15,14 +15,17 @@ This document tracks the **architectural rewrite**: restructuring the 16k-line
 engine into idiomatic typed TypeScript modules and classes, with the hard
 constraint that **runtime behavior stays identical to `master`** at every step.
 
-**Current state: Phase 2 complete (all five content slices).** The
-engine's tier table, all 19 vanilla building declarations, all 786 vanilla
-upgrade declarations, all 501 vanilla achievement declarations, and the
-foolObjects joke-business map + its localization loop now live in the typed
+**Current state: Phase 2 complete; Phase 3 in progress (slice 1 of 4).**
+The engine's tier table, all 19 vanilla building declarations, all 786
+vanilla upgrade declarations, all 501 vanilla achievement declarations, and
+the foolObjects joke-business map + its localization loop live in the typed
 content layer, and every line of CC3's own code (glue, extras,
-localization, QA) type-checks under `tsc` strict. The game builds and
-passes all 15 Playwright QA probes at every commit. Next: Phase 3 (core
-classes).
+localization, QA) type-checks under `tsc` strict. Phase 3 now replaces the
+runtime-built `var Game = {}` and the function-expression ctors with real
+typed classes in `src/engine/core/`: the `Game` singleton is a real class
+instance (slice 1), followed by `Building` (slice 2), `Upgrade` (slice 3)
+and `Achievement` (slice 4). The game builds and passes all 15 Playwright
+QA probes at every commit.
 
 ## Branch / commit state
 
