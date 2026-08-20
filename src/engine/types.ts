@@ -524,8 +524,14 @@ export interface Game {
 /** `loc(id, params, baseline)` — localize a string; `params` fills `%1..%n`.
  * The engine accepts a single value (string or number), an array of values,
  * or an object of named values — the vanilla content uses all three. */
+/* `id` is `string | undefined` on purpose: the engine indexes its string
+ * tables with the raw key (`locStrings[id]`), so a missing key from
+ * FindLocStringByPart flows through — `loc(undefined)` finds nothing and
+ * returns `baseline||id` (falsy when both are absent), which the verbatim
+ * call sites rely on (`loc(FindLocStringByPart(…)) || fallback`, and one
+ * unguarded engine call). */
 export type LocFn = (
-	id: string,
+	id: string | undefined,
 	params?: string | number | (string | number)[] | Record<string, string | number>,
 	baseline?: unknown,
 ) => string;

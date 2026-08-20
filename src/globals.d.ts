@@ -32,6 +32,11 @@ declare global {
 	 * engine publishes them on window via its Object.assign(window, …) shim,
 	 * which is also what makes them resolve at runtime inside ESM modules). */
 	const loc: LocFn;
+	/* Engine lookup of a localized-string key by its "… name/desc/quote"
+	 * suffix (engine/main.ts, published on window): the stored key, or
+	 * `undefined` when the current language file has no such entry — the
+	 * verbatim call sites pair it with a `||` fallback. */
+	const FindLocStringByPart: (match: string) => string | undefined;
 	/* Non-generic on purpose: the content passes `any`-typed arrays (Game
 	 * index signature), and one verbatim 2.048 tombola line indexes `choose`
 	 * with a comma expression (`choose['red','orange',…]` — a faithful 2.048
