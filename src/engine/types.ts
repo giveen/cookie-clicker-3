@@ -17,6 +17,11 @@
  *    index signature only covers what the engine really treats dynamically.
  */
 import type { Building as BuildingClass } from './core/building';
+import type {
+	Upgrade as UpgradeClass,
+	TieredUpgrade as TieredUpgradeFn,
+	SynergyUpgrade as SynergyUpgradeFn,
+} from './core/upgrade';
 
 /* ====================================================================== */
 /* Language data (src/engine/loc/*.ts)                                    */
@@ -81,40 +86,17 @@ export interface Art {
 }
 
 /**
- * A store upgrade. `buildingTie`/`buildingTie1`/`buildingTie2` reference the
- * building(s) the upgrade applies to (set by the Tiered/Synergy/Grandma
- * wrappers). `tier` is the tier key (numeric tier, or 'synergy1'/'synergy2'
- * /'fortune').
+ * A store upgrade. Phase 3 slice 3: the real class (core/upgrade.ts) — the
+ * engine assigns `Game.Upgrade = Upgrade`; call sites are unchanged.
+ * `buildingTie`/`buildingTie1`/`buildingTie2` reference the building(s) the
+ * upgrade applies to (set by the Tiered/Synergy/Grandma wrappers); `tier` is
+ * the tier key (numeric tier, or 'synergy1'/'synergy2'/'fortune'). The class
+ * also declares the ctor-assigned data the old interface left to the index
+ * signature (`power`, `unlockAt`, `techUnlock`, `parents`, `type`), and it
+ * types `buildingTie` as `Building | Upgrade | 0` to match the ctor's 0
+ * sentinel (the old optional type never matched it).
  */
-export interface Upgrade {
-	id: number;
-	name: string;
-	dname: string;
-	desc: string;
-	baseDesc: string;
-	ddesc?: string;
-	basePrice: number;
-	price: number;
-	priceLumps: number;
-	icon: number | number[];
-	iconFunction: number | (() => number[]);
-	buyFunction?: (() => void) | 0;
-	unlockFunction?: (() => boolean) | 0;
-	unlocked: number;
-	bought: number;
-	order: number;
-	pool: string;
-	tier?: number | string;
-	buildingTie?: Building | Upgrade;
-	buildingTie1?: Building;
-	buildingTie2?: Building;
-	/** Desc override; CCSE (and the vanilla permanent-slot upgrades) may pass a context arg. */
-	descFunc?: (context?: string) => string;
-	priceFunc?: () => number;
-	unshackleUpgrade?: string;
-	vanilla: number;
-	[key: string]: any;
-}
+export type Upgrade = UpgradeClass;
 
 /** A store achievement. `won` is 0/1 (legacy numeric-boolean). */
 export interface Achievement {
@@ -427,15 +409,18 @@ export interface Game {
 	/* Phase 3 slice 2: the real class (core/building.ts) — the engine
 	 * assigns `Game.Object = Building`; call sites are unchanged. */
 	Object: typeof BuildingClass;
-	Upgrade: new (name: string, desc: string, price: number, icon: number | number[], buyFunction?: () => void) => Upgrade;
+	/* Phase 3 slice 3: the real class (core/upgrade.ts) — the engine
+	 * assigns `Game.Upgrade = Upgrade`; call sites are unchanged. */
+	Upgrade: typeof UpgradeClass;
 	/* Runtime ctor (name: string, desc: string, icon: number | number[])
 	 * with a `prototype` (getType/toggle), now assigned from the checked
 	 * content layer; tsgo rejects function expressions for construct
 	 * signatures, so it is `any` until Phase 3 replaces it with a real class. */
 	Achievement: any;
-	/* tier is numeric, or the special 'fortune' tier for the golden cookies. */
-	TieredUpgrade: (name: string, desc: string, building: string, tier: number | string) => Upgrade;
-	SynergyUpgrade: (name: string, desc: string, building1: string, building2: string, tier: number | string) => Upgrade;
+	/* tier is numeric, or the special 'fortune' tier for the golden cookies.
+	 * Phase 3 slice 3: real factory functions from core/upgrade.ts. */
+	TieredUpgrade: typeof TieredUpgradeFn;
+	SynergyUpgrade: typeof SynergyUpgradeFn;
 	GrandmaSynergy: (name: string, desc: string, building: string) => Upgrade;
 	TieredAchievement: (name: string, desc: string, building: string, tier: number) => Achievement;
 	/* q is a quote string, or 0/omitted for "no quote" (falsy check). */
