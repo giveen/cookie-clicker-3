@@ -32,7 +32,7 @@ QA probes at every commit.
 | Branch  | HEAD      | Meaning                                                        |
 | ------- | --------- | -------------------------------------------------------------- |
 | `master`| `dafffc6` | The finished, deployable CC3 (deploy gate). Untouched by the rewrite. |
-| `rewrite` (work) | `9198b34` | The rewrite, built on top of the 1:1 conversion.        |
+| `rewrite` (work) | `641af6a` | The rewrite, built on top of the 1:1 conversion.        |
 
 Rewrite history (old → new):
 
@@ -45,6 +45,7 @@ b2bef7e  Rewrite Phase 2 (slice 1): extract tier table into typed content layer
 66a11ff  Rewrite Phase 2 (slice 3): extract vanilla upgrade content into typed module
 65040d2  Rewrite Phase 2 (slice 4): extract vanilla achievement content into typed module
 9198b34  Rewrite Phase 2 (slice 5): extract foolObjects map + localization loop into typed module
+641af6a  Rewrite Phase 3 (slice 1): replace var Game={} with the GameCore class instance
 ```
 
 ## What "1:1" means here, and how it's enforced
@@ -194,6 +195,32 @@ once typed), unused Grandma `pic` param renamed `_i`, and the Chancemaker
 art literal's pre-existing **duplicate `rows` key** deduped, keeping the
 last value (JS object-literal semantics).
 
+### Phase 3 — core classes (in progress)
+
+- **Slice 1 — the `Game` singleton (commit `641af6a`).**
+  `src/engine/core/game.ts` (new, 23 lines): `export class GameCore {
+  [key: string]: any; }` plus `export const Game = new GameCore();`.
+  The engine's `var Game={}` is replaced by a note, and the engine
+  imports the singleton: every `Game.X = …` assignment, the MODDING-API
+  IIFE, and the window shim's `Game` entry now target that one imported
+  instance — same object identity, same assignment sequence, same
+  `window.Game`. The class is deliberately an index-signature shell:
+  the named systems surface (`Load`, `Launch`, `Loop`, `WriteSave`, …)
+  is Phase 4's work, and `types.ts`' `Game` interface stays the
+  description until then. **One documented delta (diff-verified,
+  /tmp/verify-p3-game.mjs):** the `Timer.say=function(label){…}` line
+  gained an explicit `;`. The original had no semicolon there and relied
+  on ASI — the following `var Game={}` was a statement starter that
+  forced the break. With that line gone, the next non-comment token after
+  the closing `}` is `(`, so the parser reads the MODDING IIFE as a
+  chained call on the `Timer.say` function expression
+  (`sayFn(moddingIIFE())()` — the IIFE runs as an argument, then the
+  `undefined` `sayFn` returns is called): boot crashed with
+  `TypeError: (intermediate value)(intermediate value)(...) is not a
+  function` and no `window.Game`. The explicit semicolon restores the
+  original parse exactly (implicit ASI semicolon → explicit, same AST).
+  Gates: tsc 0, build clean, 15/15 QA.
+
 ### Type-level findings (bugs/quirks the types caught)
 
 - `Game.Has()` returns **numeric 0/1** (`bought`), not a boolean — vanilla
@@ -250,15 +277,46 @@ last value (JS object-literal semantics).
   (`loc(FindLocStringByPart(…)) || fallback`), and the engine has one
   unguarded `loc(FindLocStringByPart(…))` call in the building refresh —
   so `LocFn`'s first param is `string | undefined`, not `string`.
+- **tsgo TS2739: an index-signature-only class is not assignable to a
+  named interface.** The index signature does not satisfy the interface's
+  named members, so a `class X { [key: string]: any; }` cannot stand in
+  for `interface X`. Phase 3's classes therefore declare the interface's
+  named members (as `declare` fields / real methods) and `types.ts`
+  aliases the class — no cast, no gap.
+- **Target ES2022 ⇒ `useDefineForClassFields: true`**: bare class field
+  declarations emit `Object.defineProperty` with `undefined` values,
+  adding own-props the original plain objects never had. Phase 3 classes
+  use `declare`-only fields: erased by both tsgo and esbuild, so the
+  instance shape is byte-identical to the original and no tsconfig change
+  is needed.
+- **A class *value* is assignable to `typeof Class` / construct-signature
+  properties** (scratch-verified): this closes the Phase-1 finding above —
+  `Game.Achievement: any` can become `typeof Achievement`, and
+  `Game.Object`/`Game.Upgrade` can be the real classes, once the classes
+  exist.
+- **Optional trailing ctor params** let pre-existing call sites with
+  varying arities type-check unchanged (`buyFunction?: any` for
+  `Game.Object`, whose 8-arg form predates the optional 9th).
+- **Parse-level, not type-level, but found the same way:** the engine is
+  semicolon-less classic code, and removing *any* line can shift an ASI
+  boundary. Slice 1's removal of `var Game={}` deleted the statement
+  starter that forced the break after `Timer.say=function(label){…}`,
+  re-parsing the MODDING IIFE as a chained call on that function
+  expression (boot crash, `window.Game` never set). Rule for all Phase 3
+  slices: when deleting a line from the engine, check what ASI role the
+  surrounding lines had; add explicit `;` where the break is load-bearing
+  (same AST as the original implicit one).
 
 ## Architecture notes / invariants to preserve
 
-- The engine (`src/engine/main.ts`, currently 12,770 lines after slice 5) is a module that
-  still builds `Game` at runtime as `var Game = {}` inside one giant
-  `Game.Init` body. It remains `@ts-nocheck` until Phases 3–4 restructure it;
-  it can receive imports (it already imports `content/tiers`,
-  `content/buildings`, `content/upgrades`, `content/achievements`, and
-  `content/foolObjects`).
+- The engine (`src/engine/main.ts`, currently 12,770 lines after Phase 3
+  slice 1) is a module that no longer builds `Game` itself: the singleton
+  is the `GameCore` instance exported by `src/engine/core/game.ts`, and
+  the engine imports it and mutates it exactly as it mutated the old
+  `var Game = {}`. It remains `@ts-nocheck` until Phases 3–4 restructure
+  it; it can receive imports (it already imports `content/tiers`,
+  `content/buildings`, `content/upgrades`, `content/achievements`,
+  `content/foolObjects`, and `core/game`).
 - Content ctors are called as **plain functions** (not `new`) with **string**
   building names (`TieredUpgrade(name, desc, building, tier)`, etc.);
   `.order` is assigned post-call. Keep this call style until the ctors
@@ -300,13 +358,60 @@ All five content slices are extracted; every entry in the original
 | ~~4~~ | ~~Achievements~~ | **done — commit `65040d2`** (501 declarations + 46 bank + 46 cps calls) |
 | ~~5~~ | ~~foolObjects + loc loop~~ | **done — commit `9198b34`** (20-entry map + `if (true)` loc loop; zero deltas) |
 
-### Phase 3 — core classes
+### Phase 3 — core classes (in progress)
 
-Replace the runtime-built `var Game = {}` with real typed classes:
-`Game`, `Building` (Object ctor), `Upgrade`, `Achievement`, plus the
-tiered/synergy/production ctors. This is the step where `src/engine/main.ts`
-loses most of its `@ts-nocheck`-excused surface; `types.ts` becomes the
-implementation, not just the description.
+Replace the runtime-built `var Game = {}` and the function-expression ctors
+with real typed classes in `src/engine/core/`; `types.ts` becomes the
+implementation, not just the description. Core modules import **nothing** —
+every engine global they read (`Game`, `loc`, `l`, `EN`, `choose`, `cap`,
+`LBeautify`, `PlaySound`, `Beautify`, `toFixed`, `FindLocStringByPart`, the
+`order`/`pool`/`power` bridge vars, …) resolves through the ambient
+`globals.d.ts` declarations to the window shim, so there are no import
+cycles. Bodies keep their original indentation (header line replaced, no
+re-indent) so diff-verify stays meaningful.
+
+| Slice | Content | Source (pre-slice line refs) |
+| ----- | ------- | ---------------------------- |
+| ~~1~~ | **`GameCore`** — the `Game` singleton (index-signature shell; the named systems surface is Phase 4) | `src/engine/core/game.ts` (new) |
+| 2 | **`Building`** — the `Game.Object` ctor (740 lines, per-instance closures) → `core/building.ts`; `Game.Object = Building` in the engine; `types.ts` aliases the class, `Game.Object: typeof Building` | engine 7,661–8,400 |
+| 3 | **`Upgrade`** — ctor + 13 prototype methods → `core/upgrade.ts`; the interleaved `Game.storeBuyAll` / `Game.vault=[]` statements stay in the engine in place; the non-capturing `Game.TieredUpgrade` / `Game.SynergyUpgrade` factories move to core | engine 8,666–8,935 (ctor 8,666–8,701, prototypes 8,702–8,935), factories 9,105–9,149 |
+| 4 | **`Achievement`** — ctor + `getType`/`toggle` → `core/achievement.ts`; the four non-capturing factories (`TieredAchievement`, `ProductionAchievement`, `BankAchievement`, `CpsAchievement`) move to core; `types.ts` names `BankAchievement`/`CpsAchievement` | `content/achievements.ts` 45–70, 71, 106–117; factories 129–171 |
+
+Fidelity decisions (canonical for all slices):
+
+- **Classes carry the interface's named members.** An index-signature-only
+  class is *not* assignable to a named interface (tsgo TS2739 — the index
+  signature does not satisfy named members), so each class declares the
+  named members and `types.ts` aliases the class; no assignability gap
+  remains (e.g. the ctor's `Game.Objects[this.name] = this` then
+  type-checks).
+- **`declare`-only fields.** Target ES2022 ⇒ `useDefineForClassFields: true`
+  would emit `undefined` own-props for bare field declarations, changing
+  the instance shape. `declare` members are erased (tsgo *and* esbuild),
+  so the runtime instance stays byte-identical to the original plain
+  object; no tsconfig change.
+- **Per-instance closures stay ctor assignments; legacy prototype methods
+  become class methods.** Verified unobservable: no `instanceof`, no
+  `for`-in / `Object.keys`, and no `in`-operator over upgrade/achievement
+  instances anywhere in `src` (the legacy prototype props were enumerable
+  plain assignments; class methods are non-enumerable — nothing reads that).
+- **Optional trailing ctor params** (`buyFunction?: any`) keep the existing
+  call sites (`19× new Game.Object(…)` in buildings, the blackHoleInverter
+  building, 239× `new Game.Upgrade`, 194× `new Game.Achievement`)
+  type-checking unchanged.
+- **Capture-ful factories stay content-scoped.** `Game.NewUpgradeCookie`,
+  `Game.NewUnshackleBuilding`, `Game.NewUnshackleUpgradeTier` and
+  `Game.GrandmaSynergy` close over Init-scoped vars in
+  `content/upgrades.ts`; moving them would change their closures or add
+  shared mutable state. They stay exactly where they are (the modding
+  surface `Game.X` is unchanged either way). The non-capturing factories
+  (Tiered/Synergy upgrades, the four achievement factories) move to core.
+- **The ASI boundary is now explicit** (slice 1): the original code relied
+  on the `var Game={}` line to force the automatic semicolon after the
+  semicolon-less `Timer.say=function(…){…}` expression; with that line
+  gone the MODDING IIFE would parse as a chained call on it and crash boot.
+  The `Timer.say` line now ends in an explicit `;` (same AST as the
+  original's ASI semicolon).
 
 ### Phase 4 — systems
 
