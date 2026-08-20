@@ -1,6 +1,6 @@
 # Cookie Clicker 3 — Architectural Rewrite Status
 
-_Last updated: 2026-08-20 (Phase 3 in progress — slice 3: Upgrade class)._
+_Last updated: 2026-08-20 (Phase 3 complete — all four core classes)._
 
 ## TL;DR
 
@@ -15,26 +15,30 @@ This document tracks the **architectural rewrite**: restructuring the 16k-line
 engine into idiomatic typed TypeScript modules and classes, with the hard
 constraint that **runtime behavior stays identical to `master`** at every step.
 
-**Current state: Phase 2 complete; Phase 3 in progress (slice 3 of 4).**
+**Current state: Phases 2 and 3 complete; Phase 4 (systems) is next.**
 The engine's tier table, all 19 vanilla building declarations, all 786
 vanilla upgrade declarations, all 501 vanilla achievement declarations, and
 the foolObjects joke-business map + its localization loop live in the typed
 content layer, and every line of CC3's own code (glue, extras,
-localization, QA) type-checks under `tsc` strict. Phase 3 now replaces the
+localization, QA) type-checks under `tsc` strict. Phase 3 replaced the
 runtime-built `var Game = {}` and the function-expression ctors with real
 typed classes in `src/engine/core/`: the `Game` singleton is a real class
 instance (slice 1), the 740-line `Game.Object` ctor is the real
-`Building` class (slice 2), and the `Game.Upgrade` ctor + its 13 prototype
+`Building` class (slice 2), the `Game.Upgrade` ctor + its 13 prototype
 methods + the two non-capturing factories are the real `Upgrade` class and
-its exported factory functions (slice 3); `Achievement` (slice 4) follows.
-The game builds and passes all 15 Playwright QA probes at every commit.
+its exported factory functions (slice 3), and the `Game.Achievement` ctor +
+`getType`/`toggle` + the four non-capturing factories are the real
+`Achievement` class and its exported factory functions (slice 4).
+`types.ts` now aliases all three content primitives to their classes — the
+types are the implementation, not just the description. The game builds
+and passes all 15 Playwright QA probes at every commit.
 
 ## Branch / commit state
 
 | Branch  | HEAD      | Meaning                                                        |
 | ------- | --------- | -------------------------------------------------------------- |
 | `master`| `dafffc6` | The finished, deployable CC3 (deploy gate). Untouched by the rewrite. |
-| `rewrite` (work) | `c044c85` | The rewrite, built on top of the 1:1 conversion.        |
+| `rewrite` (work) | `38597d9` | The rewrite, built on top of the 1:1 conversion.        |
 
 Rewrite history (old → new):
 
@@ -50,6 +54,7 @@ b2bef7e  Rewrite Phase 2 (slice 1): extract tier table into typed content layer
 641af6a  Rewrite Phase 3 (slice 1): replace var Game={} with the GameCore class instance
 6ecbecc  Rewrite Phase 3 (slice 2): the Game.Object ctor is now the Building class
 c044c85  Rewrite Phase 3 (slice 3): the Game.Upgrade ctor is now the Upgrade class
+38597d9  Rewrite Phase 3 (slice 4): the Game.Achievement ctor is now the Achievement class
 ```
 
 ## What "1:1" means here, and how it's enforced
@@ -199,7 +204,7 @@ once typed), unused Grandma `pic` param renamed `_i`, and the Chancemaker
 art literal's pre-existing **duplicate `rows` key** deduped, keeping the
 last value (JS object-literal semantics).
 
-### Phase 3 — core classes (in progress)
+### Phase 3 — core classes (complete)
 
 - **Slice 1 — the `Game` singleton (commit `641af6a`).**
   `src/engine/core/game.ts` (new, 23 lines): `export class GameCore {
@@ -299,6 +304,48 @@ last value (JS object-literal semantics).
   on it; `(this.buildingTie as any).id` because the non-optional 0-sentinel
   union can't be stripped by `!`). Gates: tsc 0, build clean, verify PASS,
   15/15 QA.
+
+- **Slice 4 — the `Achievement` class (commit `38597d9`).**
+  `src/engine/core/achievement.ts` (new, 144 lines): the `Game.Achievement`
+  ctor (23-line body, verbatim, 0 deltas — including the per-instance
+  `click` closure) plus its `getType`/`toggle` prototype methods are now
+  the `Achievement` class, and the four non-capturing factories
+  (`Game.TieredAchievement`, `Game.ProductionAchievement`,
+  `Game.BankAchievement`, `Game.CpsAchievement`) are exported factory
+  functions. The Phase-2 slice had parked these in
+  `content/achievements.ts` (assigned on `Game` from
+  `declareVanillaAchievements`); this slice moves them again, to core. The
+  content module now assigns `Game.Achievement=Achievement` and the four
+  `Game.X=X` factory lines at the same Init point — same
+  self-registration (`Game.last`, `Game.Achievements`,
+  `Game.AchievementsById`, `Game.AchievementsN`), same `order`-bridge read
+  (the ctor's bare `order` resolves to the live engine var through the
+  window accessors, exactly as the content module's bare read did), same
+  declaration order/ids. `Game.Win` / `Game.RemoveAchiev` /
+  `Game.CountsAsAchievementOwned` / `Game.HasAchiev` /
+  `Game.thresholdIcons` and the Bank/Cps registries stay in the content
+  module in place (the factories read them through `Game`). `types.ts`
+  replaces the 17-member `Achievement` interface with the class alias —
+  the class also declares the ctor data the interface left to the index
+  signature (`disabled`, `type`) — and `Game.Achievement` is
+  `typeof AchievementClass`, **closing the Phase-1 `any`** (tsgo rejects
+  function expressions for construct signatures; a real class has none of
+  those problems). The four factories are `typeof …Fn`, and
+  `BankAchievement`/`CpsAchievement` are now NAMED on the Game surface
+  (previously index-signature only). No runtime imports in the new module:
+  `Game`, `loc`, `LBeautify`, `toFixed` and the `order` bridge var resolve
+  through `globals.d.ts` to the window shim.
+  **Documented deltas (all runtime-identical, diff-verified by
+  `/tmp/verify-p4-achievement.mjs`):** the ctor's Phase-2 `this: any`
+  header annotation is dropped (it existed because tsgo inferred a
+  container `this` for the assigned function expression; a real ctor's
+  `this` is the class instance), and the factory headers gain explicit
+  `: any` param annotations (tsgo TS7006 convention) with `q?`/`mult?`
+  made optional to match the call sites that omit them (the old GameSurface
+  already typed `ProductionAchievement`'s `q`/`mult` optional; Bank/Cps
+  were untyped until now — the 1-arg calls always passed `undefined`,
+  which the falsy `q` checks treat as "no quote"). Gates: tsc 0, build
+  clean, verify PASS (both files reconstructed exactly), 15/15 QA.
 
 ### Type-level findings (bugs/quirks the types caught)
 
@@ -446,18 +493,23 @@ last value (JS object-literal semantics).
 
 ## Architecture notes / invariants to preserve
 
-- The engine (`src/engine/main.ts`, currently 11,740 lines after Phase 3
-  slice 3) is a module that no longer builds `Game` itself: the singleton
-  is the `GameCore` instance exported by `src/engine/core/game.ts`, and
-  the engine imports it and mutates it exactly as it mutated the old
-  `var Game = {}`. It remains `@ts-nocheck` until Phases 3–4 restructure
+- The engine (`src/engine/main.ts`, currently 11,740 lines after Phase 3)
+  is a module that no longer builds `Game` itself: the singleton is the
+  `GameCore` instance exported by `src/engine/core/game.ts`, and the
+  engine imports it and mutates it exactly as it mutated the old
+  `var Game = {}`. It remains `@ts-nocheck` until Phase 4 restructures
   it; it can receive imports (it already imports `content/tiers`,
   `content/buildings`, `content/upgrades`, `content/achievements`,
-  `content/foolObjects`, `core/game`, `core/building`, and `core/upgrade`).
-- Content ctors are called as **plain functions** (not `new`) with **string**
-  building names (`TieredUpgrade(name, desc, building, tier)`, etc.);
-  `.order` is assigned post-call. Keep this call style until the ctors
-  themselves are retyped in Phase 3.
+  `content/foolObjects`, `core/game`, `core/building`, and
+  `core/upgrade`; `content/achievements` additionally imports
+  `core/achievement`).
+- The content **ctors are real classes called with `new`** (`new
+  Game.Object`, `new Game.Upgrade`, `new Game.Achievement`) — the Phase 3
+  classes; call sites are unchanged from the 2.048 originals. The
+  **factories** (`TieredUpgrade(name, desc, building, tier)`,
+  `TieredAchievement(…)`, etc.) remain **plain functions** with **string**
+  building names and post-call `.order` assignment — the call style is
+  preserved, but they are now typed functions in `core/` (slices 3–4).
 - `Game.last` is set by each content ctor and used by content declarations to
   attach per-building extras — it must stay populated in declaration order.
 - Numeric booleans are the engine's idiom (`bought: 0/1`, `ready: 1`).
@@ -499,7 +551,7 @@ All five content slices are extracted; every entry in the original
 | ~~4~~ | ~~Achievements~~ | **done — commit `65040d2`** (501 declarations + 46 bank + 46 cps calls) |
 | ~~5~~ | ~~foolObjects + loc loop~~ | **done — commit `9198b34`** (20-entry map + `if (true)` loc loop; zero deltas) |
 
-### Phase 3 — core classes (in progress)
+### Phase 3 — core classes (complete)
 
 Replace the runtime-built `var Game = {}` and the function-expression ctors
 with real typed classes in `src/engine/core/`; `types.ts` becomes the
@@ -508,9 +560,11 @@ imports** — every engine global they read (`Game`, `loc`, `l`, `EN`,
 `choose`, `cap`, `LBeautify`, `PlaySound`, `Beautify`, `toFixed`,
 `FindLocStringByPart`, the `order`/`pool`/`power` bridge vars, …) resolves
 through the ambient `globals.d.ts` declarations to the window shim, so there
-are no import cycles. (An `import type { … } from '../types'` is fine and is
-used by `core/building.ts` for `Art`/`Upgrade`/`Achievement`: it is erased
-at compile time, adds no runtime edge, and cannot create a cycle.) Bodies
+are no import cycles. (An `import type { … } from '../types'` is fine and
+is used by all three content classes — `core/building.ts`,
+`core/upgrade.ts`, `core/achievement.ts` — for their cross-references: it
+is erased at compile time, adds no runtime edge, and cannot create a
+cycle.) Bodies
 keep their original indentation (header line replaced, no re-indent) so
 diff-verify stays meaningful.
 
@@ -519,7 +573,13 @@ diff-verify stays meaningful.
 | ~~1~~ | **`GameCore`** — the `Game` singleton (index-signature shell; the named systems surface is Phase 4) | `src/engine/core/game.ts` (new) |
 | ~~2~~ | **`Building`** — the `Game.Object` ctor (740 lines, per-instance closures) → `core/building.ts`; `Game.Object = Building` in the engine; `types.ts` aliases the class, `Game.Object: typeof Building` — **done — commit `6ecbecc`** | engine 7,661–8,400 |
 | ~~3~~ | **`Upgrade`** — ctor + 13 prototype methods → `core/upgrade.ts`; the interleaved `Game.storeBuyAll` / `Game.vault=[]` statements stay in the engine in place; the non-capturing `Game.TieredUpgrade` / `Game.SynergyUpgrade` factories move to core — **done — commit `c044c85`** | engine 8,666–8,935 (ctor 8,666–8,701, prototypes 8,702–8,935), factories 9,105–9,149 |
-| 4 | **`Achievement`** — ctor + `getType`/`toggle` → `core/achievement.ts`; the four non-capturing factories (`TieredAchievement`, `ProductionAchievement`, `BankAchievement`, `CpsAchievement`) move to core; `types.ts` names `BankAchievement`/`CpsAchievement` | `content/achievements.ts` 45–70, 71, 106–117; factories 129–171 |
+| ~~4~~ | **`Achievement`** — ctor + `getType`/`toggle` → `core/achievement.ts`; the four non-capturing factories (`TieredAchievement`, `ProductionAchievement`, `BankAchievement`, `CpsAchievement`) move to core; `types.ts` names `BankAchievement`/`CpsAchievement` — **done — commit `38597d9`** | `content/achievements.ts` 45–70, 71, 106–117; factories 129–171 |
+
+**Phase 3 complete.** All four slices landed (`641af6a`, `6ecbecc`,
+`c044c85`, `38597d9`); `types.ts` aliases the three content primitives
+(`Building`, `Upgrade`, `Achievement`) to their classes, and every
+function-expression ctor in the engine is now a real class or an exported
+core function. The game builds and passes 15/15 QA at each slice commit.
 
 Fidelity decisions (canonical for all slices):
 
