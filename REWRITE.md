@@ -1,6 +1,6 @@
 # Cookie Clicker 3 — Architectural Rewrite Status
 
-_Last updated: 2026-08-19 (session checkpoint after Phase 2, slice 2)._
+_Last updated: 2026-08-20 (session checkpoint after Phase 2, slice 3)._
 
 ## TL;DR
 
@@ -15,18 +15,18 @@ This document tracks the **architectural rewrite**: restructuring the 16k-line
 engine into idiomatic typed TypeScript modules and classes, with the hard
 constraint that **runtime behavior stays identical to `master`** at every step.
 
-**Current state: Phase 2, slice 2 complete.** The engine's tier table and all
-19 vanilla building declarations now live in the typed content layer, and
-every line of CC3's own code (glue, extras, localization, QA) type-checks
-under `tsc` strict. The game builds and passes all 15 Playwright QA probes at
-every commit.
+**Current state: Phase 2, slice 3 complete.** The engine's tier table, all
+19 vanilla building declarations, and all 786 vanilla upgrade declarations
+now live in the typed content layer, and every line of CC3's own code (glue,
+extras, localization, QA) type-checks under `tsc` strict. The game builds
+and passes all 15 Playwright QA probes at every commit.
 
 ## Branch / commit state
 
 | Branch  | HEAD      | Meaning                                                        |
 | ------- | --------- | -------------------------------------------------------------- |
 | `master`| `dafffc6` | The finished, deployable CC3 (deploy gate). Untouched by the rewrite. |
-| `rewrite` (work) | `1ab1ff5` | The rewrite, built on top of the 1:1 conversion.        |
+| `rewrite` (work) | `66a11ff` | The rewrite, built on top of the 1:1 conversion.        |
 
 Rewrite history (old → new):
 
@@ -35,6 +35,8 @@ Rewrite history (old → new):
 3dc68fa  Rewrite Phase 1: typed engine surface + fully typed CC3 code
 b2bef7e  Rewrite Phase 2 (slice 1): extract tier table into typed content layer
 1ab1ff5  Rewrite Phase 2 (slice 2): extract vanilla building content into typed module
+94092c1  Rewrite: add REWRITE.md status document
+66a11ff  Rewrite Phase 2 (slice 3): extract vanilla upgrade content into typed module
 ```
 
 ## What "1:1" means here, and how it's enforced
@@ -111,6 +113,32 @@ inline literals, making verbatim extraction 1:1.
   `function (this: Building)`). The engine's 308-line block is replaced by a
   single call.
 
+- **Slice 3 — upgrades (commit `66a11ff`).**
+   `src/engine/content/upgrades.ts` (1,951 lines):
+   `declareVanillaUpgrades(Game)` holds all **786** vanilla upgrade
+   declarations — 231 `new Game.Upgrade(…)`, 271 `Game.TieredUpgrade(…)`,
+   34 `Game.SynergyUpgrade(…)`, 17 `Game.GrandmaSynergy(…)`, and 233
+   `Game.NewUpgradeCookie(…)` calls (the factory itself moved in with them)
+   — plus the interleaved `order`/`pool`/`power` bookkeeping, the loc-time
+   string helpers (`getStr*`, `strKittenDesc`), and the
+   `Game.GrandmaSynergy` / `Game.NewUnshackleBuilding` /
+   `Game.NewUnshackleUpgradeTier` factories (declaration-time callers; the
+   modding surface stays on `Game`). 1,889 lines of the engine's
+   `Game.Init` (~lines 9,095–11,370) are gone; the engine keeps the STAY
+   list (seasonal machinery, veil functions, permanent-slot functions,
+   `playGoldenCookieChime`, the post-declaration `computeSeasons()` +
+   `UpgradesByPool`/`UnlockAt`/`UpgradePositions` post-processing, which
+   runs after the content call, exactly as before).
+   **The order/pool/power bridge:** the three values were Init-scoped
+   closure vars read by the `Game.Upgrade`/`Game.Achievement` ctors; they
+   now live at engine module scope (`var order, pool, power` at the top of
+   `main.ts`) and are bridged to the content module through
+   `Object.defineProperty(window, …)` accessors next to the window shim.
+   The ctors keep reading the unqualified names (module scope); the content
+   module keeps assigning bare names (window scope) — one shared state,
+   same assignment sequence, same final values. **Slice 4 (achievements)
+   inherits this bridge.**
+
 Documented runtime-preserving deviations in slice 2 (all diff-verified):
 local `i`→`j` loop rename in Grandma's CpS (a `var`-scope clash only visible
 once typed), unused Grandma `pic` param renamed `_i`, and the Chancemaker
@@ -130,14 +158,35 @@ last value (JS object-literal semantics).
 - The 13 loc files all carry a PO header object under key `""`
   (`LanguageHeader`), which is why `AddLanguage`'s strings param is
   `Record<string, LanguageString>`, not `Record<string, string>`.
+- **tsgo enforces TS2403 harder than classic tsc**: same-scope `var`
+  redeclarations must all have the *same* type, even when the first is
+  `any` (classic tsc accepts `any` baselines). The legacy
+  declare/redeclare pattern (`var desc=…; var desc=function(…){…}`)
+  therefore needs distinct names once typed, not just annotations.
+- `choose` in the original is both a function *and* (in one verbatim 2.048
+  tombola line) indexed with a comma expression —
+  `choose['red','orange',…,'teal']` — which evaluates to `undefined`
+  at runtime (a faithful 2.048 quirk; the tombola can draw that dead
+  entry exactly as master does). TS2695 (unused comma left side) is a
+  source property, fixed with a documented `// @ts-ignore`; the global
+  type is non-generic with a string index signature because tsgo
+  infers `unknown` from `any` arrays for `<T>(arr: readonly T[]) => T`.
+- `Music` is `false` forever in this build (the engine assigns
+  `Music=false` and no music system loads), so the jukebox methods'
+  unguarded `Music.tracks` derefs are dead — declared `any`.
+- The engine attaches the classic-script `seedrandom` PRNG polyfill to
+  `Math` at module eval; `Math.seedrandom` is declared via an interface
+  augmentation in `globals.d.ts`.
+- `Date.now()-new Date(…)` coerces the Date at runtime; the typed
+  equivalent makes that explicit with a unary `+` (runtime-identical).
 
 ## Architecture notes / invariants to preserve
 
-- The engine (`src/engine/main.ts`, currently 15,721 lines) is a module that
+- The engine (`src/engine/main.ts`, currently 13,859 lines after slice 3) is a module that
   still builds `Game` at runtime as `var Game = {}` inside one giant
   `Game.Init` body. It remains `@ts-nocheck` until Phases 3–4 restructure it;
-  it can receive imports (it already imports `content/tiers` and
-  `content/buildings`).
+  it can receive imports (it already imports `content/tiers`,
+  `content/buildings`, and `content/upgrades`).
 - Content ctors are called as **plain functions** (not `new`) with **string**
   building names (`TieredUpgrade(name, desc, building, tier)`, etc.);
   `.order` is assigned post-call. Keep this call style until the ctors
@@ -153,6 +202,13 @@ last value (JS object-literal semantics).
   globals (`loc`, `choose`, `l`, …) resolve from ESM modules; any new typed
   module reading a bare engine global needs a matching declaration in
   `src/globals.d.ts`.
+- **The order/pool/power bridge** (slice 3): `var order, pool, power` at
+  engine module scope + `Object.defineProperty(window, …)` accessors next
+  to the shim. Content modules assign those names bare (window scope);
+  engine ctors read them unqualified (module scope). One shared state,
+  original assignment sequence. Content modules must **not** declare
+  local `var order/pool/power` (that shadows the bridge and silently
+  breaks every assignment). Slice 4 inherits the bridge as-is.
 
 ## What remains
 
@@ -160,8 +216,8 @@ last value (JS object-literal semantics).
 
 | Slice | Content | Size / location in `src/engine/main.ts` |
 | ----- | ------- | ---------------------------------------- |
-| 3 | **Upgrades**: 238 `new Game.Upgrade(`, 271 `Game.TieredUpgrade(`, 35 `Game.SynergyUpgrade(`, 17 `Game.GrandmaSynergy(` | ~lines 9106–11032 (~1,900 lines incl. the tier/synergy machinery between them) |
-| 4 | **Achievements**: 192 `new Game.Achievement(`, 252 `Game.TieredAchievement(`, 57 `Game.ProductionAchievement(` | ~lines 11514–12495 (~1,000 lines) |
+| ~~3~~ | ~~Upgrades~~ | **done — commit `66a11ff`** (786 declarations incl. 233 `Game.NewUpgradeCookie`; see above) |
+| 4 | **Achievements**: 192 `new Game.Achievement(`, 252 `Game.TieredAchievement(`, 57 `Game.ProductionAchievement(` | ~lines 9,552–10,630 now (ctors at 9,552/9,636/9,643; `//define achievements` at 9,680) — **inherits the order/pool/power bridge** |
 | 5 | `Game.foolObjects` (building → joke business name/desc/icon map) + its localization loop | immediately after the building block (~line 8900 region) |
 
 Each slice: verbatim cut → typed wrapper function → mechanical annotations →
