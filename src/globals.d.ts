@@ -29,10 +29,56 @@ declare global {
 	const Game: GameSurface;
 
 	/* Bare engine globals the typed content modules read unqualified (the
-	 * engine publishes both on window via its Object.assign(window, …) shim,
+	 * engine publishes them on window via its Object.assign(window, …) shim,
 	 * which is also what makes them resolve at runtime inside ESM modules). */
 	const loc: LocFn;
-	const choose: <T>(arr: readonly T[]) => T;
+	/* Non-generic on purpose: the content passes `any`-typed arrays (Game
+	 * index signature), and one verbatim 2.048 tombola line indexes `choose`
+	 * with a comma expression (`choose['red','orange',…]` — a faithful 2.048
+	 * quirk that resolves to `undefined` at runtime); the index signature
+	 * keeps that expression type-checkable. (Tested: generic `<T>(arr:
+	 * readonly T[]) => T` infers `unknown` from `any` arrays under tsgo.) */
+	const choose: { (arr: readonly any[]): any; [key: string]: any };
+	const App: number;
+	const Beautify: BeautifyFn;
+	const BeautifyInText: (str: string) => string;
+	/* Localized number formatter: returns {n: floored value, b: beautified}. */
+	const LBeautify: (val: number, floats?: number | boolean) => { n: number; b: string };
+	const cap: (str: string) => string;
+	const EN: number;
+	/* A music system loaded at runtime (tracks, …), or false when none is
+	 * loaded — the engine keeps it `false` in the current build, so the
+	 * content's `if (Music)` guards stay dead exactly as in master. `any`:
+	 * the jukebox methods dereference `Music.tracks` without a guard, the
+	 * way the original untyped code did. */
+	const Music: any;
+	const PlaySound: PlaySoundFn;
+	const getUpgradeName: (name: string) => string;
+	const tinyIcon: (icon: number | number[], css?: string) => string;
+	/* Engine shorthand for document.getElementById. `any`: the verbatim
+	 * content dereferences the returned element (`.value`, `.innerHTML`)
+	 * without null guards or input-casts, as the original code did. */
+	const l: (id: string) => any;
+	const triggerAnim: (element: any, anim: string) => void;
+
+	/* Shared vanilla-content bookkeeping, live-bridged (slice 3). The content
+	 * modules (content/upgrades.ts; later content/achievements.ts) read and
+	 * write order/pool/power as bare globals; engine/main.ts keeps the real
+	 * state in module-level vars and bridges the window properties onto them
+	 * with accessors, so the engine's Game.Upgrade / Game.Achievement ctors —
+	 * which read these names unqualified, exactly as they read the original
+	 * Init-scoped closure vars — and the content modules observe one shared
+	 * state. Declared `let` because the content assigns to them. */
+	let order: number;
+	let pool: string;
+	let power: number;
+
+	/* The engine attaches the classic-script seedrandom PRNG polyfill to
+	 * Math at module eval (it rewrites Math.random with a seedable one);
+	 * the vanilla content calls Math.seedrandom(…) at Init time. */
+	interface Math {
+		seedrandom(seed?: any, hard?: any): void;
+	}
 
 	/* The engine polyfills Element.prototype.getBounds (scaled, plain-object
 	 * rect) at module eval; declare that DOM extension. */

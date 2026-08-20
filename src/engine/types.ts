@@ -107,7 +107,8 @@ export interface Upgrade {
 	buildingTie?: Building | Upgrade;
 	buildingTie1?: Building;
 	buildingTie2?: Building;
-	descFunc?: () => string;
+	/** Desc override; CCSE (and the vanilla permanent-slot upgrades) may pass a context arg. */
+	descFunc?: (context?: string) => string;
 	priceFunc?: () => number;
 	unshackleUpgrade?: string;
 	vanilla: number;
@@ -190,7 +191,9 @@ export interface Building {
 	onMinigame: boolean;
 	minigameLoaded: boolean;
 	minigameLoading: boolean;
-	minigame?: { onResize?: () => void };
+	/* The loaded minigame instance (an object owned by the minigame module,
+	 * with its own full surface: computeStepT, computeMapBounds, …). */
+	minigame?: any;
 	eachFrame: number;
 	buy(amount?: number): number | undefined;
 	sell(amount?: number, silent?: number): number | undefined;
@@ -426,7 +429,9 @@ export interface Game {
 	ExportSaveCode(): string;
 	CalculateGains(): void;
 	ClickCookie(e: MouseEvent | null, amount?: number): void;
-	Notify(title: string, desc: string, pic?: [number, number] | string, quick?: number, noLog?: boolean): void;
+	/* pic accepts an [iconColumn, iconRow] pair, a bare icon column/row, or a
+	 * sound name — the engine handles all of these at runtime. */
+	Notify(title: string, desc: string, pic?: [number, number] | number | number[] | string, quick?: number, noLog?: boolean): void;
 	Ascend(force?: number): void;
 	Reincarnate(force?: number): void;
 	LoadMinigames(): void;
@@ -488,7 +493,8 @@ export interface Game {
 	) => Building;
 	Upgrade: new (name: string, desc: string, price: number, icon: number | number[], buyFunction?: () => void) => Upgrade;
 	Achievement: new (name: string, desc: string, icon: number | number[]) => Achievement;
-	TieredUpgrade: (name: string, desc: string, building: string, tier: number) => Upgrade;
+	/* tier is numeric, or the special 'fortune' tier for the golden cookies. */
+	TieredUpgrade: (name: string, desc: string, building: string, tier: number | string) => Upgrade;
 	SynergyUpgrade: (name: string, desc: string, building1: string, building2: string, tier: number | string) => Upgrade;
 	GrandmaSynergy: (name: string, desc: string, building: string) => Upgrade;
 	TieredAchievement: (name: string, desc: string, building: string, tier: number) => Achievement;
@@ -509,10 +515,12 @@ export interface Game {
 /* Window-boundary engine functions (published on `window`)               */
 /* ====================================================================== */
 
-/** `loc(id, params, baseline)` — localize a string; `params` fills `%1..%n`. */
+/** `loc(id, params, baseline)` — localize a string; `params` fills `%1..%n`.
+ * The engine accepts a single value (string or number), an array of values,
+ * or an object of named values — the vanilla content uses all three. */
 export type LocFn = (
 	id: string,
-	params?: number | number[] | Record<string, number | string>,
+	params?: string | number | (string | number)[] | Record<string, string | number>,
 	baseline?: unknown,
 ) => string;
 
