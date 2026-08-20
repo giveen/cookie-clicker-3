@@ -1,6 +1,6 @@
 # Cookie Clicker 3 — Architectural Rewrite Status
 
-_Last updated: 2026-08-20 (Phase 3 in progress — slice 2: Building class)._
+_Last updated: 2026-08-20 (Phase 3 in progress — slice 3: Upgrade class)._
 
 ## TL;DR
 
@@ -15,7 +15,7 @@ This document tracks the **architectural rewrite**: restructuring the 16k-line
 engine into idiomatic typed TypeScript modules and classes, with the hard
 constraint that **runtime behavior stays identical to `master`** at every step.
 
-**Current state: Phase 2 complete; Phase 3 in progress (slice 2 of 4).**
+**Current state: Phase 2 complete; Phase 3 in progress (slice 3 of 4).**
 The engine's tier table, all 19 vanilla building declarations, all 786
 vanilla upgrade declarations, all 501 vanilla achievement declarations, and
 the foolObjects joke-business map + its localization loop live in the typed
@@ -23,17 +23,18 @@ content layer, and every line of CC3's own code (glue, extras,
 localization, QA) type-checks under `tsc` strict. Phase 3 now replaces the
 runtime-built `var Game = {}` and the function-expression ctors with real
 typed classes in `src/engine/core/`: the `Game` singleton is a real class
-instance (slice 1) and the 740-line `Game.Object` ctor is the real
-`Building` class (slice 2); `Upgrade` (slice 3) and `Achievement` (slice 4)
-follow. The game builds and passes all 15 Playwright QA probes at every
-commit.
+instance (slice 1), the 740-line `Game.Object` ctor is the real
+`Building` class (slice 2), and the `Game.Upgrade` ctor + its 13 prototype
+methods + the two non-capturing factories are the real `Upgrade` class and
+its exported factory functions (slice 3); `Achievement` (slice 4) follows.
+The game builds and passes all 15 Playwright QA probes at every commit.
 
 ## Branch / commit state
 
 | Branch  | HEAD      | Meaning                                                        |
 | ------- | --------- | -------------------------------------------------------------- |
 | `master`| `dafffc6` | The finished, deployable CC3 (deploy gate). Untouched by the rewrite. |
-| `rewrite` (work) | `6ecbecc` | The rewrite, built on top of the 1:1 conversion.        |
+| `rewrite` (work) | `c044c85` | The rewrite, built on top of the 1:1 conversion.        |
 
 Rewrite history (old → new):
 
@@ -48,6 +49,7 @@ b2bef7e  Rewrite Phase 2 (slice 1): extract tier table into typed content layer
 9198b34  Rewrite Phase 2 (slice 5): extract foolObjects map + localization loop into typed module
 641af6a  Rewrite Phase 3 (slice 1): replace var Game={} with the GameCore class instance
 6ecbecc  Rewrite Phase 3 (slice 2): the Game.Object ctor is now the Building class
+c044c85  Rewrite Phase 3 (slice 3): the Game.Upgrade ctor is now the Upgrade class
 ```
 
 ## What "1:1" means here, and how it's enforced
@@ -257,6 +259,47 @@ last value (JS object-literal semantics).
   modules' non-English games). Gates: tsc 0, build clean, verify PASS,
   15/15 QA.
 
+- **Slice 3 — the `Upgrade` class (commit `c044c85`).**
+  `src/engine/core/upgrade.ts` (new, 368 lines): the engine's 34-line
+  `Game.Upgrade` ctor (pre-slice lines 7,930–7,965) plus its 13 prototype
+  methods (`getType`, `getPrice`, `canBuy`, `isVaulted`, `vault`, `unvault`,
+  `click`, `buy`, `earn`, `unearn`, `unlock`, `lose`, `toggle`) are now the
+  `Upgrade` class, and the two non-capturing factories
+  (`Game.TieredUpgrade`, `Game.SynergyUpgrade`) are exported factory
+  functions. The ctor body is **verbatim** (33/33 lines, 0 deltas) and the
+  method bodies are verbatim except `buy()` — diff-verified
+  line-for-line against the pre-slice snapshot
+  (`/tmp/verify-p3-upgrade.mjs`): 8 documented `buy()` deltas
+  (`cancelPurchase: any` / `selected: any` — the original reassigns a
+  boolean / the for-in string index into each 0-sentinel; the numeric
+  choices loop `i`→`i2` for TS2403 vs the for-in `i` above; `sortMap`
+  params annotated). The prototype methods became **class methods** —
+  verified unobservable: no `instanceof` / for-in / `Object.keys` / `in`
+  over upgrade instances anywhere in `src`. The interleaved
+  `Game.storeBuyAll` / `Game.vault=[]` statements stay in the engine in
+  place; the factories are assigned `Game.TieredUpgrade=TieredUpgrade` /
+  `Game.SynergyUpgrade=SynergyUpgrade`. `types.ts` replaces the 27-member
+  `Upgrade` interface with the class alias, `Game.Upgrade` is
+  `typeof UpgradeClass`, the factories are `typeof …Fn`. No runtime
+  imports in the new module — `Game`, `loc`, `cap`, `EN`, `l`, `choose`,
+  `PlaySound`, `writeIcon` and the `order`/`pool`/`power` bridge vars all
+  resolve through `globals.d.ts` to the window shim (the three bridge vars
+  read the live engine vars through the accessor bridge, exactly as the
+  original Init-scoped reads did).
+  **Contract deltas vs the old interface:** the class declares the
+  ctor-assigned data the old interface left to the index signature
+  (`power`, `unlockAt`, `techUnlock`, `parents`, `type`); `buildingTie` is
+  typed `Building | Upgrade | 0` to match the ctor's 0 sentinel (the old
+  optional type never matched it); `priceFunc` gains an optional `(me?)`
+  param because the body calls `this.priceFunc(this)`; `buy(bypass?)` is
+  optional because `click()` calls `this.buy()` 0-arg. The Tiered/Synergy
+  factory bodies carry `!`/`as any` where they read optional-typed
+  `buildingTie1`/`buildingTie2`/`tier`/`unshackleUpgrade`/`ddesc`
+  unguarded (the original passes `undefined` through — `Game.Has` falses
+  on it; `(this.buildingTie as any).id` because the non-optional 0-sentinel
+  union can't be stripped by `!`). Gates: tsc 0, build clean, verify PASS,
+  15/15 QA.
+
 ### Type-level findings (bugs/quirks the types caught)
 
 - `Game.Has()` returns **numeric 0/1** (`bought`), not a boolean — vanilla
@@ -373,17 +416,44 @@ last value (JS object-literal semantics).
   calls it as `pic(this, i)` (two args) and `bg` as `bg(this, ctx)`; the
   verbatim body treats both as `any` rather than pretend the lib type is
   complete.
+- **The legacy `0`-sentinel idiom defeats both inference and `!`.**
+  `buy()` opens with `var cancelPurchase=0` / `var selected=0` and
+  reassigns a **boolean** (`!this.clickFunction()`) and a **for-in string
+  index** into them respectively. tsgo infers the initializer's type
+  (`number`) and rejects the widening reassignment, so both are declared
+  `: any`. Separately, `buildingTie` is initialized to `0` ("none") by the
+  ctor, so its real type is `Building | Upgrade | 0` — the old interface's
+  *optional* `Building | Upgrade` never matched the `0`. Because the `0`
+  member makes the union **non-optional**, a non-null assertion (`!`)
+  cannot strip it (there's no `undefined`/`null` to remove), so the
+  factory closures read `(this.buildingTie as any).id` rather than
+  `this.buildingTie!.id`.
+- **A numeric `for` loop and a `for-in` over the same scope collide.**
+  `buy()` runs `for (var i in choices)` (twice) and later
+  `for (var i=0; i<choices.length; i++)`. tsgo flags the second as a
+  same-scope redeclaration with an incompatible type (TS2403), so the
+  numeric loop's `i` is renamed `i2` (the `i` it interpolates into the
+  generated `onMouseOver` handler string is renamed too).
+- **Method calls in the original are arity- and `this`-loose.** `click()`
+  calls `this.buy()` with **zero** args, so `buy`'s `bypass` param must be
+  optional (`buy(bypass?)`) or the class won't type-check. The class body
+  calls `this.priceFunc(this)`, but the content closures assign
+  `priceFunc` as a 0-arg function; the declared `priceFunc` therefore takes
+  an optional `(me?)`. And the `descFunc`/`priceFunc` closures the
+  factories assign read `this.buildingTie1`/`this.tier` — tsgo infers
+  `this` as the `Upgrade` instance (correct), which is why those optional
+  members surface as `!`/`as any` rather than plain accesses.
 
 ## Architecture notes / invariants to preserve
 
-- The engine (`src/engine/main.ts`, currently 12,043 lines after Phase 3
-  slice 2) is a module that no longer builds `Game` itself: the singleton
+- The engine (`src/engine/main.ts`, currently 11,740 lines after Phase 3
+  slice 3) is a module that no longer builds `Game` itself: the singleton
   is the `GameCore` instance exported by `src/engine/core/game.ts`, and
   the engine imports it and mutates it exactly as it mutated the old
   `var Game = {}`. It remains `@ts-nocheck` until Phases 3–4 restructure
   it; it can receive imports (it already imports `content/tiers`,
   `content/buildings`, `content/upgrades`, `content/achievements`,
-  `content/foolObjects`, `core/game`, and `core/building`).
+  `content/foolObjects`, `core/game`, `core/building`, and `core/upgrade`).
 - Content ctors are called as **plain functions** (not `new`) with **string**
   building names (`TieredUpgrade(name, desc, building, tier)`, etc.);
   `.order` is assigned post-call. Keep this call style until the ctors
@@ -448,7 +518,7 @@ diff-verify stays meaningful.
 | ----- | ------- | ---------------------------- |
 | ~~1~~ | **`GameCore`** — the `Game` singleton (index-signature shell; the named systems surface is Phase 4) | `src/engine/core/game.ts` (new) |
 | ~~2~~ | **`Building`** — the `Game.Object` ctor (740 lines, per-instance closures) → `core/building.ts`; `Game.Object = Building` in the engine; `types.ts` aliases the class, `Game.Object: typeof Building` — **done — commit `6ecbecc`** | engine 7,661–8,400 |
-| 3 | **`Upgrade`** — ctor + 13 prototype methods → `core/upgrade.ts`; the interleaved `Game.storeBuyAll` / `Game.vault=[]` statements stay in the engine in place; the non-capturing `Game.TieredUpgrade` / `Game.SynergyUpgrade` factories move to core | engine 8,666–8,935 (ctor 8,666–8,701, prototypes 8,702–8,935), factories 9,105–9,149 |
+| ~~3~~ | **`Upgrade`** — ctor + 13 prototype methods → `core/upgrade.ts`; the interleaved `Game.storeBuyAll` / `Game.vault=[]` statements stay in the engine in place; the non-capturing `Game.TieredUpgrade` / `Game.SynergyUpgrade` factories move to core — **done — commit `c044c85`** | engine 8,666–8,935 (ctor 8,666–8,701, prototypes 8,702–8,935), factories 9,105–9,149 |
 | 4 | **`Achievement`** — ctor + `getType`/`toggle` → `core/achievement.ts`; the four non-capturing factories (`TieredAchievement`, `ProductionAchievement`, `BankAchievement`, `CpsAchievement`) move to core; `types.ts` names `BankAchievement`/`CpsAchievement` | `content/achievements.ts` 45–70, 71, 106–117; factories 129–171 |
 
 Fidelity decisions (canonical for all slices):
