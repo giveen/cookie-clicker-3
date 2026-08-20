@@ -39,37 +39,11 @@
  *    numeric tier defines achievUnlock — compile-erased, runtime-identical.
  */
 import type { Game as EngineGame } from '../types';
+import { Achievement, TieredAchievement, ProductionAchievement, BankAchievement, CpsAchievement } from '../core/achievement';
 
 /** Declare the 501 vanilla achievements (and their bookkeeping) on Game. */
 export function declareVanillaAchievements(Game: EngineGame) {
-		Game.Achievement=function(this: any,name: any,desc: any,icon: any)
-		{
-			this.id=Game.AchievementsN;
-			this.name=name;
-			this.dname=this.name;
-			this.desc=desc;
-			this.baseDesc=this.desc;
-			this.icon=icon;
-			this.won=0;
-			this.disabled=0;
-			this.order=this.id;
-			if (order) this.order=order+this.id*0.001;
-			this.pool='normal';
-			this.vanilla=Game.vanilla;
-			this.type='achievement';
-			
-			this.click=function()
-			{
-				if (this.clickFunction) this.clickFunction();
-			}
-			Game.last=this;
-			Game.Achievements[this.name]=this;
-			Game.AchievementsById[this.id]=this;
-			Game.AchievementsN++;
-			return this;
-		}
-		Game.Achievement.prototype.getType=function(){return 'Achievement';}
-		
+		Game.Achievement=Achievement;//CC3 rewrite (phase 3, slice 4): the ctor + getType/toggle prototype methods moved to core/achievement.ts as the real Achievement class; the same Game.Achievement slot, same call sites, same self-registration.
 		Game.Win=function(what)
 		{
 			if (typeof what==='string')
@@ -103,18 +77,6 @@ export function declareVanillaAchievements(Game: EngineGame) {
 				}
 			}
 		}
-		Game.Achievement.prototype.toggle=function()//cheating only
-		{
-			if (!this.won)
-			{
-				Game.Win(this.name);
-			}
-			else
-			{
-				Game.RemoveAchiev(this.name);
-			}
-			if (Game.onMenu=='stats') Game.UpdateMenu();
-		}
 		
 		Game.CountsAsAchievementOwned=function(pool)
 		{
@@ -126,49 +88,15 @@ export function declareVanillaAchievements(Game: EngineGame) {
 			return (Game.Achievements[what]?Game.Achievements[what].won:0);
 		}
 		
-		Game.TieredAchievement=function(name,desc,building,tier)
-		{
-			var achiev=new Game.Achievement(name,loc("Have <b>%1</b>.",loc("%1 "+Game.Objects[building].bsingle,LBeautify(Game.Tiers[tier].achievUnlock!)))+desc,Game.GetIcon(building,tier));
-			Game.SetTier(building,tier);
-			return achiev;
-		}
+		Game.TieredAchievement=TieredAchievement;//CC3 rewrite (phase 3, slice 4): the non-capturing factory moved to core/achievement.ts; the same Game.TieredAchievement slot and call order.
 		
-		Game.ProductionAchievement=function(name,building,tier,q,mult)
-		{
-			var obj=Game.Objects[building];
-			var icon=[obj.iconColumn,22];
-			var n=12+obj.n+(mult||0);
-			if (tier==2) {icon[1]=23;n+=7;}
-			else if (tier==3) {icon[1]=24;n+=14;}
-			var pow=Math.pow(10,n);
-			var achiev=new Game.Achievement(name,loc("Make <b>%1</b> just from %2.",[loc("%1 cookie",{n:pow,b:toFixed(pow)}),obj.plural])+(q?'<q>'+q+'</q>':''),icon);
-			obj.productionAchievs.push({pow:pow,achiev:achiev});
-			return achiev;
-		}
+		Game.ProductionAchievement=ProductionAchievement;//CC3 rewrite (phase 3, slice 4): the non-capturing factory moved to core/achievement.ts; the same Game.ProductionAchievement slot and call order.
 		
 		Game.thresholdIcons=[0,1,2,3,4,5,6,7,8,9,10,11,18,19,20,21,22,23,24,25,26,27,28,29,21,22,23,24,25,26,27,28,29,21,22,23,24,25,26,27,28,29,30,31,30,31];
 		Game.BankAchievements=[];
-		Game.BankAchievement=function(name: any,q: any)
-		{
-			var threshold=Math.pow(10,Math.floor(Game.BankAchievements.length*1.5+2));
-			if (Game.BankAchievements.length==0) threshold=1;
-			var achiev=new Game.Achievement(name,loc("Bake <b>%1</b> in one ascension.",loc("%1 cookie",{n:threshold,b:toFixed(threshold)}))+(q?('<q>'+q+'</q>'):''),[Game.thresholdIcons[Game.BankAchievements.length],(Game.BankAchievements.length>43?2:Game.BankAchievements.length>32?1:Game.BankAchievements.length>23?2:5)]);
-			achiev.threshold=threshold;
-			achiev.order=100+Game.BankAchievements.length*0.01;
-			Game.BankAchievements.push(achiev);
-			return achiev;
-		}
+		Game.BankAchievement=BankAchievement;//CC3 rewrite (phase 3, slice 4): the non-capturing factory moved to core/achievement.ts; the same Game.BankAchievement slot and call order.
 		Game.CpsAchievements=[];
-		Game.CpsAchievement=function(name: any,q: any)
-		{
-			var threshold=Math.pow(10,Math.floor(Game.CpsAchievements.length*1.2));
-			//if (Game.CpsAchievements.length==0) threshold=1;
-			var achiev=new Game.Achievement(name,loc("Bake <b>%1</b> per second.",loc("%1 cookie",{n:threshold,b:toFixed(threshold)}))+(q?('<q>'+q+'</q>'):''),[Game.thresholdIcons[Game.CpsAchievements.length],(Game.CpsAchievements.length>43?2:Game.CpsAchievements.length>32?1:Game.CpsAchievements.length>23?2:5)]);
-			achiev.threshold=threshold;
-			achiev.order=200+Game.CpsAchievements.length*0.01;
-			Game.CpsAchievements.push(achiev);
-			return achiev;
-		}
+		Game.CpsAchievement=CpsAchievement;//CC3 rewrite (phase 3, slice 4): the non-capturing factory moved to core/achievement.ts; the same Game.CpsAchievement slot and call order.
 		
 		//define achievements
 		//WARNING : do NOT add new achievements in between, this breaks the saves. Add them at the end !

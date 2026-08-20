@@ -22,6 +22,13 @@ import type {
 	TieredUpgrade as TieredUpgradeFn,
 	SynergyUpgrade as SynergyUpgradeFn,
 } from './core/upgrade';
+import type {
+	Achievement as AchievementClass,
+	TieredAchievement as TieredAchievementFn,
+	ProductionAchievement as ProductionAchievementFn,
+	BankAchievement as BankAchievementFn,
+	CpsAchievement as CpsAchievementFn,
+} from './core/achievement';
 
 /* ====================================================================== */
 /* Language data (src/engine/loc/*.ts)                                    */
@@ -98,24 +105,14 @@ export interface Art {
  */
 export type Upgrade = UpgradeClass;
 
-/** A store achievement. `won` is 0/1 (legacy numeric-boolean). */
-export interface Achievement {
-	id: number;
-	name: string;
-	dname: string;
-	desc: string;
-	baseDesc: string;
-	ddesc?: string;
-	icon: number | number[];
-	won: number;
-	order: number;
-	pool: string;
-	buildingTie?: Building;
-	tier?: number;
-	threshold?: number;
-	vanilla: number;
-	[key: string]: any;
-}
+/**
+ * A store achievement. Phase 3 slice 4: the real class
+ * (core/achievement.ts) — `content/achievements.ts` assigns
+ * `Game.Achievement = Achievement`; call sites are unchanged. `won` is
+ * 0/1 (legacy numeric-boolean). The class also declares the ctor-assigned
+ * data the old interface left to the index signature (`disabled`, `type`).
+ */
+export type Achievement = AchievementClass;
 
 /**
  * A building (the engine's `Game.Object` content primitive). Phase 3 slice 2
@@ -412,19 +409,23 @@ export interface Game {
 	/* Phase 3 slice 3: the real class (core/upgrade.ts) — the engine
 	 * assigns `Game.Upgrade = Upgrade`; call sites are unchanged. */
 	Upgrade: typeof UpgradeClass;
-	/* Runtime ctor (name: string, desc: string, icon: number | number[])
-	 * with a `prototype` (getType/toggle), now assigned from the checked
-	 * content layer; tsgo rejects function expressions for construct
-	 * signatures, so it is `any` until Phase 3 replaces it with a real class. */
-	Achievement: any;
+	/* Phase 3 slice 4: the real class (core/achievement.ts) — the content
+	 * layer assigns `Game.Achievement = Achievement`; call sites are
+	 * unchanged. Closes the Phase-1 `any` (tsgo rejects function
+	 * expressions for construct signatures — a real class has none of
+	 * those problems). */
+	Achievement: typeof AchievementClass;
 	/* tier is numeric, or the special 'fortune' tier for the golden cookies.
 	 * Phase 3 slice 3: real factory functions from core/upgrade.ts. */
 	TieredUpgrade: typeof TieredUpgradeFn;
 	SynergyUpgrade: typeof SynergyUpgradeFn;
 	GrandmaSynergy: (name: string, desc: string, building: string) => Upgrade;
-	TieredAchievement: (name: string, desc: string, building: string, tier: number) => Achievement;
+	/* Phase 3 slice 4: real factory functions from core/achievement.ts. */
+	TieredAchievement: typeof TieredAchievementFn;
 	/* q is a quote string, or 0/omitted for "no quote" (falsy check). */
-	ProductionAchievement: (name: string, building: string, tier: number, q?: string | number, mult?: number) => Achievement;
+	ProductionAchievement: typeof ProductionAchievementFn;
+	BankAchievement: typeof BankAchievementFn;
+	CpsAchievement: typeof CpsAchievementFn;
 
 	/* --- misc engine surface --- */
 	tooltip: { hide(): void };
