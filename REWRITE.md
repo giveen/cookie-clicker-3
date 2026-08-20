@@ -1,6 +1,6 @@
 # Cookie Clicker 3 — Architectural Rewrite Status
 
-_Last updated: 2026-08-20 (Phase 3 in progress — slice 1: Game core class)._
+_Last updated: 2026-08-20 (Phase 3 in progress — slice 2: Building class)._
 
 ## TL;DR
 
@@ -15,7 +15,7 @@ This document tracks the **architectural rewrite**: restructuring the 16k-line
 engine into idiomatic typed TypeScript modules and classes, with the hard
 constraint that **runtime behavior stays identical to `master`** at every step.
 
-**Current state: Phase 2 complete; Phase 3 in progress (slice 1 of 4).**
+**Current state: Phase 2 complete; Phase 3 in progress (slice 2 of 4).**
 The engine's tier table, all 19 vanilla building declarations, all 786
 vanilla upgrade declarations, all 501 vanilla achievement declarations, and
 the foolObjects joke-business map + its localization loop live in the typed
@@ -23,16 +23,17 @@ content layer, and every line of CC3's own code (glue, extras,
 localization, QA) type-checks under `tsc` strict. Phase 3 now replaces the
 runtime-built `var Game = {}` and the function-expression ctors with real
 typed classes in `src/engine/core/`: the `Game` singleton is a real class
-instance (slice 1), followed by `Building` (slice 2), `Upgrade` (slice 3)
-and `Achievement` (slice 4). The game builds and passes all 15 Playwright
-QA probes at every commit.
+instance (slice 1) and the 740-line `Game.Object` ctor is the real
+`Building` class (slice 2); `Upgrade` (slice 3) and `Achievement` (slice 4)
+follow. The game builds and passes all 15 Playwright QA probes at every
+commit.
 
 ## Branch / commit state
 
 | Branch  | HEAD      | Meaning                                                        |
 | ------- | --------- | -------------------------------------------------------------- |
 | `master`| `dafffc6` | The finished, deployable CC3 (deploy gate). Untouched by the rewrite. |
-| `rewrite` (work) | `641af6a` | The rewrite, built on top of the 1:1 conversion.        |
+| `rewrite` (work) | `6ecbecc` | The rewrite, built on top of the 1:1 conversion.        |
 
 Rewrite history (old → new):
 
@@ -46,6 +47,7 @@ b2bef7e  Rewrite Phase 2 (slice 1): extract tier table into typed content layer
 65040d2  Rewrite Phase 2 (slice 4): extract vanilla achievement content into typed module
 9198b34  Rewrite Phase 2 (slice 5): extract foolObjects map + localization loop into typed module
 641af6a  Rewrite Phase 3 (slice 1): replace var Game={} with the GameCore class instance
+6ecbecc  Rewrite Phase 3 (slice 2): the Game.Object ctor is now the Building class
 ```
 
 ## What "1:1" means here, and how it's enforced
@@ -221,6 +223,40 @@ last value (JS object-literal semantics).
   original parse exactly (implicit ASI semicolon → explicit, same AST).
   Gates: tsc 0, build clean, 15/15 QA.
 
+- **Slice 2 — the `Building` class (commit `6ecbecc`).**
+  `src/engine/core/building.ts` (new, 852 lines): the engine's 740-line
+  `Game.Object` function expression (pre-slice lines 7,663–8,402) is now
+  the `Building` class. The ctor body is **verbatim** — diff-verified
+  line-for-line against the pre-slice snapshot
+  (`/tmp/verify-p3-building.mjs`): 737/737 body lines, 33 documented
+  deltas, all type-level (13× `: any` closure-param annotations, the
+  `_n`/`_bypass`/`i2`/`_ii` TS2403/TS6133 renames, the `+new Date(2013,7,8)`
+  coercion, `as any`/`as number` casts, two `!` assertions, and four
+  write-only local bindings commented out). The per-instance closures
+  remain own-property assignments, and the `declare`d members are erased
+  by both tsgo and esbuild, so the runtime instance shape is
+  byte-identical to the original plain object. `types.ts` now aliases
+  `Building` to the class (the 70-line interface is gone; its named
+  members live on the class) and `GameSurface.Object` is
+  `typeof BuildingClass`. The engine keeps the same slot:
+  `Game.Object = Building` at the original line, plus an import. Five new
+  ambient globals (`TopBarOffset`, `Langs`, `locId`, `writeIcon`, `Pic`).
+  Documented contract deltas vs the old interface: `muted` is
+  `boolean | number` (the ctor initializes `false`, the engine assigns
+  0/1 — the old bare `number` never matched the ctor), `canvas`/`ctx` are
+  `any` (the engine's `fillPattern` polyfill isn't in the DOM lib type),
+  `getPrice(n?)` is optional (every engine call site omits `n`), and
+  `baseCps` keeps its `number` contract behind one documented `as any`
+  cast where the ctor mirrors `cps` 1:1.
+  **The slice exposed a real bug in the window shim:** `Object.assign`
+  copies `locId`/`EN`/`TopBarOffset` by value at module-eval time, before
+  the language load reassigns them, so the class's `Langs[locId].w` read
+  crashed boot (`Cannot read properties of undefined (reading 'w')`).
+  Read-only accessors now bridge those three live engine vars next to the
+  order/pool/power bridge (this also restores live `EN` for the content
+  modules' non-English games). Gates: tsc 0, build clean, verify PASS,
+  15/15 QA.
+
 ### Type-level findings (bugs/quirks the types caught)
 
 - `Game.Has()` returns **numeric 0/1** (`bought`), not a boolean — vanilla
@@ -306,17 +342,48 @@ last value (JS object-literal semantics).
   slices: when deleting a line from the engine, check what ASI role the
   surrounding lines had; add explicit `;` where the break is load-bearing
   (same AST as the original implicit one).
+- **The window shim's `Object.assign` copies primitives by value.** It runs
+  once at module-eval time, so any engine `var` that is reassigned later
+  (`locId` 'NONE'→'EN', `EN`, `TopBarOffset`) is captured stale on
+  `window`. A `@ts-nocheck`-free module that reads such a name bare
+  (i.e. via `window`) sees the eval-time value, not the live one — slice 2
+  caught this as a boot crash in the `Building` class's `Langs[locId].w`
+  read. Read-only `Object.defineProperty` accessors bridge the live vars
+  (the same pattern as the order/pool/power bridge); `EN`'s accessor also
+  restores correct non-English behavior for the Phase 2 content modules.
+- **tsgo TS1031: `declare` cannot modify a class *method* element.** The
+  method surface of a class whose methods are assigned per-instance in the
+  ctor is carried instead as erased function-typed properties
+  (`declare buy: (amount?: number) => number | undefined;`) — same
+  contract, legal syntax, erased just like field `declare`s.
+- **tsgo `noUnusedLocals` ignores the `_` prefix for plain locals** (it
+  honors it for params and for-in targets). A verbatim body's write-only
+  locals (`desc`, `h` in the building ctor) can't be silenced by renaming;
+  they're commented out instead — the dropped statements are plain
+  property reads/writes with no side effects, so runtime-identical
+  (diff-verified as four of the 33 documented deltas).
+- **tsgo TS2454 (use before assignment) is silenced by a non-null
+  assertion (`selected!`)** but *not* by `as any` and not by reading the
+  var through a closure (scratch-verified both ways). The building
+  tooltip's `selected==i` compares a var that is only assigned inside the
+  `mouseOn` branch; the original read the hoisted (possibly unassigned)
+  var, and `selected!` reproduces that read exactly.
+- **`Art.pic`'s declared type doesn't match its real call shape.** The
+  interface says `string | ((i: string) => string)`, but the building draw
+  calls it as `pic(this, i)` (two args) and `bg` as `bg(this, ctx)`; the
+  verbatim body treats both as `any` rather than pretend the lib type is
+  complete.
 
 ## Architecture notes / invariants to preserve
 
-- The engine (`src/engine/main.ts`, currently 12,770 lines after Phase 3
-  slice 1) is a module that no longer builds `Game` itself: the singleton
+- The engine (`src/engine/main.ts`, currently 12,043 lines after Phase 3
+  slice 2) is a module that no longer builds `Game` itself: the singleton
   is the `GameCore` instance exported by `src/engine/core/game.ts`, and
   the engine imports it and mutates it exactly as it mutated the old
   `var Game = {}`. It remains `@ts-nocheck` until Phases 3–4 restructure
   it; it can receive imports (it already imports `content/tiers`,
   `content/buildings`, `content/upgrades`, `content/achievements`,
-  `content/foolObjects`, and `core/game`).
+  `content/foolObjects`, `core/game`, and `core/building`).
 - Content ctors are called as **plain functions** (not `new`) with **string**
   building names (`TieredUpgrade(name, desc, building, tier)`, etc.);
   `.order` is assigned post-call. Keep this call style until the ctors
@@ -331,7 +398,11 @@ last value (JS object-literal semantics).
 - The engine's `Object.assign(window, { … })` shim is what makes bare
   globals (`loc`, `choose`, `l`, …) resolve from ESM modules; any new typed
   module reading a bare engine global needs a matching declaration in
-  `src/globals.d.ts`.
+  `src/globals.d.ts`. It copies **by value at module-eval time**, so
+  object/function globals stay live (same reference) but primitive globals
+  that are reassigned later (`locId`, `EN`, `TopBarOffset`) are frozen at
+  their eval-time values — those need the read-only accessor bridge
+  (slice 2 added `locId`/`EN`/`TopBarOffset` next to order/pool/power).
 - **The order/pool/power bridge** (slice 3): `var order, pool, power` at
   engine module scope + `Object.defineProperty(window, …)` accessors next
   to the shim. Content modules assign those names bare (window scope);
@@ -362,18 +433,21 @@ All five content slices are extracted; every entry in the original
 
 Replace the runtime-built `var Game = {}` and the function-expression ctors
 with real typed classes in `src/engine/core/`; `types.ts` becomes the
-implementation, not just the description. Core modules import **nothing** —
-every engine global they read (`Game`, `loc`, `l`, `EN`, `choose`, `cap`,
-`LBeautify`, `PlaySound`, `Beautify`, `toFixed`, `FindLocStringByPart`, the
-`order`/`pool`/`power` bridge vars, …) resolves through the ambient
-`globals.d.ts` declarations to the window shim, so there are no import
-cycles. Bodies keep their original indentation (header line replaced, no
-re-indent) so diff-verify stays meaningful.
+implementation, not just the description. Core modules have **no runtime
+imports** — every engine global they read (`Game`, `loc`, `l`, `EN`,
+`choose`, `cap`, `LBeautify`, `PlaySound`, `Beautify`, `toFixed`,
+`FindLocStringByPart`, the `order`/`pool`/`power` bridge vars, …) resolves
+through the ambient `globals.d.ts` declarations to the window shim, so there
+are no import cycles. (An `import type { … } from '../types'` is fine and is
+used by `core/building.ts` for `Art`/`Upgrade`/`Achievement`: it is erased
+at compile time, adds no runtime edge, and cannot create a cycle.) Bodies
+keep their original indentation (header line replaced, no re-indent) so
+diff-verify stays meaningful.
 
 | Slice | Content | Source (pre-slice line refs) |
 | ----- | ------- | ---------------------------- |
 | ~~1~~ | **`GameCore`** — the `Game` singleton (index-signature shell; the named systems surface is Phase 4) | `src/engine/core/game.ts` (new) |
-| 2 | **`Building`** — the `Game.Object` ctor (740 lines, per-instance closures) → `core/building.ts`; `Game.Object = Building` in the engine; `types.ts` aliases the class, `Game.Object: typeof Building` | engine 7,661–8,400 |
+| ~~2~~ | **`Building`** — the `Game.Object` ctor (740 lines, per-instance closures) → `core/building.ts`; `Game.Object = Building` in the engine; `types.ts` aliases the class, `Game.Object: typeof Building` — **done — commit `6ecbecc`** | engine 7,661–8,400 |
 | 3 | **`Upgrade`** — ctor + 13 prototype methods → `core/upgrade.ts`; the interleaved `Game.storeBuyAll` / `Game.vault=[]` statements stay in the engine in place; the non-capturing `Game.TieredUpgrade` / `Game.SynergyUpgrade` factories move to core | engine 8,666–8,935 (ctor 8,666–8,701, prototypes 8,702–8,935), factories 9,105–9,149 |
 | 4 | **`Achievement`** — ctor + `getType`/`toggle` → `core/achievement.ts`; the four non-capturing factories (`TieredAchievement`, `ProductionAchievement`, `BankAchievement`, `CpsAchievement`) move to core; `types.ts` names `BankAchievement`/`CpsAchievement` | `content/achievements.ts` 45–70, 71, 106–117; factories 129–171 |
 
