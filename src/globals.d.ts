@@ -39,11 +39,17 @@ declare global {
 	 * keeps that expression type-checkable. (Tested: generic `<T>(arr:
 	 * readonly T[]) => T` infers `unknown` from `any` arrays under tsgo.) */
 	const choose: { (arr: readonly any[]): any; [key: string]: any };
-	const App: number;
+	/* Platform config: falsy on the desktop build, else a bridge object
+	 * (the achievements module calls App.gotAchiev) — hence `any`. */
+	const App: any;
 	const Beautify: BeautifyFn;
 	const BeautifyInText: (str: string) => string;
 	/* Localized number formatter: returns {n: floored value, b: beautified}. */
 	const LBeautify: (val: number, floats?: number | boolean) => { n: number; b: string };
+	/* Engine number formatter (engine/main.ts, published on window): returns
+	 * a zero-padded string for sub-1 magnitudes, else the input number
+	 * unchanged (legacy quirk) — hence the string | number return. */
+	const toFixed: (n: number) => string | number;
 	const cap: (str: string) => string;
 	const EN: number;
 	/* A music system loaded at runtime (tracks, …), or false when none is
@@ -99,7 +105,7 @@ declare global {
 		/* --- config.ts (must be on window before the engine evaluates) --- */
 		VERSION: number;
 		BETA: number;
-		App: number;
+		App: any;
 
 		/* --- engine core surface (engine/main.ts) --- */
 		Game: GameSurface;

@@ -458,7 +458,8 @@ export interface Game {
 	Unlock(name: string | string[]): void;
 	Lock(name: string): void;
 	UnlockTiered(me: Building): void;
-	Win(name: string): void;
+	/* A name, or a record of names (the legacy else-branch iterates it). */
+	Win(name: string | Record<string, string>): void;
 	GetTieredCpsMult(me: Building): number;
 	magicCpS(name: string): number;
 	/** Aura multiplier for a named aura (0 when the aura is not active). */
@@ -492,13 +493,18 @@ export interface Game {
 		buyFunction?: (this: Building) => void,
 	) => Building;
 	Upgrade: new (name: string, desc: string, price: number, icon: number | number[], buyFunction?: () => void) => Upgrade;
-	Achievement: new (name: string, desc: string, icon: number | number[]) => Achievement;
+	/* Runtime ctor (name: string, desc: string, icon: number | number[])
+	 * with a `prototype` (getType/toggle), now assigned from the checked
+	 * content layer; tsgo rejects function expressions for construct
+	 * signatures, so it is `any` until Phase 3 replaces it with a real class. */
+	Achievement: any;
 	/* tier is numeric, or the special 'fortune' tier for the golden cookies. */
 	TieredUpgrade: (name: string, desc: string, building: string, tier: number | string) => Upgrade;
 	SynergyUpgrade: (name: string, desc: string, building1: string, building2: string, tier: number | string) => Upgrade;
 	GrandmaSynergy: (name: string, desc: string, building: string) => Upgrade;
 	TieredAchievement: (name: string, desc: string, building: string, tier: number) => Achievement;
-	ProductionAchievement: (name: string, building: string, tier: number, q?: string, mult?: number) => Achievement;
+	/* q is a quote string, or 0/omitted for "no quote" (falsy check). */
+	ProductionAchievement: (name: string, building: string, tier: number, q?: string | number, mult?: number) => Achievement;
 
 	/* --- misc engine surface --- */
 	tooltip: { hide(): void };
