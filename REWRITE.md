@@ -1,6 +1,6 @@
 # Cookie Clicker 3 — Architectural Rewrite Status
 
-_Last updated: 2026-08-20 (session checkpoint after Phase 2, slice 3)._
+_Last updated: 2026-08-20 (session checkpoint after Phase 2, slice 4)._
 
 ## TL;DR
 
@@ -15,18 +15,19 @@ This document tracks the **architectural rewrite**: restructuring the 16k-line
 engine into idiomatic typed TypeScript modules and classes, with the hard
 constraint that **runtime behavior stays identical to `master`** at every step.
 
-**Current state: Phase 2, slice 3 complete.** The engine's tier table, all
-19 vanilla building declarations, and all 786 vanilla upgrade declarations
-now live in the typed content layer, and every line of CC3's own code (glue,
-extras, localization, QA) type-checks under `tsc` strict. The game builds
-and passes all 15 Playwright QA probes at every commit.
+**Current state: Phase 2, slice 4 complete.** The engine's tier table, all
+19 vanilla building declarations, all 786 vanilla upgrade declarations, and
+all 501 vanilla achievement declarations now live in the typed content
+layer, and every line of CC3's own code (glue, extras, localization, QA)
+type-checks under `tsc` strict. The game builds and passes all 15 Playwright
+QA probes at every commit.
 
 ## Branch / commit state
 
 | Branch  | HEAD      | Meaning                                                        |
 | ------- | --------- | -------------------------------------------------------------- |
 | `master`| `dafffc6` | The finished, deployable CC3 (deploy gate). Untouched by the rewrite. |
-| `rewrite` (work) | `66a11ff` | The rewrite, built on top of the 1:1 conversion.        |
+| `rewrite` (work) | `65040d2` | The rewrite, built on top of the 1:1 conversion.        |
 
 Rewrite history (old → new):
 
@@ -37,6 +38,7 @@ b2bef7e  Rewrite Phase 2 (slice 1): extract tier table into typed content layer
 1ab1ff5  Rewrite Phase 2 (slice 2): extract vanilla building content into typed module
 94092c1  Rewrite: add REWRITE.md status document
 66a11ff  Rewrite Phase 2 (slice 3): extract vanilla upgrade content into typed module
+65040d2  Rewrite Phase 2 (slice 4): extract vanilla achievement content into typed module
 ```
 
 ## What "1:1" means here, and how it's enforced
@@ -137,7 +139,30 @@ inline literals, making verbatim extraction 1:1.
    The ctors keep reading the unqualified names (module scope); the content
    module keeps assigning bare names (window scope) — one shared state,
    same assignment sequence, same final values. **Slice 4 (achievements)
-   inherits this bridge.**
+   inherited this bridge as-is.**
+
+- **Slice 4 — achievements (commit `65040d2`).**
+   `src/engine/content/achievements.ts` (1,115 lines):
+   `declareVanillaAchievements(Game)` holds all **501** vanilla achievement
+   declarations — 192 `new Game.Achievement(…)`, 252 `Game.TieredAchievement(…)`,
+   57 `Game.ProductionAchievement(…)` — plus the 46 `Game.BankAchievement(…)`
+   and 46 `Game.CpsAchievement(…)` calls and the `order` bookkeeping. Moved
+   with the declarations (assigned on `Game`, so the modding surface is
+   unchanged): the `Game.Achievement` ctor + `getType`/`toggle` prototype
+   methods, `Game.Win`, `Game.RemoveAchiev`, `Game.CountsAsAchievementOwned`,
+   `Game.HasAchiev`, the four factories, `Game.thresholdIcons`, and the
+   Bank/Cps achievement registries. 1,070 lines of the engine's `Game.Init`
+   (lines 9,552–10,621 pre-slice) are gone; the engine keeps the
+   `Game.Achievements*` init lines under the ACHIEVEMENTS banner and the
+   post-declaration `levelAchiev10` loop + `LocalizeUpgradesAndAchievs()`,
+   which run after the content call exactly as before. The original
+   Init-scoped `var order=0` became a bare assignment through the bridge,
+   which the (now moved) `Game.Achievement` ctor reads. Documented
+   runtime-preserving deltas: `this: any` + `: any` param annotations on
+   the ctor/factories (tsgo TS7006 even under contextual `any`), the
+   shadowing `var building` → `obj` rename in ProductionAchievement
+   (tsgo TS2403), the four write-only `var achiev=` binding drops, and one
+   compile-erased `achievUnlock!` non-null assertion.
 
 Documented runtime-preserving deviations in slice 2 (all diff-verified):
 local `i`→`j` loop rename in Grandma's CpS (a `var`-scope clash only visible
@@ -179,14 +204,28 @@ last value (JS object-literal semantics).
   augmentation in `globals.d.ts`.
 - `Date.now()-new Date(…)` coerces the Date at runtime; the typed
   equivalent makes that explicit with a unary `+` (runtime-identical).
+- **tsgo rejects function expressions for construct signatures** —
+  assigning `X=function(…){…}` to a type carrying a `new` signature fails
+  (tested: construct-only, hybrid call+construct, and `Function` —
+  TS2322/TS2351). A ctor value *assigned from checked code* therefore
+  cannot keep a construct-signature type: `Game.Achievement` is `any`
+  (contract in a doc comment) until Phase 3's real class. Ctors assigned
+  only inside the `@ts-nocheck` engine (`Game.Object`, `Game.Upgrade`)
+  keep theirs.
+- **tsgo reports TS7006 even under a contextual `any`** (named member or
+  index signature): params of checked function expressions need explicit
+  `: any` (the slice-3 `function(obj: any)` convention).
+- **tsgo infers a container `this` for property function expressions**:
+  `Game.X=function(){ return this; }` infers `this` as the `Game` object,
+  so the moved `Game.Achievement` ctor needed an explicit `this: any`.
 
 ## Architecture notes / invariants to preserve
 
-- The engine (`src/engine/main.ts`, currently 13,859 lines after slice 3) is a module that
+- The engine (`src/engine/main.ts`, currently 12,797 lines after slice 4) is a module that
   still builds `Game` at runtime as `var Game = {}` inside one giant
   `Game.Init` body. It remains `@ts-nocheck` until Phases 3–4 restructure it;
   it can receive imports (it already imports `content/tiers`,
-  `content/buildings`, and `content/upgrades`).
+  `content/buildings`, `content/upgrades`, and `content/achievements`).
 - Content ctors are called as **plain functions** (not `new`) with **string**
   building names (`TieredUpgrade(name, desc, building, tier)`, etc.);
   `.order` is assigned post-call. Keep this call style until the ctors
@@ -208,7 +247,9 @@ last value (JS object-literal semantics).
   engine ctors read them unqualified (module scope). One shared state,
   original assignment sequence. Content modules must **not** declare
   local `var order/pool/power` (that shadows the bridge and silently
-  breaks every assignment). Slice 4 inherits the bridge as-is.
+  breaks every assignment). Slice 4 (achievements) inherited it: its
+  `var order=0` became a bare assignment and the moved `Game.Achievement`
+  ctor reads the engine's module-scope var.
 
 ## What remains
 
@@ -217,7 +258,7 @@ last value (JS object-literal semantics).
 | Slice | Content | Size / location in `src/engine/main.ts` |
 | ----- | ------- | ---------------------------------------- |
 | ~~3~~ | ~~Upgrades~~ | **done — commit `66a11ff`** (786 declarations incl. 233 `Game.NewUpgradeCookie`; see above) |
-| 4 | **Achievements**: 192 `new Game.Achievement(`, 252 `Game.TieredAchievement(`, 57 `Game.ProductionAchievement(` | ~lines 9,552–10,630 now (ctors at 9,552/9,636/9,643; `//define achievements` at 9,680) — **inherits the order/pool/power bridge** |
+| ~~4~~ | ~~Achievements~~ | **done — commit `65040d2`** (501 declarations + 46 bank + 46 cps calls; see above) |
 | 5 | `Game.foolObjects` (building → joke business name/desc/icon map) + its localization loop | immediately after the building block (~line 8900 region) |
 
 Each slice: verbatim cut → typed wrapper function → mechanical annotations →
