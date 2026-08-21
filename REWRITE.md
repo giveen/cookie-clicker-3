@@ -15,7 +15,7 @@ This document tracks the **architectural rewrite**: restructuring the legacy
 engine into idiomatic typed TypeScript modules and classes, with the hard
 constraint that **runtime behavior stays identical to `master`** at every step.
 
-**Current state: Phases 1–5 complete; Phase 6 Slices 1–5 complete.**
+**Current state: Phases 1–5 complete; Phase 6 Slices 1–7 complete.**
 The engine's content (tiers, buildings, upgrades, achievements, foolObjects,
 milks, changelog, heavenly positions) lives in typed
 `src/engine/content/` modules. Core classes (`Game`, `Building`, `Upgrade`,
@@ -33,7 +33,10 @@ menu, drawBackground) to `engine/ui/` (Slice 4); content/data (milks,
 changelog, heavenly positions, debug) to `engine/content/` + `utils/debug`
 (Slice 5). The game builds and passes all 15 Playwright QA probes. Slice 6
 (core loop stays typed as the thin orchestrator) is effectively reached —
-remaining Phase 6 work is verification + docs + cleanup (Slice 7).
+Slice 7's save-format compatibility check is done (`tests/save-compat.spec.js`
+— byte-identical re-exports between `master` and `rewrite`, modulo the
+re-stamped `lastDate` timestamp). Remaining Slice 7 work is doc/script
+cleanup.
 
 ## Branch / commit state
 
@@ -869,8 +872,26 @@ The engine becomes a thin orchestrator importing every extracted module.
 
 #### Slice 7 — Verification + docs + cleanup
 
-- Save-format compatibility check: export a `master` save, import on
-  `rewrite`, diff the parsed state.
+- **Save-format compatibility check — done** (`tests/save-compat.spec.js`,
+  committed with slice 7): symmetric round-trip. `master` seeds a rich
+  deterministic state (cookies, clicks, buildings, upgrades, achievements,
+  prestige/lumps/dragon, vault, season, …) and exports; both `master` and
+  `rewrite` then import that export on fresh pages and re-export. All 10
+  pipe-sections of the raw `WriteSave(2)` string are byte-identical between
+  branches except the `lastDate` timestamp (re-stamped at WriteSave entry);
+  the `WriteSave(1)` exports match after decoding + the same normalization.
+  14/14 live-state assertions pass on the rewrite import. **Result: no
+  compatibility work needed — the save surface is byte-compatible.**
+
+  Harness lessons (all three diffs that looked like bugs were test-harness
+  asymmetries, not branch differences): (1) compare re-exports, not
+  seed-export vs import-export — the import path runs an unlock rebuild the
+  bare seed doesn't, so upgrade/achievement bitfields gain legitimately
+  unlocked bits; (2) the baseline must import on a **fresh page** —
+  `Game.heralds` is restored to its pre-import value after the offline-CpS
+  estimate (verbatim 2.048 behavior in `LoadSave`), so a seeded page vs a
+  fresh page diverge on field 48; (3) `Game.vault` holds numeric upgrade
+  ids, not names.
 - Update `README.md` (architecture section), `tsconfig.json` comments.
 - Retire `scripts/transform-engine.mjs` and
   `scripts/scan-implicit-globals.mjs`.
@@ -888,6 +909,7 @@ The engine becomes a thin orchestrator importing every extracted module.
 npx tsc --noEmit          # strict, 0 errors
 npm run build             # tsc && vite build
 npx playwright test       # 15/15 probes, ~51 s (webServer: build + preview on :4173)
+npx playwright test tests/save-compat.spec.js   # save-format compat vs master on :4174
 # diff the moved block against the original; only annotations +
 # documented runtime-preserving renames allowed
 git add -A && git commit -F /tmp/msg.txt   # write message via file; bash eats backticks in -m
