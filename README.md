@@ -1,6 +1,6 @@
 # Cookie Clicker 3
 
-A modern, from-scratch rebuild of the tooling around [Cookie Clicker 2.048](https://github.com/DiSCooooo/Cookie-Clicker-2.048) (itself a port of Orteil's [Cookie Clicker](http://orteil.dashnet.org/cookieclicker/)). The game code is the original 2.048 engine, ported into TypeScript ES modules and served by a zero-runtime-dependency Vite pipeline — no jQuery, no IE polyfills, no CDN requests, no ads, no trackers.
+A modern, from-scratch rebuild of the tooling around [Cookie Clicker 2.048](https://github.com/DiSCooooo/Cookie-Clicker-2.048) (itself a port of Orteil's [Cookie Clicker](http://orteil.dashnet.org/cookieclicker/)). The game code is the original 2.048 engine, ported into TypeScript ES modules and then incrementally rewritten into idiomatic typed modules (see [REWRITE.md](REWRITE.md) for the full rewrite log), served by a zero-runtime-dependency Vite pipeline — no jQuery, no IE polyfills, no CDN requests, no ads, no trackers.
 
 ## What "modernized" means here
 
@@ -18,7 +18,7 @@ A modern, from-scratch rebuild of the tooling around [Cookie Clicker 2.048](http
 | Motion polish | UI rendered at the 30Hz loop rate; hard column/tab switches | The CC3 polish pass (v3.0): display-refresh-rate smooth cookie counter, one-column column slide-in, notification slide-in, ascend-intro flash + shake. Transform/opacity only; respects the in-game "Fancy graphics" toggle and `prefers-reduced-motion` (see "CC3 polish" in `src/styles/main.css` + `src/main.ts`, verified by `?qa=anim`) |
 | Ads / tracking / IE shims | AdSense, Facebook pixel, cookieconsent CDN, excanvas, IE conditional comments | Removed |
 
-The engine itself was **not** rewritten line-by-line: it is the authentic 2.048 code, transformed mechanically (see below) so it runs as strict-mode ES modules. Behavior, numbers, puns and all are the original.
+The engine started as the authentic 2.048 code, transformed mechanically so it runs as strict-mode ES modules, and was then rewritten incrementally (Phases 1–6) into typed modules: content data lives in `src/engine/content/`, core classes in `src/engine/core/`, systems in `src/engine/systems/`, UI in `src/engine/ui/`, and pure helpers in `src/engine/utils/` — with `engine/main.ts` remaining as a thin, fully typed orchestrator. The hard constraint throughout was **runtime behavior identical to `master`** at every step: every extraction was verified verbatim against the committed original, and the save format is byte-compatible (verified by `tests/save-compat.spec.js` — a `master` save imports on `rewrite` and re-exports identically). Behavior, numbers, puns and all are the original.
 
 ## Project layout
 
@@ -55,34 +55,26 @@ public/
   manifest.webmanifest  PWA manifest
   sw.js                 service worker
   legacy/               2.048 files that were dropped (dungeons WIP, excanvas, ajax, showads)
-scripts/
-  transform-engine.mjs    the one-shot port: classic script -> ES module
-  scan-implicit-globals.mjs  dev utility: flags bare assignments to undeclared
-                             identifiers (the strict-mode bug class the port must
-                             fix) — `node scripts/scan-implicit-globals.mjs <file>`
-                             (retired: parses plain JS only; tsc strict now
-                             covers this bug class — see REWRITE.md Slice 7)
 ```
 
-## The port
+The one-shot port scripts (`scripts/transform-engine.mjs`, `scripts/scan-
+implicit-globals.mjs`) that produced the initial ES-module conversion were
+**retired in Phase 6**: the engine is now fully typed, so re-running the
+port would clobber the typed modules, and `tsc` strict covers the
+undeclared-identifier bug class the scanner used to hunt.
 
-`scripts/transform-engine.mjs` (Node + acorn + acorn-walk) performs the 2.048 → ES-module transform. Re-run it only if the upstream engine source changes:
+## History: the port, then the rewrite
 
-```
-npm run port     # = node scripts/transform-engine.mjs
-```
+The game was first converted from 2.048 classic script to strict-mode ES modules by a one-shot Node + acorn transform (retired in Phase 6). That port is what established the architecture the rewrite preserved:
 
-What it does:
+1. **Modern boot** — `window.onload` → `addEventListener('load', …)`.
+2. **Modern loading** — the runtime `<script src=…>` injection used for language files and minigame scripts became `window.loadLangModule` / `window.loadMinigameModule`, backed by static Vite dynamic imports (so they code-split in the production build).
+3. **`getBounds()` fix** — modern `getBoundingClientRect()` returns an immutable `DOMRect`; the original mutated it in place (a silent no-op in sloppy mode). It computes a fresh plain object instead, which also makes `Game.scale` actually work.
+4. **Globals shim** — `Object.assign(window, { …engine top-level bindings… })` so the minigame modules and the legacy mod API (`Game.LoadMod`) keep resolving their free variables against `window`.
+5. **Language files** — each `loc/*.js` became an `export default { id, name, strings }` module (typed by inference).
+6. **Strict-mode fixes** — implicit-global assignments that throw `ReferenceError` in strict-mode ESM were declared or republished.
 
-1. **AST analysis** — parses each legacy file, collects top-level bindings (for the `window` shim) and *all* identifiers that are assigned-but-undeclared anywhere in the file (the original relied on implicit globals; strict-mode ESM throws on those).
-2. **Strict-mode preamble** — inserts `var …;` declarations for the implicit globals.
-3. **Modern boot** — `window.onload` → `addEventListener('load', …)`.
-4. **Modern loading** — the runtime `<script src=…>` injection used for language files and minigame scripts is replaced by `window.loadLangModule` / `window.loadMinigameModule`, backed by static Vite dynamic imports (so they code-split in the production build).
-5. **`getBounds()` fix** — modern `getBoundingClientRect()` returns an immutable `DOMRect`; the original mutated it in place (a silent no-op in sloppy mode). It now computes a fresh plain object, which also makes `Game.scale` actually work.
-6. **Globals shim** — appends `Object.assign(window, { …all engine top-level bindings… })` so the minigame modules and the legacy mod API (`Game.LoadMod`) keep resolving their free variables against `window`.
-7. **Language files** — each `loc/*.js` (`AddLanguage('XX', …, {…})`) is rewritten to `export default { id, name, strings }` (as a `.ts` file; the object literal is valid TS and passes the strict check).
-8. **Strict-mode bug fixes** — the original is a sloppy-mode classic script, so it contains bare assignments to undeclared identifiers (implicit globals) that throw `ReferenceError` in strict-mode ESM. The transform fixes the known ones (`mysterious` in `crateTooltip`, `arr2` in `grabProps`, `name` in `CalculateGains`, `buff` in the Sugar-frenzy handler, `icon` in the Market `goodTooltip`); `scripts/scan-implicit-globals.mjs` is a scope-aware checker used to find them — the whole tree currently reports zero.
-9. **TypeScript output** — the engine port is emitted as `.ts` with a `// @ts-nocheck` header and an `export {}` module marker (the marker keeps its top-level declarations out of the TS global scope, matching how Vite already treats them as ES modules). The minigame ports were similarly emitted but have since been re-typed (Phase 5). Re-running the port reproduces the checked-in engine file, including its marker.
+The ported engine and minigames initially shipped under `// @ts-nocheck`; since then, Phases 1–6 of the rewrite (logged in `REWRITE.md`) replaced that wholesale: every content block, core class, system, minigame, and UI module is now hand-typed TypeScript, and `engine/main.ts` is a thin typed orchestrator with **zero `@ts-nocheck` anywhere in `src/`**. Runtime behavior stays identical to `master` (see the save-compat check above).
 
 ## Developing
 
@@ -119,7 +111,7 @@ a fresh production build and asserts its PASS report.
 
 ```
 npx playwright install chromium   # once, per machine
-npm test                          # builds dist/ itself, serves it, runs all 12 probes
+npm test                          # builds dist/ itself, serves it, runs all 15 probes
 ```
 
 Each test gets a fresh browser profile (the first load picks English, as a new
@@ -127,6 +119,15 @@ player would). The `offline` and `a11y` probes reload the page themselves to
 exercise the persist-then-reboot path; the suite runs serially in one worker
 because the probes are stateful. CI runs the same suite on every push and PR
 and gates the GitHub Pages deploy on it (`.github/workflows/ci.yml`).
+
+**Deploy is `master`-gated.** The workflow's deploy job runs only on pushes to
+`master` (never on PRs, and PR branches never publish), so the `rewrite`
+branch's work goes live only when it is merged into `master` — a separate,
+explicit step that also runs the full QA gate on the merge commit. There is
+also a cross-branch save-format compatibility check (`tests/save-compat.spec.js`)
+that imports a `master`-built save on `rewrite` and diffs the re-export; it
+needs a `master` build served on :4174 and is run explicitly, not as part of
+the default gate.
 
 ## Security
 

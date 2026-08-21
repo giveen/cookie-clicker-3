@@ -1,6 +1,6 @@
 # Cookie Clicker 3 — Architectural Rewrite Status
 
-_Last updated: 2026-08-21 (Phase 6, Slices 1–3 complete)._
+_Last updated: 2026-08-21 (Phase 6 complete — rewrite finished)._
 
 ## TL;DR
 
@@ -15,7 +15,7 @@ This document tracks the **architectural rewrite**: restructuring the legacy
 engine into idiomatic typed TypeScript modules and classes, with the hard
 constraint that **runtime behavior stays identical to `master`** at every step.
 
-**Current state: Phases 1–5 complete; Phase 6 Slices 1–7 complete.**
+**Current state: Phases 1–6 complete — the architectural rewrite is finished.**
 The engine's content (tiers, buildings, upgrades, achievements, foolObjects,
 milks, changelog, heavenly positions) lives in typed
 `src/engine/content/` modules. Core classes (`Game`, `Building`, `Upgrade`,
@@ -35,8 +35,10 @@ changelog, heavenly positions, debug) to `engine/content/` + `utils/debug`
 (core loop stays typed as the thin orchestrator) is effectively reached —
 Slice 7's save-format compatibility check is done (`tests/save-compat.spec.js`
 — byte-identical re-exports between `master` and `rewrite`, modulo the
-re-stamped `lastDate` timestamp). Remaining Slice 7 work is doc/script
-cleanup.
+re-stamped `lastDate` timestamp), the docs (`README.md`, `tsconfig.json`)
+describe the typed-module architecture, and the one-shot port scripts were
+retired. What remains is operational, not architectural: merging `rewrite`
+into `master` and deploying (CI is `master`-gated by user decision).
 
 ## Branch / commit state
 
@@ -893,16 +895,27 @@ The engine becomes a thin orchestrator importing every extracted module.
   estimate (verbatim 2.048 behavior in `LoadSave`), so a seeded page vs a
   fresh page diverge on field 48; (3) `Game.vault` holds numeric upgrade
   ids, not names.
-- Update `README.md` (architecture section), `tsconfig.json` comments.
-- Retire `scripts/transform-engine.mjs` and
-  `scripts/scan-implicit-globals.mjs`.
-- CI note: deploy workflow is still `master`-gated by user decision.
+- **Docs — done.** `README.md` rewritten for the post-rewrite state: the
+  layout tree drops the retired port scripts, the "engine not rewritten"
+  claim is replaced with the current typed-module architecture, the port
+  mechanics are condensed into a short "History" section, the probe count
+  is corrected (15), and the `master`-gated deploy note is added.
+  `tsconfig.json`'s header comment now states the whole tree is strict with
+  no `@ts-nocheck`.
+- **Retire port scripts — done.** `scripts/transform-engine.mjs` and
+  `scripts/scan-implicit-globals.mjs` deleted; the `npm run port` script,
+  the `acorn`/`acorn-walk` devDependencies (used only by those scripts), and
+  the lockfile entries are gone; CREDITS.md notes the acorn credit is
+  historical. Re-running the transform would clobber the typed modules, and
+  `tsc` strict covers the implicit-globals bug class the scanner hunted.
+- **CI note — done** (in `README.md` Testing): the deploy job in
+  `.github/workflows/ci.yml` runs only on pushes to `master` (never PRs);
+  the `rewrite` branch's work goes live only when merged into `master` — a
+  separate, explicit step that runs the full QA gate on the merge commit.
 
 ### Housekeeping
 
-- Retire or repurpose `scripts/transform-engine.mjs` (regenerates engine
-  files from the 2.048 source used by the original conversion) and
-  `scripts/scan-implicit-globals.mjs` as the engine becomes typed modules.
+- ~~Retire `scripts/transform-engine.mjs` and `scripts/scan-implicit-globals.mjs`~~ — **done** (Slice 7): deleted, along with the `port` npm script and the acorn devDeps they were the only users of.
 
 ## Per-slice verification protocol (copy for future sessions)
 
