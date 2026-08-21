@@ -607,6 +607,18 @@ export class Building {
 				l('productIcon'+me.id).style.backgroundPosition='-'+icon[0]+'px -'+icon[1]+'px';
 				//l('productIconOff'+me.id).style.backgroundImage='url(img/'+iconOff+')';
 				l('productIconOff'+me.id).style.backgroundPosition='-'+iconOff[0]+'px -'+iconOff[1]+'px';
+				var customStoreIcon=(me.art as any).storeIcon;
+				if (customStoreIcon)
+				{
+					var customStoreSize=(me.art as any).storeIconSize||'48px 48px';
+					var customStoreUrl="url('"+customStoreIcon.replace(/'/g,"\\'")+"')";
+					l('productIcon'+me.id).style.backgroundImage=customStoreUrl;
+					l('productIconOff'+me.id).style.backgroundImage=customStoreUrl;
+					l('productIcon'+me.id).style.backgroundSize=customStoreSize;
+					l('productIconOff'+me.id).style.backgroundSize=customStoreSize;
+					l('productIcon'+me.id).style.backgroundPosition='0px 0px';
+					l('productIconOff'+me.id).style.backgroundPosition='0px 0px';
+				}
 				l('productName'+me.id).innerHTML=displayName;
 				if (name.length>12/Langs[locId].w && (Game.season=='fools' || !EN)) l('productName'+me.id).classList.add('longProductName'); else l('productName'+me.id).classList.remove('longProductName');
 				l('productOwned'+me.id).textContent=me.amount?me.amount:'';

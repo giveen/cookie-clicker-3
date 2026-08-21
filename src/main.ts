@@ -52,6 +52,8 @@ if (debugSurface) {
  * Garden — exercising the minigame dynamic-import path end to end.
  *   ?qa           seed a level-1 minigame building set and open the Garden
  *   ?qa=cookies   seed cookies only (no minigames) for light store-buy tests
+ *   ?qa=cats      seed five Cats so the animated building can be previewed
+ *   ?qa=cats100   seed 100 Cats to preview the compact multi-lane display
  *   ?qa=golden    spawn + pop a forced "frenzy" golden cookie, report the buff
  *   ?qa=save      export a save, corrupt state, re-import, verify round-trip
  * Never active in a plain production load. */
@@ -65,7 +67,7 @@ if (debugSurface && params.has('qa') && params.get('qa') !== 'golden' && params.
 			G.__qaSeeded = 1;
 			try {
 				G.cookies += 1e6;
-				if (qaMode !== 'cookies') {
+				if (qaMode !== 'cookies' && qaMode !== 'cats' && qaMode !== 'cats100') {
 					G.lumps += 10;
 					for (const name of MINIGAME_BUILDINGS) {
 						const b = G.Objects[name];
@@ -81,6 +83,24 @@ if (debugSurface && params.has('qa') && params.get('qa') !== 'golden' && params.
 				}
 			} catch (e: any) {
 				console.error('QA seed failed:', e);
+			}
+			if (qaMode === 'cats' || qaMode === 'cats100') {
+				const cats = G.Objects['Cats'];
+				if (cats) {
+					const showcaseAmount = qaMode === 'cats100' ? 100 : 5;
+					G.BuildingsOwned -= cats.amount;
+					cats.amount = showcaseAmount;
+					cats.unlocked = 1;
+					cats.bought = showcaseAmount;
+					cats.highest = showcaseAmount;
+					cats.totalCookies = 0;
+					G.BuildingsOwned += cats.amount;
+					cats.refresh();
+				}
+				G.recalculateGains = 1;
+				if (G.CalculateGains) G.CalculateGains();
+				window.clearInterval(tick);
+				return;
 			}
 			if (qaMode === 'cookies') window.clearInterval(tick); // done seeding
 		}
@@ -213,8 +233,8 @@ if (debugSurface && params.get('qa') === 'binverter') {
 			let pass = true;
 			const chk = (label: string, cond: boolean) => { lines.push((cond ? 'PASS: ' : 'FAIL: ') + label); if (!cond) pass = false; };
 
-			// 1. declaration + store/canvas DOM (vanilla has 19 buildings, id 0-18, so the inverter is id 19)
-			chk('building declared as id 19', me.id === 19);
+			// 1. declaration + store/canvas DOM (vanilla now has 20 buildings, id 0-19, so the inverter is id 20)
+			chk('building declared as id 20', me.id === 20);
 			chk('store row #product' + me.id + ' present', !!document.getElementById('product' + me.id));
 			chk('store icon #productIcon' + me.id + ' present', !!document.getElementById('productIcon' + me.id));
 			chk('display canvas #rowCanvas' + me.id + ' present', !!document.getElementById('rowCanvas' + me.id));

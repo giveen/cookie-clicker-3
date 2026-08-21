@@ -71,6 +71,89 @@ test('?qa=golden: golden-cookie click path spawns a frenzy buff', async ({ page 
 	await assertNoUncaughtErrors(page);
 });
 
+test('Cats: save-safe building slot, Grandma/Farm ordering, and animated sprites', async ({ page }) => {
+	await boot(page, '');
+	await page.waitForFunction(() => window.Game.Objects && window.Game.Objects.Cats && window.Game.Objects.Cats.canvas, null, BOOT);
+	const state = await page.evaluate(async () => {
+		const G = window.Game;
+		const cats = G.Objects.Cats;
+		const load = (name) => new Promise((resolve, reject) => {
+			const image = new Image();
+			image.onload = () => resolve({ width: image.naturalWidth, height: image.naturalHeight });
+			image.onerror = reject;
+			image.src = name;
+		});
+		const sprite = await load('img/cats/idle.png');
+		const background = await load('img/cats/Summer1.png');
+		cats.amount = 3;
+		cats.unlocked = 1;
+		cats.refresh();
+		await new Promise((resolve) => setTimeout(resolve, 600));
+		const firstFrame = cats.canvas.toDataURL();
+		await new Promise((resolve) => setTimeout(resolve, 600));
+		return {
+			ids: { grandma: G.Objects.Grandma.id, cats: cats.id, farm: G.Objects.Farm.id },
+			prices: { grandma: G.Objects.Grandma.basePrice, cats: cats.basePrice, farm: G.Objects.Farm.basePrice },
+			cps: { grandma: G.Objects.Grandma.baseCps, cats: cats.baseCps, farm: G.Objects.Farm.baseCps },
+			rows: [...document.querySelectorAll('#rows > .row')].slice(0, 3).map((el) => el.id),
+			products: [...document.querySelectorAll('#products > .product')].slice(1, 4).map((el) => el.id),
+			sprite,
+			background,
+			animationChanged: firstFrame !== cats.canvas.toDataURL(),
+		};
+	});
+	expect(state.ids.cats).toBeGreaterThan(state.ids.farm);
+	expect(state.rows).toEqual([`row${state.ids.grandma}`, `row${state.ids.cats}`, `row${state.ids.farm}`]);
+	expect(state.products).toEqual([`product${state.ids.grandma}`, `product${state.ids.cats}`, `product${state.ids.farm}`]);
+	expect(state.prices.grandma).toBeLessThan(state.prices.cats);
+	expect(state.prices.cats).toBeLessThan(state.prices.farm);
+	expect(state.cps.grandma).toBeLessThan(state.cps.cats);
+	expect(state.cps.cats).toBeLessThan(state.cps.farm);
+	expect(state.sprite.width).toBeGreaterThan(0);
+	expect(state.sprite.height).toBe(64);
+	expect(state.background.width).toBe(2304);
+	expect(state.background.height).toBe(1296);
+	expect(state.animationChanged).toBe(true);
+	await assertNoUncaughtErrors(page);
+});
+
+test('Cats: compact multi-lane renderer supports 100 visible cats without attack states', async ({ page }) => {
+	await boot(page, '');
+	await page.waitForFunction(() => window.Game.Objects && window.Game.Objects.Cats && window.Game.Objects.Cats.canvas, null, BOOT);
+	const state = await page.evaluate(async () => {
+		const cats = window.Game.Objects.Cats;
+		const ctx = cats.ctx;
+		const originalDraw = ctx.drawImage.bind(ctx);
+		let catDraws = 0;
+		let attackDraws = 0;
+		let minCatWidth = Infinity;
+		let minCatY = Infinity;
+		ctx.drawImage = function (...args) {
+			const src = args[0]?.src || '';
+			if (src.includes('/img/cats/attack-1.png')) attackDraws++;
+			if (src.includes('/img/cats/') && !src.includes('Summer1.png')) {
+				catDraws++;
+				minCatWidth = Math.min(minCatWidth, Number(args[7]));
+				minCatY = Math.min(minCatY, Number(args[6]));
+			}
+			return originalDraw(...args);
+		};
+		cats.amount = 100;
+		cats.unlocked = 1;
+		cats.refresh();
+		await new Promise((resolve) => setTimeout(resolve, 600));
+		return { amount: cats.amount, catDraws, attackDraws, minCatWidth, minCatY, canvas: [cats.canvas.width, cats.canvas.height] };
+	});
+	expect(state.amount).toBe(100);
+	expect(state.catDraws).toBeGreaterThanOrEqual(100);
+	expect(state.attackDraws).toBe(0);
+	expect(state.minCatWidth).toBeGreaterThanOrEqual(80);
+	expect(state.minCatY).toBeGreaterThanOrEqual(45);
+	expect(state.canvas[0]).toBeGreaterThan(0);
+	expect(state.canvas[1]).toBe(128);
+	await assertNoUncaughtErrors(page);
+});
+
 test('?qa=save: save export -> import round-trip restores state', async ({ page }) => {
 	await boot(page, '&qa=save');
 	const report = await qaReport(page, /PASS: export->import round-trip restored state/);
@@ -154,7 +237,7 @@ test('?qa=binverter: the Black Hole Inverter mod (building + content + save) ver
 	const report = await qaReport(page, /PASS: Black Hole Inverter verified end to end/);
 	expect(report).not.toMatch(/ERROR/);
 	expect(report).not.toMatch(/FAIL:/);
-	expect(report).toMatch(/building declared as id 19/);
+	expect(report).toMatch(/building declared as id 20/);
 	expect(report).toMatch(/17 building upgrades/);
 	expect(report).toMatch(/18 building achievements/);
 	expect(report).toMatch(/building amount restored to 7/);
