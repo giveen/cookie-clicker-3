@@ -15,24 +15,25 @@ This document tracks the **architectural rewrite**: restructuring the legacy
 engine into idiomatic typed TypeScript modules and classes, with the hard
 constraint that **runtime behavior stays identical to `master`** at every step.
 
-**Current state: Phases 1–5 complete; Phase 6 Slices 1–4 complete.**
-The engine's content (tiers, buildings, upgrades, achievements, foolObjects)
-lives in typed `src/engine/content/` modules. Core classes (`Game`,
-`Building`, `Upgrade`, `Achievement`) are real TypeScript classes in
-`src/engine/core/`. Systems (economy, save/load, shimmer, wrinkler,
-ascend/sugar lumps) are typed modules in `src/engine/systems/`. All four
-minigame files (Garden, Market, Grimoire, Pantheon) are typed. **Every line
-of the engine itself is now typed too**: `engine/main.ts` (~4,800 lines)
-has no `@ts-nocheck`, and `npx tsc --noEmit` reports zero errors across the
-whole tree. Pure helpers were extracted to `engine/utils/` (helpers,
-format, encoding, dom, time, + `LoadScript`); the buff system, news
-Ticker, Santa, Dragon, shimmer types, special menu, particles,
-notifications, bakery name, seasons, modding API, and Reset/HardReset were
-extracted to `engine/systems/` (Slices 2–3); the tooltip, crate, store,
-menu, and DrawBackground UIs were extracted to `engine/ui/` (Slice 4).
-The game builds and passes all 15 Playwright QA probes. Remaining Phase 6
-work: extract the content/data (milks, changelog, heavenly positions,
-debug tools) — Slices 5–7 of the plan below.
+**Current state: Phases 1–5 complete; Phase 6 Slices 1–5 complete.**
+The engine's content (tiers, buildings, upgrades, achievements, foolObjects,
+milks, changelog, heavenly positions) lives in typed
+`src/engine/content/` modules. Core classes (`Game`, `Building`, `Upgrade`,
+`Achievement`) are real TypeScript classes in `src/engine/core/`. Systems
+(economy, save/load, shimmer, wrinkler, ascend/sugar lumps) are typed
+modules in `src/engine/systems/`. All four minigame files (Garden, Market,
+Grimoire, Pantheon) are typed. **Every line of the engine itself is now
+typed too**: `engine/main.ts` (~4,200 lines) has no `@ts-nocheck`, and
+`npx tsc --noEmit` reports zero errors across the whole tree. Pure helpers
+were extracted to `engine/utils/` (helpers, format, encoding, dom, time,
+LoadScript, debug); systems (buffs, ticker, santa, dragon, shimmer types,
+special menu, bakery name, seasons, modding, reset) to `engine/systems/`
+(Slices 2–3); the UI (particles, notifications, tooltip, crate, store,
+menu, drawBackground) to `engine/ui/` (Slice 4); content/data (milks,
+changelog, heavenly positions, debug) to `engine/content/` + `utils/debug`
+(Slice 5). The game builds and passes all 15 Playwright QA probes. Slice 6
+(core loop stays typed as the thin orchestrator) is effectively reached —
+remaining Phase 6 work is verification + docs + cleanup (Slice 7).
 
 ## Branch / commit state
 
@@ -840,16 +841,18 @@ functions) plus a targeted checker for the tooltip methods.
 **Gate:** tsc 0, build clean, 15/15 QA — **all passed** (engine at 4,803
 lines after this slice).
 
-#### Slice 5 — Extract content/data
+#### Slice 5 — Extract content/data — **4 of 4 done**
 
-| Content | Target | ~Lines |
-| ------- | ------ | ------ |
-| Milk definitions | `content/milks.ts` | 70 |
-| Changelog HTML | `content/changelog.ts` | 600 |
-| Heavenly upgrade positions | `content/heavenlyPositions.ts` | 100 |
-| Debug tools | `utils/debug.ts` | 80 |
+| Content | Target | ~Lines | Result |
+| ------- | ------ | ------ | ------ |
+| ~~Milk definitions~~ | `content/milks.ts` | 65 | **done** — `declareVanillaMilks(Game)` (AllMilks data + the type-0 subset build loop), called at the same Init position; verified verbatim |
+| ~~Changelog HTML~~ | `content/changelog.ts` | 609 | **done** — `declareVanillaChangelog(Game)` (the ~590-line info/about + version-history HTML + locPatches loop), called at the same Launch position; verified verbatim |
+| ~~Heavenly upgrade positions~~ | `content/heavenlyPositions.ts` | 17 | **done** — `declareHeavenlyUpgradePositions(Game)` (the UpgradePositions map); the posX/posY assignment loop stays in-engine after the call; verified verbatim |
+| ~~Debug tools~~ | `utils/debug.ts` | 14 | **done** — `debugStr`/`Debug` exported; the engine imports them so its window shim entries stay bound to the same values |
 
-**Gate:** tsc 0, build clean, 15/15 QA.
+Wiring was text-span-based (exact `start..end` slices) with an overlap check;
+`locPatches` added to `globals.d.ts`. **Gate:** tsc 0, build clean, 15/15
+QA — **all passed** (engine at 4,167 lines after this slice).
 
 #### Slice 6 — Core loop stays, typed
 

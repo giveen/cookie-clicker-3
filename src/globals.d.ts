@@ -72,6 +72,9 @@ declare global {
 	 * parsed loc file's keys. `any` — the localization code indexes it with
 	 * dynamic keys. */
 	const locStrings: any;
+	/* Patch-note table (engine var, published on window): the parsed loc
+	 * file's `[patch]` entries, consumed by the changelog builder. */
+	const locPatches: any[];
 	/* Localized number formatter: returns {n: floored value, b: beautified}. */
 	const LBeautify: (val: number, floats?: number | boolean) => { n: number; b: string };
 	/* Engine number formatter (engine/main.ts, published on window): returns

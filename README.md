@@ -35,11 +35,13 @@ src/
     base64.ts           native Base64 save encoding
     main.ts             the 2.048 engine as a fully typed ES module (+ globals shim; Phase 6)
     core/               typed classes: Game, Building, Upgrade, Achievement
-    content/            typed content: tiers, buildings, upgrades, achievements, foolObjects
+    content/            typed content: tiers, buildings, upgrades, achievements, foolObjects,
+                        milks, changelog, heavenlyPositions (Phase 6 slice 5)
     systems/            typed systems: economy, save, shimmer, wrinkler, ascend, buffs,
                         ticker, santa, dragon, shimmerTypes, specialMenu, bakeryName,
                         seasons, modding, reset
-    utils/              pure helpers: helpers, formatting, encoding, DOM, time, LoadScript (Phase 6)
+    utils/              pure helpers: helpers, formatting, encoding, DOM, time, LoadScript,
+                        debug (Phase 6)
     ui/                 UI systems: particles, notifications, tooltip, crate, store, menu,
                         drawBackground (Phase 6 slice 4)
     minigameGarden.ts   minigame modules (dynamic import, code-split; typed — Phase 5)
