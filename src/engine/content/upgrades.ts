@@ -1928,17 +1928,21 @@ export function declareVanillaUpgrades(Game: EngineGame) {
 		var newCookieRoman=['I','II','III','IV','V','VI'];
 		var newCookieLevel=53;
 		order=10020;
-		for (var styleIndex=0;styleIndex<newCookieStyles.length;styleIndex++)
+		// Interleave the families by tier so each group arrives as a natural
+		// progression alongside the other families instead of as one 6-item block.
+		for (var variant=0;variant<newCookieRoman.length;variant++)
 		{
-			var style=newCookieStyles[styleIndex];
-			for (var variant=0;variant<newCookieRoman.length;variant++)
+			for (var styleIndex=0;styleIndex<newCookieStyles.length;styleIndex++)
 			{
+				var style=newCookieStyles[styleIndex];
 				var strength=variant+1;
 				var isClick=style.effect=='click';
+				var name=style.name+' cookies '+newCookieRoman[variant];
 				Game.NewUpgradeCookie({
-					name:style.name+' cookies '+newCookieRoman[variant],
+					name:name,
 					desc:style.flavor+' Batch '+newCookieRoman[variant]+' represents a further refinement of the recipe.',
 					icon:[variant,styleIndex,'img/cookie-upgrades/cookie_spritesheet.png',32],
+					require:variant>0?style.name+' cookies '+newCookieRoman[variant-1]:undefined,
 					power:isClick?0:strength,
 					clickPower:isClick?strength:0,
 					price:getCookiePrice(newCookieLevel++)
