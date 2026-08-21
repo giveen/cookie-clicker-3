@@ -428,7 +428,7 @@ export interface Game {
 	CpsAchievement: typeof CpsAchievementFn;
 
 	/* --- misc engine surface --- */
-	tooltip: { hide(): void };
+	tooltip: { hide(): void; shouldHide?: boolean };
 	ClosePrompt(): void;
 	CloseNote(id: number): void;
 

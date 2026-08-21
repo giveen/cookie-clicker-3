@@ -66,6 +66,17 @@ declare global {
 	 * way the original untyped code did. */
 	const Music: any;
 	const PlaySound: PlaySoundFn;
+	/* Engine music-cue + sound helpers (engine vars/functions, published on
+	 * window); `any` — the jukebox surface is untyped legacy. */
+	const PlayCue: any;
+	const PlayMusicSound: any;
+	const SimpleBeautify: (val: number) => string;
+	/* Last heavenly upgrade the player clicked in the ascend tree (engine
+	 * var, published on window); `any` — read for its posX/posY. */
+	/* Declared `let`: the engine reassigns it (heavenly-tree reference point). */
+	let LASTHEAVENLYSELECTED: any;
+	/* Engine floor-to-integer helper (engine function, published on window). */
+	const randomFloor: (n: number) => number;
 	const getUpgradeName: (name: string) => string;
 	const tinyIcon: (icon: number | number[], css?: string) => string;
 	/* Icon CSS generator (engine function declaration, published on window):
