@@ -40,7 +40,8 @@ src/
                         ticker, santa, dragon, shimmerTypes, specialMenu, bakeryName,
                         seasons, modding, reset
     utils/              pure helpers: helpers, formatting, encoding, DOM, time, LoadScript (Phase 6)
-    ui/                 UI systems: particles, notifications (Phase 6 — more landing in Slices 4+)
+    ui/                 UI systems: particles, notifications, tooltip, crate, store, menu,
+                        drawBackground (Phase 6 slice 4)
     minigameGarden.ts   minigame modules (dynamic import, code-split; typed — Phase 5)
     minigameGrimoire.ts
     minigameMarket.ts

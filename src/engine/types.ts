@@ -430,7 +430,12 @@ export interface Game {
 	CpsAchievement: typeof CpsAchievementFn;
 
 	/* --- misc engine surface --- */
-	tooltip: { hide(): void; shouldHide?: boolean };
+	/* Tooltip object (state + methods: draw/update/hide/wobble — Phase 6
+	 * slice 4 moved the methods to ui/tooltip.ts). `any`: the verbatim
+	 * engine and the extracted methods mutate it with heterogeneous fields
+	 * (text/x/y/origin/on/tt/tta/shouldHide/dynamic/from) exactly as the
+	 * original 2.048 object literal did. */
+	tooltip: any;
 	ClosePrompt(): void;
 	CloseNote(id: number): void;
 

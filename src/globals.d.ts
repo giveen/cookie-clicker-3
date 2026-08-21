@@ -129,6 +129,13 @@ declare global {
 	 * without null guards or input-casts, as the original code did. */
 	const l: (id: string) => any;
 	const triggerAnim: (element: any, anim: string) => void;
+	/* Engine per-frame profiler (engine var, published on window): `clean()`
+	 * + `track()` used by DrawBackground to label frame-time slices. */
+	const Timer: any;
+	/* Locale suffix strings (' ON' / ' OFF') built at Init and consumed by the
+	 * preferences buttons in UpdateMenu (engine vars, published on window). */
+	const ON: string;
+	const OFF: string;
 
 	/* --- save-system globals (engine/main.ts, published on window) --- */
 	const utf8_to_b64: (str: string) => string;
