@@ -9,6 +9,7 @@ import { declareVanillaFoolObjects } from "./content/foolObjects";
 import { Game } from "./core/game";
 import { Building } from "./core/building";
 import { Upgrade, TieredUpgrade, SynergyUpgrade } from "./core/upgrade";
+import { HowMuchPrestige, HowManyCookiesReset, EarnHeavenlyChips, GetHeavenlyMultiplier, ComputeCps, GetTieredCpsMult } from "./systems/economy";
 /* CC3: the original relied on implicit globals; declare them for module strict mode. */
 var Audio, localStorageGet, localStorageSet, Music, PlayCue, TopBarOffset, LASTHEAVENLYSELECTED, ON, OFF;
 /* CC3 rewrite (slice 3): the vanilla-content order/pool/power bookkeeping.
@@ -3922,53 +3923,12 @@ Game.Launch=function()
 		=======================================================================================*/
 		
 		Game.HCfactor=3;
-		Game.HowMuchPrestige=function(cookies)//how much prestige [cookies] should land you
-		{
-			return Math.pow(cookies/1000000000000,1/Game.HCfactor);
-		}
-		Game.HowManyCookiesReset=function(chips)//how many cookies [chips] are worth
-		{
-			//this must be the inverse of the above function (ie. if cookies=chips^2, chips=cookies^(1/2) )
-			return Math.pow(chips,Game.HCfactor)*1000000000000;
-		}
+		Game.HowMuchPrestige=HowMuchPrestige;//CC3 rewrite (phase 4, slice 1): moved verbatim to systems/economy.ts; same Game slot, same Init position.
+		Game.HowManyCookiesReset=HowManyCookiesReset;//CC3 rewrite (phase 4, slice 1): moved verbatim to systems/economy.ts.
 		Game.gainedPrestige=0;
-		Game.EarnHeavenlyChips=function(cookiesForfeited,silent)
-		{
-			//recalculate prestige and chips owned
-			var prestige=Math.floor(Game.HowMuchPrestige(Game.cookiesReset+cookiesForfeited));
-			prestige=Math.max(0,prestige);
-			if (prestige!=Game.prestige)//did we change prestige levels?
-			{
-				var prestigeDifference=prestige-Game.prestige;
-				Game.gainedPrestige=prestigeDifference;
-				Game.heavenlyChips+=prestigeDifference;
-				Game.prestige=prestige;
-				if (!silent && prestigeDifference>0) Game.Notify(loc("You forfeit your %1.",loc("%1 cookie",LBeautify(cookiesForfeited))),loc("You gain <b>%1</b>!",loc("%1 prestige level",LBeautify(prestigeDifference))),[19,7]);
-			}
-		}
+		Game.EarnHeavenlyChips=EarnHeavenlyChips;//CC3 rewrite (phase 4, slice 1): moved verbatim to systems/economy.ts.
 		
-		Game.GetHeavenlyMultiplier=function()
-		{
-			var heavenlyMult=0;
-			if (Game.Has('Heavenly chip secret')) heavenlyMult+=0.05;
-			if (Game.Has('Heavenly cookie stand')) heavenlyMult+=0.20;
-			if (Game.Has('Heavenly bakery')) heavenlyMult+=0.25;
-			if (Game.Has('Heavenly confectionery')) heavenlyMult+=0.25;
-			if (Game.Has('Heavenly key')) heavenlyMult+=0.25;
-			//if (Game.hasAura('Dragon God')) heavenlyMult*=1.05;
-			heavenlyMult*=1+Game.auraMult('Dragon God')*0.05;
-			if (Game.Has('Lucky digit')) heavenlyMult*=1.01;
-			if (Game.Has('Lucky number')) heavenlyMult*=1.01;
-			if (Game.Has('Lucky payout')) heavenlyMult*=1.01;
-			if (Game.hasGod)
-			{
-				var godLvl=Game.hasGod('creation');
-				if (godLvl==1) heavenlyMult*=0.7;
-				else if (godLvl==2) heavenlyMult*=0.8;
-				else if (godLvl==3) heavenlyMult*=0.9;
-			}
-			return heavenlyMult;
-		}
+		Game.GetHeavenlyMultiplier=GetHeavenlyMultiplier;//CC3 rewrite (phase 4, slice 1): moved verbatim to systems/economy.ts.
 		
 		Game.ascensionModes={
 		0:{name:'None',dname:loc("None [ascension type]"),desc:loc("No special modifiers."),icon:[10,0]},
@@ -7810,11 +7770,7 @@ Game.Launch=function()
 			Game.storeToRefresh=0;
 		}
 		
-		Game.ComputeCps=function(base,mult,bonus)
-		{
-			if (!bonus) bonus=0;
-			return ((base)*(Math.pow(2,mult))+bonus);
-		}
+		Game.ComputeCps=ComputeCps;//CC3 rewrite (phase 4, slice 1): moved verbatim to systems/economy.ts; same Game slot, same Init position.
 		
 		Game.isMinigameReady=function(me)
 		{return (me.minigameUrl && me.minigameLoaded && me.level>0);}
@@ -8108,32 +8064,7 @@ window.loadMinigameModule(me.minigameUrl).then(function(){
 		}
 		Game.TieredUpgrade=TieredUpgrade;//CC3 rewrite (phase 3, slice 3): the non-capturing factory moved to core/upgrade.ts; the engine keeps the same Game.TieredUpgrade slot.
 		Game.SynergyUpgrade=SynergyUpgrade;//CC3 rewrite (phase 3, slice 3): the non-capturing factory moved to core/upgrade.ts; the engine keeps the same Game.SynergyUpgrade slot.
-		Game.GetTieredCpsMult=function(me)
-		{
-			var mult=1;
-			for (var i in me.tieredUpgrades)
-			{
-				if (!Game.Tiers[me.tieredUpgrades[i].tier].special && Game.Has(me.tieredUpgrades[i].name))
-				{
-					var tierMult=2;
-					//unshackled
-					if (Game.ascensionMode!=1 && Game.Has(me.unshackleUpgrade) && Game.Has(Game.Tiers[me.tieredUpgrades[i].tier].unshackleUpgrade)) tierMult+=me.id==1?0.5:(20-me.id)*0.1;
-					mult*=tierMult;
-				}
-			}
-			for (var i in me.synergies)
-			{
-				var syn=me.synergies[i];
-				if (Game.Has(syn.name))
-				{
-					if (syn.buildingTie1.name==me.name) mult*=(1+0.05*syn.buildingTie2.amount);
-					else if (syn.buildingTie2.name==me.name) mult*=(1+0.001*syn.buildingTie1.amount);
-				}
-			}
-			if (me.fortune && Game.Has(me.fortune.name)) mult*=1.07;
-			if (me.grandma && Game.Has(me.grandma.name)) mult*=(1+Game.Objects['Grandma'].amount*0.01*(1/(me.id-1)));
-			return mult;
-		}
+		Game.GetTieredCpsMult=GetTieredCpsMult;//CC3 rewrite (phase 4, slice 1): moved verbatim to systems/economy.ts; same Game slot, same Init position.
 		Game.UnlockTiered=function(me)
 		{
 			for (var i in me.tieredUpgrades) {if (Game.Tiers[me.tieredUpgrades[i].tier].unlock!=-1 && me.amount>=Game.Tiers[me.tieredUpgrades[i].tier].unlock) Game.Unlock(me.tieredUpgrades[i].name);}
