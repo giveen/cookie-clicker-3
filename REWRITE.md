@@ -625,6 +625,10 @@ economy/CpS (`CalculateGains`, `ComputeCps`, buffs), save/load
 compatibility must be preserved byte-for-byte** against `master`), shimmers +
 wrinklers, ascend/reincarnate, offline gain, the Loader/asset system.
 
+| Slice | Content | Result |
+| ----- | ------- | ------ |
+| ~~1~~ | **Economy math** — `HowMuchPrestige`, `HowManyCookiesReset`, `EarnHeavenlyChips`, `GetHeavenlyMultiplier`, `ComputeCps`, `GetTieredCpsMult` → `systems/economy.ts`; engine keeps the same `Game.X` slots at the original Init positions | **done — commit `7d829c4`** (64/64 body lines verbatim; deltas: `!` on optional class surface + one `(me.fortune as any)`) |
+
 ### Phase 5 — minigames
 
 Convert `src/engine/minigameGarden.ts` (2,027 lines),

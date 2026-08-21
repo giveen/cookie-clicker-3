@@ -88,6 +88,24 @@ declare global {
 	const l: (id: string) => any;
 	const triggerAnim: (element: any, anim: string) => void;
 
+	/* --- save-system globals (engine/main.ts, published on window) --- */
+	const utf8_to_b64: (str: string) => string;
+	const b64_to_utf8: (str: string) => string;
+	/* Legacy no-op passthrough ("too many save corruptions, darn it to heck"):
+	 * returns its input unchanged. */
+	const pack3: (values: any) => any;
+	const localStorageGet: (key: string) => string | null;
+	const localStorageSet: (key: string, str: string) => any;
+	/* FileSaver.js (bundled verbatim by the engine): triggers a download. */
+	const saveAs: (data: Blob, filename?: string, options?: any) => any;
+
+	/* The engine's classic code passes numbers to parseInt everywhere
+	 * (parseInt(Game.time), parseInt(Math.floor(…)), …); add a numeric
+	 * overload merging with lib.es5's string-only one. Same for parseFloat
+	 * (parseFloat(Math.floor(…)) in the save writer). */
+	function parseInt(value: any, radix?: number): number;
+	function parseFloat(value: any): number;
+
 	/* Shared vanilla-content bookkeeping, live-bridged (slice 3). The content
 	 * modules (content/upgrades.ts; later content/achievements.ts) read and
 	 * write order/pool/power as bare globals; engine/main.ts keeps the real

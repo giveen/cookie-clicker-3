@@ -344,7 +344,7 @@ export interface Game {
 	Init(): void;
 	Loop(): void;
 	Load(): void;
-	LoadSave(): void;
+	LoadSave(data?: any, ignoreVersionIssues?: any): any;
 	Resume(): void;
 	WriteSave(type?: number): string;
 	ImportSaveCode(save: string): boolean;
@@ -353,7 +353,7 @@ export interface Game {
 	ClickCookie(e: MouseEvent | null, amount?: number): void;
 	/* pic accepts an [iconColumn, iconRow] pair, a bare icon column/row, or a
 	 * sound name — the engine handles all of these at runtime. */
-	Notify(title: string, desc: string, pic?: [number, number] | number | number[] | string, quick?: number, noLog?: boolean): void;
+	Notify(title: string, desc: string, pic?: [number, number] | number | number[] | string, quick?: number, noLog?: number | boolean): void;
 	Ascend(force?: number): void;
 	Reincarnate(force?: number): void;
 	LoadMinigames(): void;
