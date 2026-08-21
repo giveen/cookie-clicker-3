@@ -111,7 +111,7 @@ a fresh production build and asserts its PASS report.
 
 ```
 npx playwright install chromium   # once, per machine
-npm test                          # builds dist/ itself, serves it, runs all 15 probes
+npm test                          # builds dist/ itself, serves it, runs the 15 QA probes (tests/qa.spec.js)
 ```
 
 Each test gets a fresh browser profile (the first load picks English, as a new
@@ -123,11 +123,20 @@ and gates the GitHub Pages deploy on it (`.github/workflows/ci.yml`).
 **Deploy is `master`-gated.** The workflow's deploy job runs only on pushes to
 `master` (never on PRs, and PR branches never publish), so the `rewrite`
 branch's work goes live only when it is merged into `master` — a separate,
-explicit step that also runs the full QA gate on the merge commit. There is
-also a cross-branch save-format compatibility check (`tests/save-compat.spec.js`)
-that imports a `master`-built save on `rewrite` and diffs the re-export; it
-needs a `master` build served on :4174 and is run explicitly, not as part of
-the default gate.
+explicit step that also runs the full QA gate on the merge commit.
+
+`npm test` (and CI) is scoped to `tests/qa.spec.js` on purpose. Two further
+specs live in `tests/` as **explicit extras**, run on demand and never part of
+the gate:
+
+- `tests/save-compat.spec.js` — the cross-branch save-format check: imports a
+  `master`-built save on `rewrite` and diffs the re-export. Needs a `master`
+  build served on :4174 in addition to the :4173 preview.
+- `tests/playthrough.spec.js` — an end-to-end playthrough smoke test that
+  drives the real UI (big-cookie clicks, store purchases, a golden-cookie
+  pop, the menu tabs, a preference toggle, a bakery rename, the news ticker)
+  and verifies persistence across a full page reload. Runs against the
+  default :4173 preview (`npx playwright test tests/playthrough.spec.js`).
 
 ## Security
 

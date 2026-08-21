@@ -913,6 +913,17 @@ The engine becomes a thin orchestrator importing every extracted module.
   `.github/workflows/ci.yml` runs only on pushes to `master` (never PRs);
   the `rewrite` branch's work goes live only when merged into `master` — a
   separate, explicit step that runs the full QA gate on the merge commit.
+- **Playthrough smoke test — done** (`tests/playthrough.spec.js`): drives
+  the real UI end to end — 30 big-cookie clicks (natural "Wake and bake"
+  unlock), store purchases by DOM click (Cursor/Grandma/Farm, CpS 1.10 →
+  9.10 on a second Farm), a store upgrade purchase, a golden-cookie pop via
+  a real click (Frenzy ×7 confirmed live in Stats), the Stats/Options/Info
+  menu tabs + a `prefs.numbers` toggle, a bakery rename, the news ticker —
+  then saves and fully reloads, verifying cookies, buildings, upgrades,
+  pref, and bakery name all persist. `npm test` / CI are scoped to
+  `tests/qa.spec.js`; the save-compat and playthrough specs are explicit
+  extras that must not gate the deploy (the compat spec needs a `master`
+  build on :4174).
 
 ### Housekeeping
 
@@ -923,8 +934,9 @@ The engine becomes a thin orchestrator importing every extracted module.
 ```sh
 npx tsc --noEmit          # strict, 0 errors
 npm run build             # tsc && vite build
-npx playwright test       # 15/15 probes, ~51 s (webServer: build + preview on :4173)
-npx playwright test tests/save-compat.spec.js   # save-format compat vs master on :4174
+npx playwright test tests/qa.spec.js   # 15/15 probes, ~51 s (the default gate; webServer: build + preview on :4173)
+npx playwright test tests/save-compat.spec.js    # save-format compat vs master on :4174 (explicit extra)
+npx playwright test tests/playthrough.spec.js    # end-to-end playthrough smoke, real DOM (explicit extra)
 # diff the moved block against the original; only annotations +
 # documented runtime-preserving renames allowed
 git add -A && git commit -F /tmp/msg.txt   # write message via file; bash eats backticks in -m
