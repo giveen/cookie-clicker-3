@@ -645,13 +645,20 @@ export class Building {
 				if (this.id!=0) str+='<div class="productButton productMute" '+Game.getTooltip('<div style="width:150px;text-align:center;font-size:11px;" id="tooltipMuteBuilding"><b>'+loc("Mute")+'</b><br>('+loc("Minimize this building")+')</div>','this')+' onclick="Game.ObjectsById['+this.id+'].mute(1);PlaySound(Game.ObjectsById['+this.id+'].muted?\'snd/clickOff2.mp3\':\'snd/clickOn2.mp3\');" id="productMute'+this.id+'">'+loc("Mute")+'</div>';
 				str+='<div id="productDragonBoost'+this.id+'" style="display:none;" class="productButton productDragonBoost" '+Game.getDynamicTooltip('function(){if (Game.ObjectsById['+this.id+'].minigame && Game.ObjectsById['+this.id+'].minigame.dragonBoostTooltip) return Game.ObjectsById['+this.id+'].minigame.dragonBoostTooltip(); else return 0;}','this')+'><div class="icon" style="vertical-align:middle;display:inline-block;background-position:'+(-30*48)+'px '+(-12*48)+'px;transform:scale(0.5);margin:-20px -16px;"></div></div>';
 			str+='</div>';
-			if (this.id==0) l('sectionLeftExtra').innerHTML=l('sectionLeftExtra').innerHTML+str;
+			// CC3 fix: `innerHTML +=` re-parses the whole container, destroying the
+			// sibling row elements — so when a later-created building (e.g. a mod
+			// building declared in the 'create' hook) appends its row, every
+			// vanilla building's `me.canvas` (captured in Init) is detached and its
+			// sprite art silently stops rendering. insertAdjacentHTML appends the
+			// same markup without touching existing siblings. Observable DOM and
+			// behavior are identical; the earlier rows' elements survive.
+			if (this.id==0) l('sectionLeftExtra').insertAdjacentHTML('beforeend', str);
 			else
 			{
 				str+='<canvas class="rowCanvas" id="rowCanvas'+this.id+'"></canvas>';
 				str+='<div class="rowSpecial" id="rowSpecial'+this.id+'"></div>';
 				str+='</div>';
-				l('rows').innerHTML=l('rows').innerHTML+str;
+				l('rows').insertAdjacentHTML('beforeend', str);
 				
 				//building canvas
 				this.pics=[];
