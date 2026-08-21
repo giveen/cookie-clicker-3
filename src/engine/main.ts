@@ -18,7 +18,7 @@ import { UpdateAscensionModePrompt, PickAscensionMode, UpdateAscendIntro, Update
 import { l, choose, escapeRegExp, replaceAll, cap, romanize, randomFloor, shuffle } from "./utils/helpers";
 import { formatEveryThirdPower, rawFormatter, formatLong, prefixes, suffixes, formatShort, numberFormatters, Beautify, shortenNumber, SimpleBeautify, beautifyInTextFilter, BeautifyInTextFunction, BeautifyInText, BeautifyAll } from "./utils/format";
 import { utf8_to_b64, b64_to_utf8, CompressBin, UncompressBin, CompressLargeBin, UncompressLargeBin, pack, unpack, pack2, unpack2, pack3 } from "./utils/encoding";
-import { AddEvent, RemoveEvent, FireEvent, writeIcon, tinyIcon } from "./utils/dom";
+import { AddEvent, RemoveEvent, FireEvent, writeIcon, tinyIcon, LoadScript } from "./utils/dom";
 import { sayTime } from "./utils/time";
 /* CC3 rewrite (phase 6, slice 3): systems + UI extracted to typed modules. */
 import { gainBuff, hasBuff, updateBuffs, killBuff, killBuffs, buffType, declareVanillaBuffs, buffTypes, buffTypesByName } from "./systems/buffs";
@@ -29,6 +29,11 @@ import { shimmerTypes, goldenCookieChoices, goldenCookieBuildingBuffs } from "./
 import { ToggleSpecialMenu, DrawSpecial } from "./systems/specialMenu";
 import { Note, CloseNote, CloseNotes, UpdateNotes, NotesLogic, NotesDraw, Notify, NotifyTooltip, UpdatePrompt, Prompt, ClosePrompt, ConfirmPrompt, FocusPromptOption } from "./ui/notifications";
 import { particlesUpdate, particleAdd, particlesDraw, textParticlesUpdate, textParticlesAdd, Popup, SparkleAt, SparkleOn } from "./ui/particles";
+
+import { RandomBakeryName, GetBakeryName, bakeryNameSet, bakeryNameRefresh, bakeryNamePrompt, bakeryNamePromptRandom } from "./systems/bakeryName";
+import { GetHowManyHalloweenDrops, GetHowManyHeartDrops, GetHowManyEggs, DropEgg, GetHowManySantaDrops, GetHowManyReindeerDrops, saySeasonSwitchUses, computeSeasonPrices, computeSeasons, getSeasonDuration } from "./systems/seasons";
+import { setupModding } from "./systems/modding";
+import { Reset, HardReset } from "./systems/reset";
 /* CC3: the original relied on implicit globals; declare them for module strict mode. */
 var Audio: any, localStorageGet: any, localStorageSet: any, Music: any, PlayCue: any, TopBarOffset: any, LASTHEAVENLYSELECTED: any, ON: any, OFF: any;
 /* CC3 rewrite (slice 3): the vanilla-content order/pool/power bookkeeping.
@@ -77,31 +82,6 @@ Element.prototype.getBounds=function(){
 	var s=Game.scale;
 	return {x:r.x/s,y:r.y/s,width:r.width/s,height:r.height/s,top:r.top/s,bottom:r.bottom/s,left:r.left/s,right:r.right/s};
 };
-
-var LoadScript=function(url: any,callback: any,error: any)
-{
-	var js: any=document.createElement('script');
-	js.setAttribute('type','text/javascript');
-	if (js.readyState){
-		js.onreadystatechange=function()
-		{
-			if (js.readyState==="loaded" || js.readyState==="complete")
-			{
-				js.onreadystatechange=null;
-				if (callback) callback();
-			}
-		};
-	}
-	else if (callback)
-	{
-		js.onload=callback;
-	}
-	if (error) js.onerror=error;
-	
-	js.setAttribute('src',url);
-	document.head.appendChild(js);
-}
-
 
 localStorageGet=function(key: any)
 {
@@ -698,239 +678,7 @@ GAME INITIALIZATION
 =======================================================================================*/
 /* CC3 rewrite (phase 3, slice 1): the original `var Game={}` now lives in the typed core layer (core/game.ts) as a real class instance; the engine imports and mutates that one object, exactly as before. */
 
-(function(){
-	/*=====================================================================================
-	MODDING API
-	=======================================================================================*/
-	/*
-		to use:
-		-(NOTE: this functions a little differently in the standalone/Steam version; have a look in the game's /mods folder for example mods - though most of the information below still applies)
-		-have your mod call Game.registerMod("unique id",mod object)
-		-the "unique id" value is a string the mod will use to index and retrieve its save data; special characters are ignored
-		-the "mod object" value is an object structured like so:
-			{
-				init:function(){
-					//this function is called as soon as the mod is registered
-					//declare hooks here
-				},
-				save:function(){
-					//use this to store persistent data associated with your mod
-					return 'a string to be saved';
-				},
-				load:function(str){
-					//do stuff with the string data you saved previously
-				},
-			}
-		-the mod object may also contain any other data or functions you want, for instance to make them accessible to other mods
-		-your mod and its data can be accessed with Game.mods['mod id']
-		-hooks are functions the game calls automatically in certain circumstances, like when calculating cookies per click or when redrawing the screen
-		-to add a hook: Game.registerHook('hook id',yourFunctionHere) - note: you can also declare whole arrays of hooks, ie. Game.registerHook('hook id',[function1,function2,...])
-		-to remove a hook: Game.removeHook('hook id',theSameFunctionHere)
-		-some hooks are fed a parameter you can use in the function
-		-list of valid hook ids:
-			'logic' - called every logic tick
-			'draw' - called every draw tick
-			'reset' - called whenever the player resets; parameter is true if this is a hard reset, false if it's an ascension
-			'reincarnate' - called when the player has reincarnated after an ascension
-			'ticker' - called when determining news ticker text; should return an array of possible choices to add
-			'cps' - called when determining the CpS; parameter is the current CpS; should return the modified CpS
-			'cookiesPerClick' - called when determining the cookies per click; parameter is the current value; should return the modified value
-			'click' - called when the big cookie is clicked
-			'create' - called after the game declares all buildings, buffs, upgrades and achievs; use this to declare your own - note that while the game distinguishes between vanilla and non-vanilla content, saving/loading functionality for custom content (including stuff like active buffs or permanent upgrade slotting) is not explicitly implemented and may be unpredictable and broken
-			'check' - called every few seconds when we check for upgrade/achiev unlock conditions; you can also use this for other checks that you don't need happening every logic frame
-		-function hooks are provided for convenience and more advanced mod functionality will probably involve manual code injection
-		-please be mindful of the length of the data you save, as it does inflate the export-save-to-string feature
-		
-		NOTE: modding API is susceptible to change and may not always function super-well
-	*/
-	Game.mods={};
-	Game.sortedMods=[];
-	Game.brokenMods=[];
-	Game.modSaveData={};
-	Game.modHooks={};
-	Game.modHooksNames=['logic','draw','reset','reincarnate','ticker','cps','cookiesPerClick','click','create','check'];
-	for (var i=0;i<Game.modHooksNames.length;i++){Game.modHooks[Game.modHooksNames[i]]=[];}
-	Game.registerMod=function(id: any,mod: any)
-	{
-		id=id.replace(/\W+/g,' ');
-		if (id=='META') return false;
-		if (Game.mods[id]) {console.log('ERROR: mod already registered with the id "'+id+'".');return false;}
-		Game.mods[id]=mod;
-		Game.sortedMods.push(mod);
-		mod.id=id;
-		mod.name=mod.name||id;
-		if (App) App.registerMod(mod);
-		console.log('Mod "'+id+'" added.');
-		if (Game.ready && mod.init)
-		{
-			if (!App && Game.Win) Game.Win('Third-party');
-			mod.init();
-			if (mod.load && Game.modSaveData[id]) mod.load(Game.modSaveData[id]);
-			mod.init=0;
-		}
-	}
-	Game.launchMods=function()
-	{
-		if (Game.brokenMods.length>0)
-		{
-			Game.Notify('<span class="warning">'+loc("Some mods couldn't be loaded:")+'</span>','['+Game.brokenMods.join(', ')+']',[32,17]);
-		}
-		for (var i=0;i<Game.sortedMods.length;i++)
-		{
-			var mod=Game.sortedMods[i];
-			if (mod.init)
-			{
-				console.log('===initializing mod',mod.id);
-				mod.init();
-				mod.init=0;
-				//if (mod.load && Game.modSaveData[mod.id]) mod.load(Game.modSaveData[mod.id]);
-			}
-		}
-		if (!App && Game.sortedMods.length>0) Game.Win('Third-party');
-	}
-	Game.registerHook=function(hook: any,func: any)
-	{
-		if (func.constructor===Array)
-		{
-			for (var i=0;i<func.length;i++){Game.registerHook(hook,func[i]);}
-			return;
-		}
-		if (typeof func!=='function') return;
-		if (typeof Game.modHooks[hook]!=='undefined') Game.modHooks[hook].push(func);
-		else console.log('Error: a mod tried to register a non-existent hook named "'+hook+'".');
-	}
-	Game.removeHook=function(hook: any,func: any)
-	{
-		if (func.constructor===Array)
-		{
-			for (var i=0;i<func.length;i++){Game.removeHook(hook,func[i]);}
-			return;
-		}
-		if (typeof func!=='function') return;
-		if (typeof Game.modHooks[hook]!=='undefined' && Game.modHooks[hook].indexOf(func)!=-1) Game.modHooks[hook].splice(Game.modHooks[hook].indexOf(func),1);
-		else console.log('Error: a mod tried to remove a non-existent hook named "'+hook+'".');
-	}
-	Game.runModHook=function(hook: any,param: any)
-	{
-		for (var i=0;i<Game.modHooks[hook].length;i++)
-		{
-			Game.modHooks[hook][i](param);
-		}
-	}
-	Game.runModHookOnValue=function(hook: any,val: any)
-	{
-		for (var i=0;i<Game.modHooks[hook].length;i++)
-		{
-			val=Game.modHooks[hook][i](val);
-		}
-		return val;
-	}
-	Game.safeSaveString=function(str: any)
-	{
-		//look as long as it works
-		str=replaceAll('|','[P]',str);
-		str=replaceAll(';','[S]',str);
-		return str;
-	}
-	Game.safeLoadString=function(str: any)
-	{
-		str=replaceAll('[P]','|',str);
-		str=replaceAll('[S]',';',str);
-		return str;
-	}
-	Game.saveModData=function()
-	{
-		var str='';
-		for (var i=0;i<Game.sortedMods.length;i++)
-		{
-			if (Game.sortedMods[i]['save'])
-			{
-				var data=Game.sortedMods[i]['save']();
-				if (typeof data!=='undefined') Game.modSaveData[Game.sortedMods[i].id]=data;
-			}
-		}
-		for (var key in Game.modSaveData)
-		{
-			str+=key+':'+Game.safeSaveString(Game.modSaveData[key])+';';
-		}
-		if (App && App.saveMods) str+=App.saveMods();
-		return str;
-	}
-	Game.loadModData=function()
-	{
-		for (var i in Game.modSaveData)
-		{
-			if (Game.mods[i] && Game.mods[i]['load']) Game.mods[i]['load'](Game.modSaveData[i]);
-		}
-	}
-	Game.deleteModData=function(id: any)
-	{
-		if (Game.modSaveData[id]) delete Game.modSaveData[id];
-	}
-	Game.deleteAllModData=function()
-	{
-		Game.modSaveData={};
-	}
-	Game.CheckModData=function()
-	{
-		var modsN=0;
-		var str='';
-		for (var i in Game.modSaveData)
-		{
-			str+='<div style="border-bottom:1px dashed rgba(255,255,255,0.2);clear:both;overflow:hidden;padding:4px 0px;">';
-				str+='<div style="float:left;width:49%;text-align:left;overflow:hidden;"><b>'+i+'</b>';
-					if (Game.mods[i]) str+=' '+loc("(loaded)");
-				str+='</div>';
-				str+='<div style="float:right;width:49%;text-align:right;overflow:hidden;">'+loc("%1 char",Game.modSaveData[i].length)+' <a class="option warning" style="padding:0px 2px;font-size:10px;margin:0px;vertical-align:top;" '+Game.clickStr+'="Game.deleteModData(\''+i+'\');PlaySound(\'snd/tick.mp3\');Game.ClosePrompt();Game.CheckModData();">X</a>';
-				str+='</div>';
-			str+='</div>';
-			modsN++;
-		}
-		if (modsN==0) str+=loc("No mod data present.");
-		else str+='<div><a class="option warning" style="font-size:11px;margin-top:4px;" '+Game.clickStr+'="Game.deleteAllModData();PlaySound(\'snd/tick.mp3\');Game.ClosePrompt();Game.CheckModData();">'+loc("Delete all")+'</a></div>';
-		Game.Prompt('<id ModData><h3>'+loc("Mod data")+'</h3><div class="block">'+tinyIcon([16,5])+'<div></div>'+loc("These are the mods present in your save data. You may delete some of this data to make your save file smaller.")+'</div><div class="block" style="font-size:11px;">'+str+'</div>',[loc("Back")]);
-	}
-	
-	Game.LoadMod=LoadScript;//loads the mod at the given URL
-	
-	if (false)
-	{
-		//EXAMPLE MOD
-		Game.registerMod('test mod',{
-			/*
-				what this example mod does:
-				-double your CpS
-				-display a little popup for half a second whenever you click the big cookie
-				-add a little intro text above your bakery name, and generate that intro text at random if you don't already have one
-				-save and load your intro text
-			*/
-			init:function(){
-				Game.registerHook('reincarnate',function(){Game.mods['test mod'].addIntro();});
-				Game.registerHook('check',function(){if (!Game.playerIntro){Game.mods['test mod'].addIntro();}});
-				Game.registerHook('click',function(){Game.Notify(choose(['A good click.','A solid click.','A mediocre click.','An excellent click!']),'',0,0.5);});
-				Game.registerHook('cps',function(cps: any){return cps*2;});
-			},
-			save:function(){
-				//note: we use stringified JSON for ease and clarity but you could store any type of string
-				return JSON.stringify({text:Game.playerIntro})
-			},
-			load:function(str: any){
-				var data=JSON.parse(str);
-				if (data.text) Game.mods['test mod'].addIntro(data.text);
-			},
-			addIntro:function(text: any){
-				//note: this is not a mod hook, just a function that's part of the mod
-				Game.playerIntro=text||choose(['oh snap, it\'s','watch out, it\'s','oh no! here comes','hide your cookies, for here comes','behold! it\'s']);
-				if (!l('bakerySubtitle')) l('bakeryName').insertAdjacentHTML('afterend','<div id="bakerySubtitle" class="title" style="text-align:center;position:absolute;left:0px;right:0px;bottom:32px;font-size:12px;pointer-events:none;text-shadow:0px 1px 1px #000,0px 0px 4px #f00;opacity:0.8;"></div>');
-				l('bakerySubtitle').textContent='~'+Game.playerIntro+'~';
-			},
-		});
-	}
-	
-	//replacing an existing canvas picture with a new one at runtime : Game.Loader.Replace('perfectCookie.webp','imperfectCookie.webp');
-	//upgrades and achievements can use other pictures than icons.png; declare their icon with [posX,posY,'http://example.com/myIcons.png']
-	//check out the "UNLOCKING STUFF" section to see how unlocking achievs and upgrades is done
-})();
+setupModding();
 
 Game.version=VERSION;
 Game.loadedFromVersion=VERSION;
@@ -1891,70 +1639,13 @@ Game.Launch=function()
 		{
 			Game.Notify(loc("Back up your save!"),loc("Hello again! Just a reminder that you may want to back up your Cookie Clicker save every once in a while, just in case.<br>To do so, go to Options and hit \"Export save\" or \"Save to file\"!")+'<div class="line"></div><a style="float:right;" onclick="Game.prefs.showBackupWarning=0;==CLOSETHIS()==">'+loc("Don't show this again")+'</a>',[25,7]);
 		}
-		
-		
-		
-		
-		/*=====================================================================================
-		BAKERY NAME
-		=======================================================================================*/
-		Game.RandomBakeryName=function()
-		{
-			var str='';
-			if (EN)
-			{
-				return (Math.random()>0.05?(choose(['Magic','Fantastic','Fancy','Sassy','Snazzy','Pretty','Cute','Pirate','Ninja','Zombie','Robot','Radical','Urban','Cool','Hella','Sweet','Awful','Double','Triple','Turbo','Techno','Disco','Electro','Dancing','Wonder','Mutant','Space','Science','Medieval','Future','Captain','Bearded','Lovely','Tiny','Big','Fire','Water','Frozen','Metal','Plastic','Solid','Liquid','Moldy','Shiny','Happy','Happy Little','Slimy','Tasty','Delicious','Hungry','Greedy','Lethal','Professor','Doctor','Power','Chocolate','Crumbly','Choklit','Righteous','Glorious','Mnemonic','Psychic','Frenetic','Hectic','Crazy','Royal','El','Von'])+' '):'Mc')+choose(['Cookie','Biscuit','Muffin','Scone','Cupcake','Pancake','Chip','Sprocket','Gizmo','Puppet','Mitten','Sock','Teapot','Mystery','Baker','Cook','Grandma','Click','Clicker','Spaceship','Factory','Portal','Machine','Experiment','Monster','Panic','Burglar','Bandit','Booty','Potato','Pizza','Burger','Sausage','Meatball','Spaghetti','Macaroni','Kitten','Puppy','Giraffe','Zebra','Parrot','Dolphin','Duckling','Sloth','Turtle','Goblin','Pixie','Gnome','Computer','Pirate','Ninja','Zombie','Robot']);
-			}
-			else
-			{
-				if (locStrings["bakery random name, 1st half"] && locStrings["bakery random name, 2nd half"]) str+=choose(loc("bakery random name, 1st half"))+' '+choose(loc("bakery random name, 2nd half"));
-				else str+=choose(loc("bakery random name"));
-			}
-			return str;
-		}
-		Game.GetBakeryName=function() {return Game.RandomBakeryName();}
+		Game.RandomBakeryName=RandomBakeryName;//CC3 rewrite (phase 6, slice 3): moved verbatim to systems/bakeryName.ts; same Game slot, same Init position.
+		Game.GetBakeryName=GetBakeryName;//CC3 rewrite (phase 6, slice 3): moved verbatim to systems/bakeryName.ts; same Game slot, same Init position.
 		Game.bakeryNameL=l('bakeryName');
-		Game.bakeryNameSet=function(what: any)
-		{
-			try
-			{
-				var exp=new RegExp('[^\'\\-_0-9 \\p{L}]','gu');
-				Game.bakeryName=what.replace(exp,' ');
-				//Game.bakeryName=what.replace(/[^'\-_0-9 \p{L}]/gu,' ');
-				Game.bakeryName=Game.bakeryName.trim().substring(0,28);
-			}
-			catch(e)
-			{
-				var exp=new RegExp('\W+','g');
-				Game.bakeryName=what.replace(exp,' ');
-				//Game.bakeryName=what.replace(/\W+/g,' ');
-				Game.bakeryName=Game.bakeryName.substring(0,28);
-			}
-			Game.bakeryNameRefresh();
-			if (Game.bakeryName=='RESTORE BACKUP' && App && App.restoreBackup) App.restoreBackup();
-		}
-		Game.bakeryNameRefresh=function()
-		{
-			var name=Game.bakeryName;
-			if (EN) {if (name.slice(-1).toLowerCase()=='s') name+='\' bakery'; else name+='\'s bakery';}
-			else name=loc("%1's bakery",name);
-			Game.bakeryNameL.textContent=name;
-			name=Game.bakeryName.toLowerCase();
-			if (name=='orteil') Game.Win('God complex');
-			if (!App && name.indexOf('saysopensesame',name.length-('saysopensesame').length)>0 && !Game.sesame) Game.OpenSesame();
-			Game.recalculateGains=1;
-		}
-		Game.bakeryNamePrompt=function()
-		{
-			PlaySound('snd/tick.mp3');
-			Game.Prompt('<id NameBakery><h3>'+loc("Name your bakery")+'</h3><div class="block" style="text-align:center;">'+loc("What should your bakery's name be?")+'</div><div class="block"><input type="text" style="text-align:center;width:100%;" id="bakeryNameInput" value="'+Game.bakeryName+'"/></div>',[[loc("Confirm"),'if (l(\'bakeryNameInput\').value.length>0) {Game.bakeryNameSet(l(\'bakeryNameInput\').value);Game.Win(\'What\\\'s in a name\');Game.ClosePrompt();}'],[loc("Random"),'Game.bakeryNamePromptRandom();'],loc("Cancel")]);
-			l('bakeryNameInput').focus();
-			l('bakeryNameInput').select();
-		}
-		Game.bakeryNamePromptRandom=function()
-		{
-			l('bakeryNameInput').value=Game.RandomBakeryName();
-		}
+		Game.bakeryNameSet=bakeryNameSet;//CC3 rewrite (phase 6, slice 3): moved verbatim to systems/bakeryName.ts; same Game slot, same Init position.
+		Game.bakeryNameRefresh=bakeryNameRefresh;//CC3 rewrite (phase 6, slice 3): moved verbatim to systems/bakeryName.ts; same Game slot, same Init position.
+		Game.bakeryNamePrompt=bakeryNamePrompt;//CC3 rewrite (phase 6, slice 3): moved verbatim to systems/bakeryName.ts; same Game slot, same Init position.
+		Game.bakeryNamePromptRandom=bakeryNamePromptRandom;//CC3 rewrite (phase 6, slice 3): moved verbatim to systems/bakeryName.ts; same Game slot, same Init position.
 		AddEvent(Game.bakeryNameL,'click',Game.bakeryNamePrompt);
 		
 		Game.bakeryNameSet(Game.GetBakeryName());
@@ -2303,238 +1994,9 @@ Game.Launch=function()
 		LOAD
 		=======================================================================================*/
 		Game.salvageSave=salvageSave;//CC3 rewrite (phase 4, slice 3): moved verbatim to systems/save.ts; same Game slot, same Init position.
-		Game.LoadSave=LoadSave;//CC3 rewrite (phase 4, slice 3): the 556-line save loader moved verbatim to systems/save.ts; same Game slot, same Init position.
-		Game.Reset=function(hard: any)
-		{
-			Game.T=0;
-			
-			if (hard) {Game.loadedFromVersion=Game.version;}
-			
-			var cookiesForfeited=Game.cookiesEarned;
-			if (!hard)
-			{
-				if (cookiesForfeited>=1000000) Game.Win('Sacrifice');
-				if (cookiesForfeited>=1000000000) Game.Win('Oblivion');
-				if (cookiesForfeited>=1000000000000) Game.Win('From scratch');
-				if (cookiesForfeited>=1000000000000000) Game.Win('Nihilism');
-				if (cookiesForfeited>=1000000000000000000) Game.Win('Dematerialize');
-				if (cookiesForfeited>=1000000000000000000000) Game.Win('Nil zero zilch');
-				if (cookiesForfeited>=1000000000000000000000000) Game.Win('Transcendence');
-				if (cookiesForfeited>=1000000000000000000000000000) Game.Win('Obliterate');
-				if (cookiesForfeited>=1000000000000000000000000000000) Game.Win('Negative void');
-				if (cookiesForfeited>=1000000000000000000000000000000000) Game.Win('To crumbs, you say?');
-				if (cookiesForfeited>=1000000000000000000000000000000000000) Game.Win('You get nothing');
-				if (cookiesForfeited>=1000000000000000000000000000000000000000) Game.Win('Humble rebeginnings');
-				if (cookiesForfeited>=1000000000000000000000000000000000000000000) Game.Win('The end of the world');
-				if (cookiesForfeited>=1000000000000000000000000000000000000000000000) Game.Win('Oh, you\'re back');
-				if (cookiesForfeited>=1000000000000000000000000000000000000000000000000) Game.Win('Lazarus');
-				if (cookiesForfeited>=1000000000000000000000000000000000000000000000000000) Game.Win('Smurf account');
-				if (cookiesForfeited>=1000000000000000000000000000000000000000000000000000000) Game.Win('If at first you don\'t succeed');
-				
-				if (Math.round(Game.cookies)==1000000000000) Game.Win('When the cookies ascend just right');
-			}
-			
-			Game.killBuffs();
-			
-			Game.seed=Game.makeSeed();
-			
-			Game.cookiesReset+=Game.cookiesEarned;
-			Game.cookies=0;
-			Game.cookiesEarned=0;
-			Game.cookieClicks=0;
-			Game.goldenClicksLocal=0;
-			//Game.goldenClicks=0;
-			//Game.missedGoldenClicks=0;
-			Game.handmadeCookies=0;
-			Game.cookiesPsRawHighest=0;
-			if (hard)
-			{
-				Game.bgType=0;
-				Game.milkType=0;
-				Game.chimeType=0;
-				
-				Game.vault=[];
-			}
-			Game.pledges=0;
-			Game.pledgeT=0;
-			Game.elderWrath=0;
-			Game.elderWrathOld=0;
-			Game.elderWrathD=0;
-			Game.nextResearch=0;
-			Game.researchT=0;
-			Game.seasonT=0;
-			Game.seasonUses=0;
-			Game.season=Game.baseSeason;
-			Game.computeSeasonPrices();
-			
-			Game.startDate=parseInt(Date.now());
-			Game.lastDate=parseInt(Date.now());
-			
-			Game.cookiesSucked=0;
-			Game.wrinklersPopped=0;
-			Game.ResetWrinklers();
-			
-			Game.santaLevel=0;
-			Game.reindeerClicked=0;
-			
-			Game.dragonLevel=0;
-			Game.dragonAura=0;
-			Game.dragonAura2=0;
-			
-			Game.fortuneGC=0;
-			Game.fortuneCPS=0;
-			
-			Game.TickerClicks=0;
-			
-			if (Game.gainedPrestige>0) Game.resets++;
-			if (!hard && Game.canLumps() && Game.ascensionMode!=1) Game.addClass('lumpsOn');
-			else Game.removeClass('lumpsOn');
-			Game.gainedPrestige=0;
-			
-			for (var i in Game.ObjectsById)
-			{
-				var me=Game.ObjectsById[i];
-				me.amount=0;me.bought=0;me.highest=0;me.free=0;me.totalCookies=0;
-				me.switchMinigame(false);
-				if (hard) {me.muted=0;}
-				me.pics=[];
-				me.refresh();
-			}
-			for (var i in Game.UpgradesById)
-			{
-				var me=Game.UpgradesById[i];
-				if (hard || me.pool!='prestige') me.bought=0;
-				if (hard) me.unlocked=0;
-				if (me.pool!='prestige' && !me.lasting)
-				{
-					if (Game.Has('Keepsakes') && Game.seasonDrops.indexOf(me.name)!=-1 && Math.random()<1/5){}
-					else if (Game.ascensionMode==1 && Game.HasAchiev('O Fortuna') && me.tier=='fortune'){}
-					else if (Game.HasAchiev('O Fortuna') && me.tier=='fortune' && Math.random()<0.4){}
-					else me.unlocked=0;
-				}
-			}
-			
-			Game.BuildingsOwned=0;
-			Game.UpgradesOwned=0;
-			
-			Game.cookiesPsByType={};
-			Game.cookiesMultByType={};
-			
-			if (!hard)
-			{
-				if (Game.ascensionMode!=1)
-				{
-					for (var i in Game.permanentUpgrades)
-					{
-						if (Game.permanentUpgrades[i]!=-1)
-						{Game.UpgradesById[Game.permanentUpgrades[i]].earn();}
-					}
-					if (Game.Has('Season switcher')) {for (var i in Game.seasons) {Game.Unlock(Game.seasons[i].trigger);}}
-					
-					if (Game.Has('Starter kit')) Game.Objects['Cursor'].getFree(10);
-					if (Game.Has('Starter kitchen')) Game.Objects['Grandma'].getFree(5);
-				}
-			}
-			
-			/*for (var i in Game.AchievementsById)
-			{
-				var me=Game.AchievementsById[i];
-				me.won=0;
-			}*/
-			//Game.DefaultPrefs();
-			BeautifyAll();
-			
-			Game.RebuildUpgrades();
-			Game.TickerAge=0;
-			Game.TickerEffect=0;
-			Game.recalculateGains=1;
-			Game.storeToRefresh=1;
-			Game.upgradesToRebuild=1;
-			Game.killShimmers();
-			
-			Game.buyBulk=1;Game.buyMode=1;Game.storeBulkButton(-1);
-			
-			Game.LoadMinigames();
-			for (var i in Game.ObjectsById)
-			{
-				var me=Game.ObjectsById[i];
-				if (hard && me.minigame && me.minigame.launch) {me.minigame.launch();me.minigame.reset(true);}
-				else if (!hard && me.minigame && me.minigame.reset) me.minigame.reset();
-			}
-			
-			l('toggleBox').style.display='none';
-			l('toggleBox').innerHTML='';
-			Game.choiceSelectorOn=-1;
-			Game.ToggleSpecialMenu(0);
-			Game.specialTab='';
-			
-			l('logButton').classList.remove('hasUpdate');
-			
-			Game.runModHook('reset',hard);
-			
-			if (hard)
-			{
-				Game.clicksThisSession=0;
-				if (Game.T>Game.fps*5 && Game.ReincarnateTimer==0)//fade out of black and pop the cookie
-				{
-					Game.ReincarnateTimer=1;
-					Game.addClass('reincarnating');
-					Game.BigCookieSize=0;
-				}
-				Game.Notify(loc("Game reset"),EN?"So long, cookies.":loc("Good bye, cookies."),[21,6],6);
-			}
-			else Game.clicksThisSession=Math.max(Game.clicksThisSession,1);
-			
-			Game.jukebox.reset();
-			if (hard) PlayCue('launch');
-			else PlayCue('play');
-		}
-		Game.HardReset=function(bypass: any)
-		{
-			if (!bypass)
-			{
-				Game.Prompt('<id WipeSave><h3>'+loc("Wipe save")+'</h3><div class="block">'+tinyIcon([15,5])+'<div class="line"></div>'+loc("Do you REALLY want to wipe your save?<br><small>You will lose your progress, your achievements, and your heavenly chips!</small>")+'</div>',[[EN?'Yes!':loc("Yes"),'Game.ClosePrompt();Game.HardReset(1);','float:left'],[loc("No"),0,'float:right']]);
-			}
-			else if (bypass==1)
-			{
-				Game.Prompt('<id ReallyWipeSave><h3>'+loc("Wipe save")+'</h3><div class="block">'+tinyIcon([15,5])+'<div class="line"></div>'+loc("Whoah now, are you really, <b><i>REALLY</i></b> sure you want to go through with this?<br><small>Don't say we didn't warn you!</small>")+'</div>',[[EN?'Do it!':loc("Yes"),'Game.ClosePrompt();Game.HardReset(2);','float:left'],[loc("No"),0,'float:right']]);
-			}
-			else
-			{
-				for (var i in Game.AchievementsById)
-				{
-					var me=Game.AchievementsById[i];
-					me.won=0;
-				}
-				for (var i in Game.ObjectsById)
-				{
-					var me=Game.ObjectsById[i];
-					me.level=0;
-				}
-
-				Game.AchievementsOwned=0;
-				Game.goldenClicks=0;
-				Game.missedGoldenClicks=0;
-				Game.Reset(1);
-				Game.resets=0;
-				Game.fullDate=parseInt(Date.now());
-				Game.bakeryName=Game.GetBakeryName();
-				Game.bakeryNameRefresh();
-				Game.cookiesReset=0;
-				Game.prestige=0;
-				Game.heavenlyChips=0;
-				Game.heavenlyChipsSpent=0;
-				Game.heavenlyCookies=0;
-				Game.permanentUpgrades=[-1,-1,-1,-1,-1];
-				Game.ascensionMode=0;
-				Game.lumps=-1;
-				Game.lumpsTotal=-1;
-				Game.lumpT=Date.now();
-				Game.lumpRefill=0;
-				Game.removeClass('lumpsOn');
-				if (App) App.hardReset();
-			}
-		}
+		Game.LoadSave=LoadSave;
+		Game.Reset=Reset;//CC3 rewrite (phase 6, slice 3): moved verbatim to systems/reset.ts; same Game slot, same Init position.
+		Game.HardReset=HardReset;//CC3 rewrite (phase 6, slice 3): moved verbatim to systems/reset.ts; same Game slot, same Init position.
 		
 		
 		
@@ -4601,57 +4063,10 @@ window.loadMinigameModule!(me.minigameUrl).then(function(){
 			}
 		}
 		Game.getPledgeDuration=function(){return Game.fps*60*(Game.Has('Sacrificial rolling pins')?60:30);}
-		Game.GetHowManyHalloweenDrops=function()
-		{
-			var num=0;
-			for (var i in Game.halloweenDrops) {if (Game.Has(Game.halloweenDrops[i])) num++;}
-			return num;
-		}
-		/*for (var i in Game.halloweenDrops)
-		{
-			Game.Upgrades[Game.halloweenDrops[i]].descFunc=function(){return '<div style="text-align:center;">You currently own <b>'+Game.GetHowManyHalloweenDrops()+'/'+Game.halloweenDrops.length+'</b> halloween cookies.</div><div class="line"></div>'+this.ddesc;};
-		}*/
-		Game.GetHowManyHeartDrops=function()
-		{
-			var num=0;
-			for (var i in Game.heartDrops) {if (Game.Has(Game.heartDrops[i])) num++;}
-			return num;
-		}
-		Game.GetHowManyEggs=function()
-		{
-			var num=0;
-			for (var i in Game.easterEggs) {if (Game.Has(Game.easterEggs[i])) num++;}
-			return num;
-		}
-		Game.DropEgg=function(failRate: any)
-		{
-			failRate*=1/Game.dropRateMult();
-			if (Game.season!='easter') return;
-			if (Game.HasAchiev('Hide & seek champion')) failRate*=0.7;
-			if (Game.Has('Omelette')) failRate*=0.9;
-			if (Game.Has('Starspawn')) failRate*=0.9;
-			if (Game.hasGod)
-			{
-				var godLvl=Game.hasGod('seasons');
-				if (godLvl==1) failRate*=0.9;
-				else if (godLvl==2) failRate*=0.95;
-				else if (godLvl==3) failRate*=0.97;
-			}
-			if (Math.random()>=failRate)
-			{
-				var drop='';
-				if (Math.random()<0.1) drop=choose(Game.rareEggDrops);
-				else drop=choose(Game.eggDrops);
-				if (Game.Has(drop) || Game.HasUnlocked(drop))//reroll if we have it
-				{
-					if (Math.random()<0.1) drop=choose(Game.rareEggDrops);
-					else drop=choose(Game.eggDrops);
-				}
-				if (Game.Has(drop) || Game.HasUnlocked(drop)) return;
-				Game.Unlock(drop);
-				Game.Notify(loc("You found an egg!"),'<b>'+drop+'</b>',Game.Upgrades[drop].icon);
-			}
-		};
+		Game.GetHowManyHalloweenDrops=GetHowManyHalloweenDrops;//CC3 rewrite (phase 6, slice 3): moved verbatim to systems/seasons.ts; same Game slot, same Init position.
+		Game.GetHowManyHeartDrops=GetHowManyHeartDrops;//CC3 rewrite (phase 6, slice 3): moved verbatim to systems/seasons.ts; same Game slot, same Init position.
+		Game.GetHowManyEggs=GetHowManyEggs;//CC3 rewrite (phase 6, slice 3): moved verbatim to systems/seasons.ts; same Game slot, same Init position.
+		Game.DropEgg=DropEgg;//CC3 rewrite (phase 6, slice 3): moved verbatim to systems/seasons.ts; same Game slot, same Init position.
 		Game.PermanentSlotIcon=function(slot: any)
 		{
 			if (Game.permanentUpgrades[slot]==-1) return [slot,10];
@@ -4769,100 +4184,12 @@ window.loadMinigameModule!(me.minigameUrl).then(function(){
 			}
 			return str;
 		}
-		Game.GetHowManySantaDrops=function()
-		{
-			var num=0;
-			for (var i in Game.santaDrops) {if (Game.Has(Game.santaDrops[i])) num++;}
-			return num;
-		}
-		Game.GetHowManyReindeerDrops=function()
-		{
-			var num=0;
-			for (var i in Game.reindeerDrops) {if (Game.Has(Game.reindeerDrops[i])) num++;}
-			return num;
-		}
-		/*for (var i in Game.santaDrops)
-		{
-			Game.Upgrades[Game.santaDrops[i]].descFunc=function(){return '<div style="text-align:center;">You currently own <b>'+Game.GetHowManySantaDrops()+'/'+Game.santaDrops.length+'</b> of Santa\'s gifts.</div><div class="line"></div>'+this.ddesc;};
-		}*/
-		Game.saySeasonSwitchUses=function()
-		{
-			if (Game.seasonUses==0) return loc("You haven't switched seasons this ascension yet.");
-			return EN?('You\'ve switched seasons <b>'+(Game.seasonUses==1?'once':Game.seasonUses==2?'twice':(Game.seasonUses+' times'))+'</b> this ascension.'):(Game.seasonUses==1?loc("You've switched seasons <b>once</b> this ascension."):loc("You've switched seasons <b>%1 times</b> this ascension.",Game.seasonUses));
-		}
-		Game.computeSeasonPrices=function()
-		{
-			for (var i in Game.seasons)
-			{
-				Game.seasons[i].triggerUpgrade.priceFunc=function(){
-					var m=1;
-					if (Game.hasGod)
-					{
-						var godLvl=Game.hasGod('seasons');
-						if (godLvl==1) m*=2;
-						else if (godLvl==2) m*=1.50;
-						else if (godLvl==3) m*=1.25;
-					}
-					//return Game.seasonTriggerBasePrice*Math.pow(2,Game.seasonUses)*m;
-					//return Game.cookiesPs*60*Math.pow(1.5,Game.seasonUses)*m;
-					return Game.seasonTriggerBasePrice+Game.unbuffedCps*60*Math.pow(1.5,Game.seasonUses)*m;
-				}
-			}
-		}
-		Game.computeSeasons=function()
-		{
-			for (var i in Game.seasons)
-			{
-				var me=Game.Upgrades[Game.seasons[i].trigger];
-				Game.seasons[i].triggerUpgrade=me;
-				me.pool='toggle';
-				me.buyFunction=function()
-				{
-					Game.seasonUses+=1;
-					Game.computeSeasonPrices();
-					//Game.Lock(this.name);
-					for (var i in Game.seasons)
-					{
-						var me=Game.Upgrades[Game.seasons[i].trigger];
-						if (me.name!=this.name) {Game.Lock(me.name);Game.Unlock(me.name);}
-					}
-					if (Game.season!='' && Game.season!=this.season)
-					{
-						Game.Notify(Game.seasons[Game.season].over+'<div class="line"></div>','',Game.seasons[Game.season].triggerUpgrade.icon,4);
-					}
-					Game.season=this.season;
-					Game.seasonT=Game.getSeasonDuration();
-					Game.storeToRefresh=1;
-					Game.upgradesToRebuild=1;
-					Game.Objects['Grandma'].redraw();
-					Game.Notify(Game.seasons[this.season].start+'<div class="line"></div>','',this.icon,4);
-				}
-				
-				me.clickFunction=function(me: any){return function()
-				{
-					//undo season
-					if (me.bought && Game.season && me==Game.seasons[Game.season].triggerUpgrade)
-					{
-						me.lose();
-						Game.Notify(Game.seasons[Game.season].over,'',Game.seasons[Game.season].triggerUpgrade.icon);
-						if (Game.Has('Season switcher')) {Game.Unlock(Game.seasons[Game.season].trigger);Game.seasons[Game.season].triggerUpgrade.bought=0;}
-						
-						Game.upgradesToRebuild=1;
-						Game.recalculateGains=1;
-						Game.season=Game.baseSeason;
-						Game.seasonT=-1;
-						PlaySound('snd/tick.mp3');
-						return false;
-					}
-					else return true;
-				};}(me);
-				
-				me.displayFuncWhenOwned=function(){return '<div style="text-align:center;">'+loc("Time remaining:")+'<br><b>'+(Game.Has('Eternal seasons')?loc("forever"):Game.sayTime(Game.seasonT,-1))+'</b><div style="font-size:80%;">('+loc("Click again to cancel season")+')</div></div>';}
-				me.timerDisplay=function(upgrade: any){return function(){if (!Game.Upgrades[upgrade.name].bought || Game.Has('Eternal seasons')) return -1; else return 1-Game.seasonT/Game.getSeasonDuration();}}(me);
-				
-			}
-		}
-		Game.getSeasonDuration=function(){return Game.fps*60*60*24;}
+		Game.GetHowManySantaDrops=GetHowManySantaDrops;//CC3 rewrite (phase 6, slice 3): moved verbatim to systems/seasons.ts; same Game slot, same Init position.
+		Game.GetHowManyReindeerDrops=GetHowManyReindeerDrops;//CC3 rewrite (phase 6, slice 3): moved verbatim to systems/seasons.ts; same Game slot, same Init position.
+		Game.saySeasonSwitchUses=saySeasonSwitchUses;//CC3 rewrite (phase 6, slice 3): moved verbatim to systems/seasons.ts; same Game slot, same Init position.
+		Game.computeSeasonPrices=computeSeasonPrices;//CC3 rewrite (phase 6, slice 3): moved verbatim to systems/seasons.ts; same Game slot, same Init position.
+		Game.computeSeasons=computeSeasons;//CC3 rewrite (phase 6, slice 3): moved verbatim to systems/seasons.ts; same Game slot, same Init position.
+		Game.getSeasonDuration=getSeasonDuration;//CC3 rewrite (phase 6, slice 3): moved verbatim to systems/seasons.ts; same Game slot, same Init position.
 		Game.computeSeasons();
 		
 		//alert untiered building upgrades

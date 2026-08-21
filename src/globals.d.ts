@@ -61,6 +61,17 @@ declare global {
 	const BeautifyInText: (str: string) => string;
 	/* Engine event-binding helper (engine var, published on window). */
 	const AddEvent: AddEventFn;
+	/* Engine script-injection helper (engine var, published on window):
+	 * loads a JS file, optionally calling back on load/error — `any` for
+	 * the optional callbacks, matching the verbatim engine signature. */
+	const LoadScript: (url: string, callback?: any, error?: any) => void;
+	/* Engine string substitution helper (published on window): replaces
+	 * every occurrence of `find` in `str`. */
+	const replaceAll: (find: string, replace: string, str: string) => string;
+	/* Current-language string table (engine var, published on window): the
+	 * parsed loc file's keys. `any` — the localization code indexes it with
+	 * dynamic keys. */
+	const locStrings: any;
 	/* Localized number formatter: returns {n: floored value, b: beautified}. */
 	const LBeautify: (val: number, floats?: number | boolean) => { n: number; b: string };
 	/* Engine number formatter (engine/main.ts, published on window): returns

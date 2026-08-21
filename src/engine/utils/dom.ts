@@ -1,6 +1,30 @@
 /* CC3 rewrite (phase 6, slice 2): pure DOM/event utilities extracted from
  * engine/main.ts verbatim. No Game dependency. */
 
+export function LoadScript(url: any, callback: any, error: any)
+{
+	var js: any=document.createElement('script');
+	js.setAttribute('type','text/javascript');
+	if (js.readyState){
+		js.onreadystatechange=function()
+		{
+			if (js.readyState==="loaded" || js.readyState==="complete")
+			{
+				js.onreadystatechange=null;
+				if (callback) callback();
+			}
+		};
+	}
+	else if (callback)
+	{
+		js.onload=callback;
+	}
+	if (error) js.onerror=error;
+	
+	js.setAttribute('src',url);
+	document.head.appendChild(js);
+}
+
 export function AddEvent(el: any, ev: any, func: any)
 {
 	//ie. myListener=AddEvent(l('element'),'click',function(){console.log('hi!');});

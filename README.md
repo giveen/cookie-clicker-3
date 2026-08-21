@@ -37,8 +37,9 @@ src/
     core/               typed classes: Game, Building, Upgrade, Achievement
     content/            typed content: tiers, buildings, upgrades, achievements, foolObjects
     systems/            typed systems: economy, save, shimmer, wrinkler, ascend, buffs,
-                        ticker, santa, dragon, shimmerTypes, specialMenu
-    utils/              pure helpers: helpers, formatting, encoding, DOM, time (Phase 6)
+                        ticker, santa, dragon, shimmerTypes, specialMenu, bakeryName,
+                        seasons, modding, reset
+    utils/              pure helpers: helpers, formatting, encoding, DOM, time, LoadScript (Phase 6)
     ui/                 UI systems: particles, notifications (Phase 6 — more landing in Slices 4+)
     minigameGarden.ts   minigame modules (dynamic import, code-split; typed — Phase 5)
     minigameGrimoire.ts

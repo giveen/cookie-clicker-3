@@ -22,24 +22,24 @@ lives in typed `src/engine/content/` modules. Core classes (`Game`,
 `src/engine/core/`. Systems (economy, save/load, shimmer, wrinkler,
 ascend/sugar lumps) are typed modules in `src/engine/systems/`. All four
 minigame files (Garden, Market, Grimoire, Pantheon) are typed. **Every line
-of the engine itself is now typed too**: `engine/main.ts` (~7,100 lines)
+of the engine itself is now typed too**: `engine/main.ts` (~6,450 lines)
 has no `@ts-nocheck`, and `npx tsc --noEmit` reports zero errors across the
 whole tree. Pure helpers were extracted to `engine/utils/` (helpers,
-format, encoding, dom, time); the buff system, news ticker, Santa, Dragon,
-shimmer types, special menu, particles, and notifications were extracted to
-`engine/systems/` and `engine/ui/` (Slices 2–3). The game builds and
-passes all 15 Playwright QA probes. Remaining Phase 6 work: extract the
-self-contained systems still inline (bakery name, seasons, modding API,
-Reset/HardReset) and the UI systems (tooltip, crate, menu, store,
-DrawBackground), then content/data (milks, changelog, heavenly positions,
-debug tools) — Slices 3–7 of the plan below.
+format, encoding, dom, time, + `LoadScript`); the buff system, news
+Ticker, Santa, Dragon, shimmer types, special menu, particles,
+notifications, bakery name, seasons, modding API, and Reset/HardReset were
+extracted to `engine/systems/` and `engine/ui/` (Slices 2–3). The game
+builds and passes all 15 Playwright QA probes. Remaining Phase 6 work:
+extract the UI systems (tooltip, crate, menu, store, DrawBackground), then
+content/data (milks, changelog, heavenly positions, debug tools) — Slices
+4–7 of the plan below.
 
 ## Branch / commit state
 
 | Branch  | HEAD      | Meaning                                                        |
 | ------- | --------- | -------------------------------------------------------------- |
 | `master`| `dafffc6` | The finished, deployable CC3 (deploy gate). Untouched by the rewrite. |
-| `rewrite` (work) | `73f4cb2` | The rewrite, built on top of the 1:1 conversion.        |
+| `rewrite` (work) | `3c9c717` | The rewrite, built on top of the 1:1 conversion.        |
 
 Rewrite history (old → new):
 
@@ -63,6 +63,7 @@ e74bc73  Rewrite Phase 4 (slice 4): shimmer system → systems/shimmer.ts
 35798b4  Rewrite Phase 4 (slice 5): wrinkler system → systems/wrinkler.ts
 25e4312  Rewrite Phase 4 (slice 6): ascend/reincarnate + sugar lumps → systems/ascend.ts
 73f4cb2  Rewrite Phase 5 + Phase 6 (slices 1–3): minigames typed; engine typed; utils/systems/ui extracted and wired
+3c9c717  Rewrite: update REWRITE.md branch state for phase 5 + phase 6 slices 1-3
 ```
 
 ## What "1:1" means here, and how it's enforced
@@ -763,7 +764,7 @@ Slice 3.)
 
 **Gate:** tsc 0, build clean, 15/15 QA — **all passed**.
 
-#### Slice 3 — Extract self-contained systems — **8 of 12 done**
+#### Slice 3 — Extract self-contained systems — **12 of 12 done**
 
 Each system is a module that reads/writes `Game` through `globals.d.ts`.
 Engine keeps `Game.X = importedFn` at the original Init positions.
@@ -781,6 +782,21 @@ buff when one was already active — that broke save-load buff restoration
 and the Grimoire Clot backfire. Restored the original semantics
 (`var buff: any` shadowing is legal TS).
 
+The remaining four systems (bakery name, seasons, modding, reset) were
+extracted this round with the same discipline (regex verifier against the
+committed inline originals, `/tmp/tsverify/verify3-head.mjs`). The
+verifier caught one real escaping bug in `systems/bakeryName.ts`
+(`RegExp('\\\\W+')` — see table). The modding API needed a structural
+change, not just a move: the original top-level IIFE closed over the
+engine's module-scoped `var Game={}` and `var LoadScript`, but a separate
+module's verbatim body reads bare globals that only exist on `window`
+after the engine's `Object.assign` shim runs at the bottom — so running
+`setupModding()` at the original module-eval position threw `Game is not
+defined` / `LoadScript is not defined` at boot (caught by the QA suite's
+boot probe, which white-screened all 15 tests). Fix: `modding.ts` imports
+the `Game` singleton from `core/game` and `LoadScript` (moved verbatim
+into `utils/dom.ts`), restoring the original closure semantics exactly.
+
 | System | Target | ~Lines | Result |
 | ------ | ------ | ------ | ------ |
 | ~~Buffs~~ | `systems/buffs.ts` | 320 | **done** — `gainBuff` return-value bug found by the verifier and fixed; 26 vanilla buff declarations via `declareVanillaBuffs()` |
@@ -791,12 +807,12 @@ and the Grimoire Clot backfire. Restored the original semantics
 | ~~Dragon~~ | `systems/dragon.ts` | 260 | **done** — pure functions wired; `dragonLevels`/`dragonAuras` data stays in-engine (call `loc()` at Init with args) |
 | ~~Shimmer types~~ | `systems/shimmerTypes.ts` | 590 | **done** — data block wired (no top-level `loc()`) |
 | ~~Special menu~~ | `systems/specialMenu.ts` | 120 | **done** — `ToggleSpecialMenu`, `DrawSpecial` wired |
-| Bakery name | `systems/bakeryName.ts` | 130 | not yet — `RandomBakeryName`, `GetBakeryName`, `bakeryNameSet`, `bakeryNameRefresh`, `bakeryNamePrompt` still inline |
-| Seasons | `systems/seasons.ts` | 200 | not yet — `computeSeasons`, `getSeasonDuration`, `computeSeasonPrices`, season drop helpers still inline |
-| Modding | `systems/modding.ts` | 175 | not yet — Modding API IIFE, `registerMod`, hooks, mod save/load still inline |
-| Reset | `systems/reset.ts` | 150 | not yet — `Game.Reset` (~120 lines), `Game.HardReset` (~30 lines) still inline |
+| ~~Bakery name~~ | `systems/bakeryName.ts` | 130 | **done** — 6 functions wired; one real escaping bug found by the verifier (`RegExp('\\W+')` had become `'\\\\W+'` in the module, matching a literal backslash instead of non-word chars) and fixed |
+| ~~Seasons~~ | `systems/seasons.ts` | 200 | **done** — 10 functions wired (`computeSeasons`, `getSeasonDuration`, `computeSeasonPrices`, 5 drop helpers, `saySeasonSwitchUses`, …); one `this: any` param (documented runtime-preserving delta) |
+| ~~Modding~~ | `systems/modding.ts` | 175 | **done** — the whole Modding API IIFE is now `setupModding()`, called at the original module-eval position; it must `import { Game }` + `import { LoadScript }` (the original IIFE closed over the module-scoped `var Game={}` and `var LoadScript` — the window globals don't exist until the engine's shim runs at the bottom, so reading them mid-module-eval threw `Game is not defined` / `LoadScript is not defined` at boot). `LoadScript` moved verbatim into `utils/dom.ts` so both the engine and `setupModding` share the same function |
+| ~~Reset~~ | `systems/reset.ts` | 150 | **done** — `Reset`, `HardReset` wired, 0 verifier issues |
 
-**Gate:** tsc 0, build clean, 15/15 QA — **all passed** (engine at 7,123
+**Gate:** tsc 0, build clean, 15/15 QA — **all passed** (engine at 6,450
 lines after this slice).
 
 #### Slice 4 — Extract UI systems
