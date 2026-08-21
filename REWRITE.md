@@ -39,7 +39,7 @@ debug tools) — Slices 5–7 of the plan below.
 | Branch  | HEAD      | Meaning                                                        |
 | ------- | --------- | -------------------------------------------------------------- |
 | `master`| `dafffc6` | The finished, deployable CC3 (deploy gate). Untouched by the rewrite. |
-| `rewrite` (work) | `19cdde9` | The rewrite, built on top of the 1:1 conversion.        |
+| `rewrite` (work) | `14cadf0` | The rewrite, built on top of the 1:1 conversion.        |
 
 Rewrite history (old → new):
 
@@ -65,6 +65,7 @@ e74bc73  Rewrite Phase 4 (slice 4): shimmer system → systems/shimmer.ts
 73f4cb2  Rewrite Phase 5 + Phase 6 (slices 1–3): minigames typed; engine typed; utils/systems/ui extracted and wired
 3c9c717  Rewrite: update REWRITE.md branch state for phase 5 + phase 6 slices 1-3
 19cdde9  Rewrite Phase 6 (slice 3): extract bakeryName, seasons, modding, reset systems
+14cadf0  Rewrite Phase 6 (slice 4): extract tooltip, crate, store, menu, DrawBackground UIs
 ```
 
 ## What "1:1" means here, and how it's enforced
