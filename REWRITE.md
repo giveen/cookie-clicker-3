@@ -39,7 +39,7 @@ debug tools) — Slices 3–7 of the plan below.
 | Branch  | HEAD      | Meaning                                                        |
 | ------- | --------- | -------------------------------------------------------------- |
 | `master`| `dafffc6` | The finished, deployable CC3 (deploy gate). Untouched by the rewrite. |
-| `rewrite` (work) | `25e4312` | The rewrite, built on top of the 1:1 conversion.        |
+| `rewrite` (work) | `73f4cb2` | The rewrite, built on top of the 1:1 conversion.        |
 
 Rewrite history (old → new):
 
@@ -62,6 +62,7 @@ c044c85  Rewrite Phase 3 (slice 3): the Game.Upgrade ctor is now the Upgrade cla
 e74bc73  Rewrite Phase 4 (slice 4): shimmer system → systems/shimmer.ts
 35798b4  Rewrite Phase 4 (slice 5): wrinkler system → systems/wrinkler.ts
 25e4312  Rewrite Phase 4 (slice 6): ascend/reincarnate + sugar lumps → systems/ascend.ts
+73f4cb2  Rewrite Phase 5 + Phase 6 (slices 1–3): minigames typed; engine typed; utils/systems/ui extracted and wired
 ```
 
 ## What "1:1" means here, and how it's enforced
