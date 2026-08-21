@@ -71,6 +71,52 @@ test('?qa=golden: golden-cookie click path spawns a frenzy buff', async ({ page 
 	await assertNoUncaughtErrors(page);
 });
 
+test('Cursor upgrades: purchased finger sprite is applied to the cookie hands', async ({ page }) => {
+	await boot(page, '');
+	await page.waitForFunction(() => window.Game && window.Game.ready === 1 && window.Game.LeftBackground, null, BOOT);
+	const state = await page.evaluate(async () => {
+		const G = window.Game;
+		const cursor = G.Objects.Cursor;
+		const upgrade = G.Upgrades['Reinforced index finger'];
+		cursor.amount = 1;
+		cursor.unlocked = 1;
+		cursor.bought = 1;
+		cursor.refresh();
+		await new Promise((resolve) => setTimeout(resolve, 500));
+		const ctx = G.LeftBackground;
+		const originalDraw = ctx.drawImage.bind(ctx);
+		let iconDraws = 0;
+		let iconSource = null;
+		ctx.drawImage = function (...args) {
+			const src = args[0]?.src || '';
+			if (src.includes('/img/icons.webp') && Number(args[3]) === 48 && Number(args[4]) === 48) {
+				iconDraws++;
+				iconSource = [Number(args[1]), Number(args[2])];
+			}
+			return originalDraw(...args);
+		};
+		G.DrawBackground();
+		const beforePurchase = iconDraws;
+		G.cookies = 1e6;
+		upgrade.unlocked = 1;
+		upgrade.buy();
+		await new Promise((resolve) => setTimeout(resolve, 500));
+		G.DrawBackground();
+		return {
+			bought: upgrade.bought,
+			beforePurchase,
+			iconDraws,
+			iconSource,
+			expectedSource: [upgrade.icon[0] * 48, upgrade.icon[1] * 48],
+		};
+	});
+	expect(state.bought).toBe(1);
+	expect(state.beforePurchase).toBe(0);
+	expect(state.iconDraws).toBeGreaterThan(0);
+	expect(state.iconSource).toEqual(state.expectedSource);
+	await assertNoUncaughtErrors(page);
+});
+
 test('Cats: save-safe building slot, Grandma/Farm ordering, and animated sprites', async ({ page }) => {
 	await boot(page, '');
 	await page.waitForFunction(() => window.Game.Objects && window.Game.Objects.Cats && window.Game.Objects.Cats.canvas, null, BOOT);
