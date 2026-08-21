@@ -1,6 +1,6 @@
 # Cookie Clicker 3 — Architectural Rewrite Status
 
-_Last updated: 2026-08-20 (Phase 3 complete — all four core classes)._
+_Last updated: 2026-08-21 (Phase 6, Slices 1–3 complete)._
 
 ## TL;DR
 
@@ -11,34 +11,35 @@ dependencies, `base: './'`, GitHub-Actions deploy to
 the legacy engine verbatim under `@ts-nocheck`. That satisfied "the game is in
 TypeScript" but not "the game is written in TypeScript".
 
-This document tracks the **architectural rewrite**: restructuring the 16k-line
+This document tracks the **architectural rewrite**: restructuring the legacy
 engine into idiomatic typed TypeScript modules and classes, with the hard
 constraint that **runtime behavior stays identical to `master`** at every step.
 
-**Current state: Phases 2 and 3 complete; Phase 4 (systems) is next.**
-The engine's tier table, all 19 vanilla building declarations, all 786
-vanilla upgrade declarations, all 501 vanilla achievement declarations, and
-the foolObjects joke-business map + its localization loop live in the typed
-content layer, and every line of CC3's own code (glue, extras,
-localization, QA) type-checks under `tsc` strict. Phase 3 replaced the
-runtime-built `var Game = {}` and the function-expression ctors with real
-typed classes in `src/engine/core/`: the `Game` singleton is a real class
-instance (slice 1), the 740-line `Game.Object` ctor is the real
-`Building` class (slice 2), the `Game.Upgrade` ctor + its 13 prototype
-methods + the two non-capturing factories are the real `Upgrade` class and
-its exported factory functions (slice 3), and the `Game.Achievement` ctor +
-`getType`/`toggle` + the four non-capturing factories are the real
-`Achievement` class and its exported factory functions (slice 4).
-`types.ts` now aliases all three content primitives to their classes — the
-types are the implementation, not just the description. The game builds
-and passes all 15 Playwright QA probes at every commit.
+**Current state: Phases 1–5 complete; Phase 6 Slices 1–3 complete.**
+The engine's content (tiers, buildings, upgrades, achievements, foolObjects)
+lives in typed `src/engine/content/` modules. Core classes (`Game`,
+`Building`, `Upgrade`, `Achievement`) are real TypeScript classes in
+`src/engine/core/`. Systems (economy, save/load, shimmer, wrinkler,
+ascend/sugar lumps) are typed modules in `src/engine/systems/`. All four
+minigame files (Garden, Market, Grimoire, Pantheon) are typed. **Every line
+of the engine itself is now typed too**: `engine/main.ts` (~7,100 lines)
+has no `@ts-nocheck`, and `npx tsc --noEmit` reports zero errors across the
+whole tree. Pure helpers were extracted to `engine/utils/` (helpers,
+format, encoding, dom, time); the buff system, news ticker, Santa, Dragon,
+shimmer types, special menu, particles, and notifications were extracted to
+`engine/systems/` and `engine/ui/` (Slices 2–3). The game builds and
+passes all 15 Playwright QA probes. Remaining Phase 6 work: extract the
+self-contained systems still inline (bakery name, seasons, modding API,
+Reset/HardReset) and the UI systems (tooltip, crate, menu, store,
+DrawBackground), then content/data (milks, changelog, heavenly positions,
+debug tools) — Slices 3–7 of the plan below.
 
 ## Branch / commit state
 
 | Branch  | HEAD      | Meaning                                                        |
 | ------- | --------- | -------------------------------------------------------------- |
 | `master`| `dafffc6` | The finished, deployable CC3 (deploy gate). Untouched by the rewrite. |
-| `rewrite` (work) | `38597d9` | The rewrite, built on top of the 1:1 conversion.        |
+| `rewrite` (work) | `25e4312` | The rewrite, built on top of the 1:1 conversion.        |
 
 Rewrite history (old → new):
 
@@ -55,6 +56,12 @@ b2bef7e  Rewrite Phase 2 (slice 1): extract tier table into typed content layer
 6ecbecc  Rewrite Phase 3 (slice 2): the Game.Object ctor is now the Building class
 c044c85  Rewrite Phase 3 (slice 3): the Game.Upgrade ctor is now the Upgrade class
 38597d9  Rewrite Phase 3 (slice 4): the Game.Achievement ctor is now the Achievement class
+7d829c4  Rewrite Phase 4 (slice 1): economy math → systems/economy.ts
+2cfdb4c  Rewrite Phase 4 (slice 2): save write → systems/save.ts
+0b81738  Rewrite Phase 4 (slice 3): save load → systems/save.ts
+e74bc73  Rewrite Phase 4 (slice 4): shimmer system → systems/shimmer.ts
+35798b4  Rewrite Phase 4 (slice 5): wrinkler system → systems/wrinkler.ts
+25e4312  Rewrite Phase 4 (slice 6): ascend/reincarnate + sugar lumps → systems/ascend.ts
 ```
 
 ## What "1:1" means here, and how it's enforced
@@ -493,16 +500,21 @@ last value (JS object-literal semantics).
 
 ## Architecture notes / invariants to preserve
 
-- The engine (`src/engine/main.ts`, currently 11,740 lines after Phase 3)
-  is a module that no longer builds `Game` itself: the singleton is the
-  `GameCore` instance exported by `src/engine/core/game.ts`, and the
-  engine imports it and mutates it exactly as it mutated the old
-  `var Game = {}`. It remains `@ts-nocheck` until Phase 4 restructures
-  it; it can receive imports (it already imports `content/tiers`,
+- The engine (`src/engine/main.ts`, ~9,336 lines after Slice 2) is a module that no
+  longer builds `Game` itself: the singleton is the `GameCore` instance
+  exported by `src/engine/core/game.ts`, and the engine imports it and
+  mutates it exactly as it mutated the old `var Game = {}`. It is now
+  fully typed (Phase 6 slices 1–3 — `@ts-nocheck` removed; `tsc --noEmit`
+  is at zero across the tree). It imports `content/tiers`,
   `content/buildings`, `content/upgrades`, `content/achievements`,
-  `content/foolObjects`, `core/game`, `core/building`, and
-  `core/upgrade`; `content/achievements` additionally imports
-  `core/achievement`).
+  `content/foolObjects`, `core/game`, `core/building`, `core/upgrade`,
+  `core/achievement`, `systems/economy`, `systems/save`,
+  `systems/shimmer`, `systems/wrinkler`, `systems/ascend`,
+  `systems/buffs`, `systems/ticker`, `systems/santa`, `systems/dragon`,
+  `systems/shimmerTypes`, `systems/specialMenu`, `ui/notifications`,
+  `ui/particles`, and `utils/helpers`, `utils/format`, `utils/encoding`,
+  `utils/dom`, `utils/time`. Slices 4–7 will add `engine/ui/` and expand
+  `engine/systems/` as the remaining systems are extracted.
 - The content **ctors are real classes called with `new`** (`new
   Game.Object`, `new Game.Upgrade`, `new Game.Achievement`) — the Phase 3
   classes; call sites are unchanged from the 2.048 originals. The
@@ -516,7 +528,8 @@ last value (JS object-literal semantics).
 - Minigame keys `'minigameGarden.js'`, `'minigameGrimoire.js'`,
   `'minigameMarket.js'`, `'minigamePantheon.js'` are **runtime contracts**
   between the engine's `LoadScript`/module loader and the glue — they must
-  not be renamed.
+  not be renamed. All four minigame files are now typed (Phase 5);
+  `M` is `any` to match the engine pattern.
 - The engine's `Object.assign(window, { … })` shim is what makes bare
   globals (`loc`, `choose`, `l`, …) resolve from ESM modules; any new typed
   module reading a bare engine global needs a matching declaration in
@@ -632,21 +645,202 @@ wrinklers, ascend/reincarnate, offline gain, the Loader/asset system.
 | ~~3~~ | **Save load** — `salvageSave`, `LoadSave` → `systems/save.ts` | **done — commit `0b81738`** (550/550 body lines verbatim; deltas: `str/spl/me/mestr/wrinklers:any`, `(i as any)*2` ×6; **lesson: moved symbols need their import in the same commit — tsc can't see the @ts-nocheck engine's assignment lines**, and kill stale `vite preview` on :4173 before trusting a rerun) |
 | ~~4~~ | **Shimmer core** — `Shimmer` class (ctor + 4 prototype methods), `updateShimmers`, `killShimmers` → `systems/shimmer.ts`; `Game.shimmerTypes` data block stays in-engine | **done — commit `e74bc73`** (93/93 body lines verbatim; deltas: `event:any`, `shimmersL!`, one loop-var rename) |
 | ~~5~~ | **Wrinklers** — 10 wrinkler functions + `inRect` helper → `systems/wrinkler.ts`; state initializers stay in-engine | **done — commit `35798b4`** (397/397 body lines verbatim; deltas: param `:any`, `selected:any`, `(i as any)*N` ×5, one loop-var rename; **lesson: only move function declarations — a swept bare statement ran at module-eval and white-screened the game**) |
+| ~~6~~ | **Ascend/reincarnate + sugar lumps** — 10 ascend functions + 14 sugar-lump functions (397 lines) → `systems/ascend.ts`; state-init blocks (ascendOverlay HTML, lump fields) stay in-engine | **done — commit `25e4312`** (671/671 body lines verbatim; deltas: param `:any` ×5, sort-comparator cast, `var me:any`, `let LASTHEAVENLYSELECTED`, `shouldHide` tooltip prop, `var parent:any`, loop-var rename; **lesson: state-init statements between extracted function defs must stay in the engine — top-level leaks cause `l is not defined` at boot; all lump exports must be imported**) |
 
-### Phase 5 — minigames
+### Phase 5 — minigames (complete)
 
 Convert `src/engine/minigameGarden.ts` (2,027 lines),
 `minigameMarket.ts` (1,085), `minigameGrimoire.ts` (509),
 `minigamePantheon.ts` (508) to typed modules using the same boundary types.
 Keep their URL keys intact (runtime contract).
 
-### Phase 6 — verification + docs
+| File | Lines | Building | Result |
+| ---- | ----- | -------- | ------ |
+| ~~minigameGrimoire.ts~~ | 509 | Wizard tower | **done** — `@ts-nocheck` removed, `var M: any`, params typed, unused vars dropped, `icon`→`icon2` rename, `SpawnWrinkler`/`PopRandomWrinkler` casts, `Math.min` fix, final `var M=0` dropped |
+| ~~minigamePantheon.ts~~ | 508 | Temple | **done** — `@ts-nocheck` removed, `var M: any`, 10 params typed, `Game.recalculateGains=1` (typed number), `i%4`→`parseInt(i)%4`, unused `what`→`_what`, final `var M=0` dropped |
+| ~~minigameMarket.ts~~ | 1,085 | Bank | **done** — `@ts-nocheck` removed, `var M: any`, 15 params typed, `var i`→`iG` for for-in/numeric clash, `var div`→`var canvas`, unused `e` params dropped, `(Game.tooltip as any)` casts, final `var M=0` dropped |
+| ~~minigameGarden.ts~~ | 2,027 | Farm | **done** — `@ts-nocheck` removed, `var M: any`, all params typed, `onHarvest`/`onDie` unused params `_x,_y`, `var me:any=0`, `var neighs:any={}`, `freeze` tool `this: any`, `PlotBoost` comparison casts, `shortenNumber` added to `globals.d.ts`, final `var M=0` dropped |
 
-- Full QA suite + targeted save-format compatibility checks (export a
-  `master` save, import it on `rewrite`, diff the parsed state).
-- Update `README.md` (architecture section), `tsconfig.json` comments, and a
-  CI note (the deploy workflow is still `master`-gated by user decision —
-  merging `rewrite` into `master` and deploying is a separate, explicit step).
+All four files: `npx tsc --noEmit` 0 errors, `npm run build` clean, 15/15 QA.
+Same delta pattern as Phase 4: `: any` params, unused var drops, loop-var renames,
+and documented runtime-preserving casts at engine boundaries.
+
+### Phase 6 — engine rewrite
+
+Remove `@ts-nocheck` from `engine/main.ts` (~9,700 lines), type the engine,
+and progressively extract systems into typed modules. The engine goes from
+one monolithic blob to a thin core loop (~2,000 lines) importing typed
+modules from `engine/systems/`, `engine/ui/`, `engine/utils/`, and
+`engine/content/`.
+
+**Engine structure map** (30 sections, line ranges approximate):
+
+| Lines | Section | Category |
+| ----- | ------- | -------- |
+| 1–97 | Utility fns: `l`, `choose`, `cap`, `romanize`, `randomFloor`, `shuffle` | Pure utils |
+| 100–186 | `getBounds`, `LoadScript`, `ajax`, `toFixed` | Pure utils |
+| 189–296 | Number formatting: `formatEveryThirdPower`, `Beautify`, `shortenNumber`, `LBeautify`, `SimpleBeautify`, `BeautifyInText` | Pure utils |
+| 301–575 | Localization: `loc`, `parseLoc`, `Langs`, `AddLanguage`, `ModLanguage`, `LocalizeUpgradesAndAchievs` | Localization |
+| 578–711 | Encoding: `utf8_to_b64`, `CompressBin`, `pack`/`unpack` | Pure utils |
+| 715–749 | FileSaver, seedrandom, `bind`, `fillPattern` | Pure utils |
+| 761–870 | DOM helpers: `AddEvent`, `RemoveEvent`, `writeIcon`, `tinyIcon`, `Loader`, `Pic` | Pure utils |
+| 873–989 | Audio: `PlaySound`, `PlayMusicSound`; `Timer`, `Debug` | Infrastructure |
+| 989–1164 | Modding API IIFE: `Game.mods`, `registerMod`, hooks, mod save/load | Self-contained |
+| 1164–1240 | Version config, `Game.Launch` shell | Bootstrap |
+| 1241–1938 | `Game.Launch` body: DOM setup, season detection, update log (~600 lines HTML) | Bootstrap + content |
+| 1939–2190 | `Game.Init` variables & preferences: core state, `resize()`, `prefs[]`, `DefaultPrefs()` | Core state |
+| 2190–2320 | Bakery name system | Self-contained |
+| 2320–2440 | Tooltip system: `Game.tooltip`, `getTooltip`, `attachTooltip` | UI |
+| 2440–2580 | Update checker, data grabber, herald tooltip | Self-contained |
+| 2580–2830 | `Game.Reset`, `Game.HardReset` | Self-contained |
+| 2830–3090 | Crate UI: `Game.crate()`, `crateTooltip`, `costDetails` | UI |
+| 3090–3210 | Prestige/ascension delegation (already extracted) | Done |
+| 3210–3450 | Click handling: `Game.Earn`, `Spend`, `ClickCookie`, mouse/keyboard | Core input |
+| 3450–3690 | CpS calculation: `Game.CalculateGains` | Core economy |
+| 3700–4290 | Shimmer types: golden cookie + reindeer definitions (~590 lines) | Self-contained |
+| 4300–4535 | Particles: `Game.particles[]`, `textParticles[]`, `Popup`, `SparkleAt` | UI |
+| 4535–4710 | Notifications: `Game.Notes[]`, `Notify`, `Prompt`, `ClosePrompt` | UI |
+| 4710–5600 | Menu system: `sayTime`, `ShowMenu`, `UpdateMenu` (~890 lines) | UI |
+| 5600–5900 | News ticker: `Game.Ticker`, `UpdateTicker`, `getNewTicker` | Self-contained |
+| 5900–6300 | Building init, store: `BuildStore`, `RefreshStore`, `modifyBuildingPrice` | Core store |
+| 6300–6870 | Upgrade org, prestige tree, seasons | Self-contained |
+| 6870–7320 | Achievement decl + buff system: `gainBuff`, `hasBuff`, 18 buff types | Self-contained |
+| 7320–7810 | Santa + Dragon: `santaLevels[]`, `dragonLevels[]`, `dragonAuras` | Self-contained |
+| 7810–8560 | Milk definitions + `DrawBackground` (~750 lines) | Content + UI |
+| 8560–8800 | Init finalization: debug tools, mod launch, save load | Bootstrap |
+| 8825–9300 | `Game.Logic` (~475 lines) | Core loop |
+| 9308–9498 | `Game.Draw` + `Game.Loop` (~190 lines) | Core loop |
+| 9511–9698 | Window load, `Object.assign(window,…)` shim, bridges | Bootstrap |
+
+#### Slice 1 — Remove `@ts-nocheck` (mechanical typing) — **complete**
+
+Remove `@ts-nocheck`, add `: any` to all function params, fix var
+redeclarations, drop unused vars. Zero behavioral change. The engine
+compiles clean under `tsc --noEmit` immediately.
+
+Executed in-tree as a mechanical typing pass (wiring the pre-built
+extraction modules first, which removed ~650 errors at once, then the
+remaining ~1,000 typed line-by-line). Representative fixes:
+`loc`/`PlaySound` optional params (engine-local `var PlaySound` had 3
+required params → ~15 TS2554s), `Timer`/`Langs`/`Loader`/`Debug`-adjacent
+`{}` objects → `: any` (~70 TS2339s/TS7053s), ~45 for-in loop vars renamed
+to `iKey`/`iiKey`/`key` where function-scoped `var i` mixed string and
+number uses (TS2403 + arithmetic follow-ons), `this: any` on legacy
+function-expression methods (TS2683), `(navigator as any)`/`arguments as
+any`/`(k as any)` boundary casts, unused params `_`-prefixed (TS6133),
+FileSaver/seedrandom minified one-liners annotated in place, and the
+verbatim 2.048 `unlockAt.text` implicit-global read declared as a dead
+`var text: any` (no vanilla upgrade sets it).
+
+**Gate:** tsc 0, build clean, 15/15 QA — **all passed**.
+Zero `@ts-nocheck` remaining anywhere in `src/`. (`scripts/scan-
+implicit-globals.mjs` is now obsolete — it parses plain JS with acorn and
+can't read the `: any` annotations; tsc strict covers the same
+undeclared-identifier class. Retire it in Slice 7.)
+
+#### Slice 2 — Extract pure utils → `engine/utils/` — **complete**
+
+Move standalone functions with no `Game` dependency (or read-only):
+
+| Module | Functions extracted | Lines | Result |
+| ------ | ------------------- | ----- | ------ |
+| ~~`utils/helpers.ts`~~ | `l`, `choose`, `escapeRegExp`, `replaceAll`, `cap`, `romanize`, `randomFloor`, `shuffle` | 44 | **done** — exported, imported in engine, already in window shim |
+| ~~`utils/format.ts`~~ | `formatEveryThirdPower`, `rawFormatter`, `formatLong`/`formatShort` arrays + generation, `numberFormatters`, `Beautify`, `shortenNumber`, `SimpleBeautify`, `beautifyInTextFilter`, `BeautifyInTextFunction`, `BeautifyInText`, `BeautifyAll` | 113 | **done** — `Beautify` reads `Game.prefs.format` via globals.d.ts |
+| ~~`utils/encoding.ts`~~ | `utf8_to_b64`, `b64_to_utf8`, `CompressBin`, `UncompressBin`, `CompressLargeBin`, `UncompressLargeBin`, `pack`, `unpack`, `pack2`, `unpack2`, `pack3` | 133 | **done** — all pure, no Game dependency |
+| ~~`utils/dom.ts`~~ | `AddEvent`, `RemoveEvent`, `FireEvent`, `writeIcon`, `tinyIcon` | 43 | **done** — all pure DOM helpers |
+| ~~`utils/time.ts`~~ | `sayTime` | 56 | **done** — reads `Game.fps`, `loc()`, `LBeautify()` via globals |
+
+Left in engine (Game-dependent): `realAudio`/`Audio` override (reads
+`Game.Popup`), `Element.prototype.getBounds` (reads `Game.scale`), `Loader`
++ `Pic` (asset system, reads `Game`), the FileSaver + seedrandom
+third-party one-liners.
+
+All functions remain on their `Game.X` slots or in the window shim — same
+public surface, same Init positions. (Engine is now 7,123 lines after
+Slices 1–3; the pre-built extraction modules were wired into it — see
+Slice 3.)
+
+**Gate:** tsc 0, build clean, 15/15 QA — **all passed**.
+
+#### Slice 3 — Extract self-contained systems — **8 of 12 done**
+
+Each system is a module that reads/writes `Game` through `globals.d.ts`.
+Engine keeps `Game.X = importedFn` at the original Init positions.
+
+The pre-built extraction modules (built alongside the Phase 6 start and
+verified verbatim-faithful with `/tmp/tsverify/verify-extraction.mjs`)
+were wired into the engine: their inline bodies were removed from
+`main.ts` (statement-aware replacement via the TS compiler API — a
+hand-rolled brace matcher proved unsafe on the FileSaver line's regex
+literals and was abandoned) and replaced by imports. Verifying the
+modules against the engine source caught **one real behavioral bug** in
+`systems/buffs.ts`: `gainBuff` had renamed the shadowing `var buff` to
+`existingBuff`, so it returned the *new* literal instead of the *existing*
+buff when one was already active — that broke save-load buff restoration
+and the Grimoire Clot backfire. Restored the original semantics
+(`var buff: any` shadowing is legal TS).
+
+| System | Target | ~Lines | Result |
+| ------ | ------ | ------ | ------ |
+| ~~Buffs~~ | `systems/buffs.ts` | 320 | **done** — `gainBuff` return-value bug found by the verifier and fixed; 26 vanilla buff declarations via `declareVanillaBuffs()` |
+| ~~Particles~~ | `ui/particles.ts` | 235 | **done** — `Popup`, `SparkleAt`, `SparkleOn` wired |
+| ~~Notifications~~ | `ui/notifications.ts` | 175 | **done** — `Prompt`/`ClosePrompt`/`Notify` wired |
+| ~~Ticker~~ | `systems/ticker.ts` | 300 | **done** — `UpdateTicker`, `getNewTicker`, `TickerDraw` wired |
+| ~~Santa~~ | `systems/santa.ts` | 150 | **done** — functions wired; `santaLevels` data stays in-engine (calls `loc()` at Init) |
+| ~~Dragon~~ | `systems/dragon.ts` | 260 | **done** — pure functions wired; `dragonLevels`/`dragonAuras` data stays in-engine (call `loc()` at Init with args) |
+| ~~Shimmer types~~ | `systems/shimmerTypes.ts` | 590 | **done** — data block wired (no top-level `loc()`) |
+| ~~Special menu~~ | `systems/specialMenu.ts` | 120 | **done** — `ToggleSpecialMenu`, `DrawSpecial` wired |
+| Bakery name | `systems/bakeryName.ts` | 130 | not yet — `RandomBakeryName`, `GetBakeryName`, `bakeryNameSet`, `bakeryNameRefresh`, `bakeryNamePrompt` still inline |
+| Seasons | `systems/seasons.ts` | 200 | not yet — `computeSeasons`, `getSeasonDuration`, `computeSeasonPrices`, season drop helpers still inline |
+| Modding | `systems/modding.ts` | 175 | not yet — Modding API IIFE, `registerMod`, hooks, mod save/load still inline |
+| Reset | `systems/reset.ts` | 150 | not yet — `Game.Reset` (~120 lines), `Game.HardReset` (~30 lines) still inline |
+
+**Gate:** tsc 0, build clean, 15/15 QA — **all passed** (engine at 7,123
+lines after this slice).
+
+#### Slice 4 — Extract UI systems
+
+| System | Target | ~Lines | Key functions |
+| ------ | ------ | ------ | ------------- |
+| Tooltip | `ui/tooltip.ts` | 120 | `Game.tooltip` object (`draw`, `update`, `hide`, `wobble`), `getTooltip`, `getDynamicTooltip`, `attachTooltip` |
+| Crate | `ui/crate.ts` | 260 | `Game.crate()`, `crateTooltip`, `costDetails` |
+| Menu | `ui/menu.ts` | 890 | `ShowMenu`, `UpdateMenu` (~500 lines of HTML generation for stats/preferences/log tabs) |
+| DrawBackground | `ui/drawBackground.ts` | 700 | Background fade, seasonal overlays, cookie shine, big cookie, cursors, milk layer with toys physics, wrinklers, special menu, text particles, border effects |
+| Store | `ui/store.ts` | 200 | `BuildStore`, `RefreshStore`, `modifyBuildingPrice`, `storeBulkButton` |
+
+**Gate:** tsc 0, build clean, 15/15 QA per extraction.
+
+#### Slice 5 — Extract content/data
+
+| Content | Target | ~Lines |
+| ------- | ------ | ------ |
+| Milk definitions | `content/milks.ts` | 70 |
+| Changelog HTML | `content/changelog.ts` | 600 |
+| Heavenly upgrade positions | `content/heavenlyPositions.ts` | 100 |
+| Debug tools | `utils/debug.ts` | 80 |
+
+**Gate:** tsc 0, build clean, 15/15 QA.
+
+#### Slice 6 — Core loop stays, typed
+
+After slices 1–5, `engine/main.ts` shrinks to ~2,000 lines of core loop:
+Game.Init state (~250 lines), CpS calculation (~240 lines), input handling
+(~240 lines), Game.Logic (~475 lines), Game.Draw (~112 lines), Game.Loop
+(~75 lines), Game.Launch DOM setup (~200 lines), Init finalization
+(~240 lines), and the window shim (~190 lines). All typed (slice 1).
+
+The engine becomes a thin orchestrator importing every extracted module.
+
+**Gate:** tsc 0, build clean, 15/15 QA.
+
+#### Slice 7 — Verification + docs + cleanup
+
+- Save-format compatibility check: export a `master` save, import on
+  `rewrite`, diff the parsed state.
+- Update `README.md` (architecture section), `tsconfig.json` comments.
+- Retire `scripts/transform-engine.mjs` and
+  `scripts/scan-implicit-globals.mjs`.
+- CI note: deploy workflow is still `master`-gated by user decision.
 
 ### Housekeeping
 

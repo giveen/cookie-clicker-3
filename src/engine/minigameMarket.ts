@@ -1,12 +1,12 @@
-// @ts-nocheck — legacy 2.048 port, kept verbatim for the 1:1 TS conversion; type-checking intentionally disabled here.
-var M={};
+/* CC3 rewrite (phase 5): minigame re-typed; M is any to match engine pattern. */
+var M: any ={};
 M.parent=Game.Objects['Bank'];
 M.parent.minigame=M;
 M.launch=function()
 {
 	var M=this;
 	M.name=M.parent.minigameName;
-	M.init=function(div)
+	M.init=function(div: any)
 	{
 		//populate div with html and initialize values
 				
@@ -109,9 +109,9 @@ M.launch=function()
 			},
 		};
 		M.goodsById=[];var n=0;
-		for (var i in M.goods){var it=M.goods[i];it.id=n;it.hidden=false;it.active=false;it.last=0;it.building=Game.Objects[i];it.stock=0;it.mode=0;it.dur=0;it.val=1;it.vals=[it.val];it.d=0;M.goodsById[n]=it;it.icon=[it.building.iconColumn,33];n++;}
+		for (var iG in M.goods){var it=M.goods[iG];it.id=n;it.hidden=false;it.active=false;it.last=0;it.building=Game.Objects[iG];it.stock=0;it.mode=0;it.dur=0;it.val=1;it.vals=[it.val];it.d=0;M.goodsById[n]=it;it.icon=[it.building.iconColumn,33];n++;}
 		
-		M.goodTooltip=function(id)
+		M.goodTooltip=function(id: any)
 		{
 			return function(){
 				var me=M.goodsById[id];
@@ -129,11 +129,10 @@ M.launch=function()
 				return str;
 			};
 		}
-		M.tradeTooltip=function(id,n)
+		M.tradeTooltip=function(id: any,n: any)
 		{
 			return function(){
 				var me=M.goodsById[id];
-				var icon=me.icon||[0,0];
 				var val=M.getGoodPrice(me)
 				var cost=Game.cookiesPsRawHighest*val;
 				var buyOrSell=n>0;
@@ -164,7 +163,7 @@ M.launch=function()
 			};
 		}
 		
-		M.goodDelta=function(id,back)//if back is 0 we get the current step; else get current step -back
+		M.goodDelta=function(id: any,back: any)//if back is 0 we get the current step; else get current step -back
 		{
 			var back=back||0;
 			var me=M.goodsById[id];
@@ -177,7 +176,7 @@ M.launch=function()
 			return val;
 		}
 		
-		M.getGoodMaxStock=function(good)
+		M.getGoodMaxStock=function(good: any)
 		{
 			var bonus=0;
 			if (M.officeLevel>0) bonus+=25;
@@ -186,11 +185,11 @@ M.launch=function()
 			if (M.officeLevel>3) bonus+=100;
 			return Math.ceil(good.building.highest*(M.officeLevel>4?1.5:1)+bonus+good.building.level*10);
 		}
-		M.getGoodPrice=function(good)
+		M.getGoodPrice=function(good: any)
 		{
 			return good.val;
 		}
-		M.buyGood=function(id,n)
+		M.buyGood=function(id: any,n: any)
 		{
 			var me=M.goodsById[id];
 			var costInS=M.getGoodPrice(me);
@@ -220,7 +219,7 @@ M.launch=function()
 			}
 			return false;
 		}
-		M.sellGood=function(id,n)
+		M.sellGood=function(id: any,n: any)
 		{
 			var me=M.goodsById[id];
 			if (n==10000) n=me.stock;
@@ -243,12 +242,12 @@ M.launch=function()
 			}
 			return false;
 		}
-		M.getRestingVal=function(id)
+		M.getRestingVal=function(id: any)
 		{
 			return 10+10*id+(Game.Objects['Bank'].level-1);
 		}
 		
-		M.updateGoodStyle=function(id)
+		M.updateGoodStyle=function(id: any)
 		{
 			var me=M.goodsById[id];
 			if (me.active)
@@ -338,7 +337,7 @@ M.launch=function()
 			['a pawnshop loan',2,0.67,0.1,40,0.4,'Bad credit? No problem. It\'s your money, and you need it now.'],
 			['a retirement loan',1.2,60*24*2,0.8,60*24*5,0.5,'Finance your next house, boat, spouse, etc. You\'ve earned it.'],
 		];
-		M.loanTooltip=function(id)
+		M.loanTooltip=function(id: any)
 		{
 			return function(){
 				var loan=M.loanTypes[id-1];
@@ -353,7 +352,7 @@ M.launch=function()
 				return str;
 			};
 		}
-		M.takeLoan=function(id,interest)
+		M.takeLoan=function(id: any,interest: any)
 		{
 			var loan=M.loanTypes[id-1];
 			if (!interest)
@@ -490,22 +489,22 @@ M.launch=function()
 		}
 		l('bankGraphBox').innerHTML=str;
 		
-		var div=document.createElement('canvas');
-		div.id='bankGraph';
-		div.style.marginLeft='-14px';
-		div.width=64;
-		div.height=64;
-		l('bankGraphBox').appendChild(div);
-		M.graph=div;
+		var canvas=document.createElement('canvas');
+		canvas.id='bankGraph';
+		canvas.style.marginLeft='-14px';
+		canvas.width=64;
+		canvas.height=64;
+		l('bankGraphBox').appendChild(canvas);
+		M.graph=canvas;
 		M.graphCtx=M.graph.getContext('2d',{alpha:false});
 		
-		AddEvent(l('bankGraphLines'),'click',function(e){
+		AddEvent(l('bankGraphLines'),'click',function(){
 			if (M.graphLines==0) M.graphLines=1;
 			else M.graphLines=0;
 			M.toRedraw=2;
 			PlaySound('snd/tick.mp3');
 		});
-		AddEvent(l('bankGraphCols'),'click',function(e){
+		AddEvent(l('bankGraphCols'),'click',function(){
 			if (M.graphCols==0) M.graphCols=1;
 			else M.graphCols=0;
 			M.setCols();
@@ -514,7 +513,7 @@ M.launch=function()
 		});
 		if (l('bankCheatSpeed'))
 		{
-			AddEvent(l('bankCheatSpeed'),'click',function(e){
+			AddEvent(l('bankCheatSpeed'),'click',function(){
 			if (M.secondsPerTick==60) M.secondsPerTick=1/10;
 			else M.secondsPerTick=60;
 			M.toRedraw=2;
@@ -565,14 +564,14 @@ M.launch=function()
 			me.viewHideL=l('bankGood-'+me.id+'-viewHide');
 			me.graphIconL=l('bankGood-'+me.id+'-graphIcon');
 			
-			AddEvent(l('bankGood-'+i),'mouseover',function(i){return function(e){
+			AddEvent(l('bankGood-'+i),'mouseover',function(i){return function(){
 				if (M.hoverOnGood!=i) {M.hoverOnGood=i;M.toRedraw=2;}
 			}}(i));
-			AddEvent(l('bankGood-'+i),'mouseout',function(i){return function(e){
+			AddEvent(l('bankGood-'+i),'mouseout',function(i){return function(){
 				if (M.hoverOnGood==i) {M.hoverOnGood=-1;M.toRedraw=2;}
 			}}(i));
 			
-			AddEvent(l('bankGood-'+i+'-viewHide'),'click',function(i){return function(e){
+			AddEvent(l('bankGood-'+i+'-viewHide'),'click',function(i){return function(){
 				if (Game.keys[16])//solo with shift-click
 				{
 					var mode=M.goodsById[i].hidden;
@@ -647,7 +646,8 @@ M.launch=function()
 						if (x>=width-span*iR-span-2 && x<=width-span*iR+2 && y>=height-min*M.graphScale-6 && y<=height-min*M.graphScale+Math.max(3,max*M.graphScale)+6)
 						{
 							isOnLine=i;
-							Game.tooltip.draw(0,'<div style="width:128px;font-size:10px;text-align:center;"><div class="icon" style="pointer-events:none;display:inline-block;transform:scale(0.5);margin:-16px -18px -16px -14px;vertical-align:middle;background-position:'+(-me.icon[0]*48)+'px '+(-me.icon[1]*48)+'px;"></div> <b>'+me.name+'</b><br>valued at <b>$'+Beautify(me.vals[0+iR],2)+'</b><br>'+Game.sayTime((iR+1)*M.secondsPerTick*Game.fps)+' ago</div>','top');
+							//tooltip.draw is engine runtime surface not on the GameSurface tooltip type
+							(Game.tooltip as any).draw(0,'<div style="width:128px;font-size:10px;text-align:center;"><div class="icon" style="pointer-events:none;display:inline-block;transform:scale(0.5);margin:-16px -18px -16px -14px;vertical-align:middle;background-position:'+(-me.icon[0]*48)+'px '+(-me.icon[1]*48)+'px;"></div> <b>'+me.name+'</b><br>valued at <b>$'+Beautify(me.vals[0+iR],2)+'</b><br>'+Game.sayTime((iR+1)*M.secondsPerTick*Game.fps)+' ago</div>','top');
 							break bankGraphMouseDetect;
 						}
 					}
@@ -663,15 +663,16 @@ M.launch=function()
 				else
 				{
 					M.graph.style.cursor='auto';
-					Game.tooltip.shouldHide=1;
+					//engine initializes tooltip.shouldHide to 1; GameSurface narrows it to boolean
+					(Game.tooltip as any).shouldHide=1;
 				}
 				M.toRedraw=2;
 			}
 		});
-		AddEvent(M.graph,'mouseout',function(e){
+		AddEvent(M.graph,'mouseout',function(){
 			M.graph.style.cursor='auto';
 			if (M.hoverOnGood!=-1) {M.hoverOnGood=-1;M.toRedraw=2;}
-			Game.tooltip.shouldHide=1;
+			(Game.tooltip as any).shouldHide=1;
 		});
 		
 		M.reset();
@@ -704,7 +705,7 @@ M.launch=function()
 		str+=' '+parseInt(M.parent.onMinigame?'1':'0');
 		return str;
 	}
-	M.load=function(str)
+	M.load=function(str: any)
 	{
 		//interpret str; called after .init
 		//note : not actually called in the Game's load; see "minigameSave" in main.js
@@ -742,7 +743,7 @@ M.launch=function()
 		
 		var on=parseInt(spl[i++]||0);if (on && Game.ascensionMode!=1) M.parent.switchMinigame(1);
 	}
-	M.reset=function(hard)
+	M.reset=function(hard: any)
 	{
 		M.tickT=0;
 		M.toRedraw=0;
@@ -922,7 +923,7 @@ M.launch=function()
 		if (M.graph) M.graph.style.backgroundColor=M.cols.bg;
 	}
 	M.setCols();
-	M.drawGraph=function(full)
+	M.drawGraph=function(full: any)
 	{
 		/*
 			what this does :
@@ -1078,7 +1079,6 @@ M.launch=function()
 	}
 	M.init(l('rowSpecial'+M.parent.id));
 }
-var M=0;
 /* CC3: explicit module marker — at runtime these files are always ESM modules
  * (Vite bundles them as such), and this keeps their top-level var/function
  * declarations out of the TS global scope. Zero runtime effect. */

@@ -7,7 +7,7 @@ A modern, from-scratch rebuild of the tooling around [Cookie Clicker 2.048](http
 | Area | 2.048 (2022) | Cookie Clicker 3 |
 | --- | --- | --- |
 | Module system | One 890 KB classic `<script>` + runtime `<script>` injection for minigames and languages | ES modules throughout; minigames and languages are code-split Vite chunks loaded with dynamic `import()` |
-| Language | ES5-ish sloppy-mode classic script (JS) | TypeScript: full `strict` type-checking on all CC3-written code; the verbatim 2.048 engine port is `.ts` with `// @ts-nocheck` (typing it would mean rewriting it) |
+| Language | ES5-ish sloppy-mode classic script (JS) | TypeScript: full `strict` type-checking on all code — Phases 1–5 typed the content layer, core classes, systems, and minigames; Phase 6 Slice 1 typed `engine/main.ts` (the entire codebase now compiles clean under `tsc`) |
 | Build | None (static files) | Vite 5: dev server with HMR, production bundle with per-chunk code splitting and minification |
 | Save encoding | 2007-era WebToolkit Base64 (pure JS, UTF-8 double-encoding) | Native `btoa`/`atob` + `TextEncoder`/`TextDecoder`, byte-compatible with 2.048 saves |
 | Line endings / encoding | CRLF, BOMs | LF, no BOMs (normalized at port time) |
@@ -33,8 +33,14 @@ src/
   assets/fonts/         Merriweather Black woff2 subsets (bundled by Vite)
   engine/
     base64.ts           native Base64 save encoding
-    main.ts             the 2.048 engine as an ES module (+ globals shim; @ts-nocheck)
-    minigameGarden.ts   minigame modules (dynamic import, code-split; @ts-nocheck)
+    main.ts             the 2.048 engine as a fully typed ES module (+ globals shim; Phase 6)
+    core/               typed classes: Game, Building, Upgrade, Achievement
+    content/            typed content: tiers, buildings, upgrades, achievements, foolObjects
+    systems/            typed systems: economy, save, shimmer, wrinkler, ascend, buffs,
+                        ticker, santa, dragon, shimmerTypes, specialMenu
+    utils/              pure helpers: helpers, formatting, encoding, DOM, time (Phase 6)
+    ui/                 UI systems: particles, notifications (Phase 6 — more landing in Slices 4+)
+    minigameGarden.ts   minigame modules (dynamic import, code-split; typed — Phase 5)
     minigameGrimoire.ts
     minigameMarket.ts
     minigamePantheon.ts
@@ -50,6 +56,8 @@ scripts/
   scan-implicit-globals.mjs  dev utility: flags bare assignments to undeclared
                              identifiers (the strict-mode bug class the port must
                              fix) — `node scripts/scan-implicit-globals.mjs <file>`
+                             (retired: parses plain JS only; tsc strict now
+                             covers this bug class — see REWRITE.md Slice 7)
 ```
 
 ## The port
@@ -70,7 +78,7 @@ What it does:
 6. **Globals shim** — appends `Object.assign(window, { …all engine top-level bindings… })` so the minigame modules and the legacy mod API (`Game.LoadMod`) keep resolving their free variables against `window`.
 7. **Language files** — each `loc/*.js` (`AddLanguage('XX', …, {…})`) is rewritten to `export default { id, name, strings }` (as a `.ts` file; the object literal is valid TS and passes the strict check).
 8. **Strict-mode bug fixes** — the original is a sloppy-mode classic script, so it contains bare assignments to undeclared identifiers (implicit globals) that throw `ReferenceError` in strict-mode ESM. The transform fixes the known ones (`mysterious` in `crateTooltip`, `arr2` in `grabProps`, `name` in `CalculateGains`, `buff` in the Sugar-frenzy handler, `icon` in the Market `goodTooltip`); `scripts/scan-implicit-globals.mjs` is a scope-aware checker used to find them — the whole tree currently reports zero.
-9. **TypeScript output** — the engine and minigame ports are emitted as `.ts` with a `// @ts-nocheck` header and an `export {}` module marker (they are verbatim 2.048 code; the marker keeps their top-level declarations out of the TS global scope, matching how Vite already treats them as ES modules). Re-running the port reproduces the checked-in files, including those markers.
+9. **TypeScript output** — the engine port is emitted as `.ts` with a `// @ts-nocheck` header and an `export {}` module marker (the marker keeps its top-level declarations out of the TS global scope, matching how Vite already treats them as ES modules). The minigame ports were similarly emitted but have since been re-typed (Phase 5). Re-running the port reproduces the checked-in engine file, including its marker.
 
 ## Developing
 
@@ -87,7 +95,7 @@ npm run build      # typecheck, then outputs dist/
 npm run preview    # serve dist/ at http://localhost:4173
 ```
 
-The build is relocatable (`base: './'`), so `dist/` can be dropped onto any static host, including a GitHub Pages subpath. `tsc --noEmit` is the type gate (Vite/esbuild only strips types and does not type-check); the type config lives in `tsconfig.json` (full `strict`, TS 7). The verbatim engine port is excluded from checking via per-file `// @ts-nocheck`; everything CC3-written (entry, config, base64, extras, the build config) is checked, with the engine's `window` boundary declared in `src/globals.d.ts`.
+The build is relocatable (`base: './'`), so `dist/` can be dropped onto any static host, including a GitHub Pages subpath. `tsc --noEmit` is the type gate (Vite/esbuild only strips types and does not type-check); the type config lives in `tsconfig.json` (full `strict`, TS 7). The entire codebase type-checks — engine, core classes, content, systems, minigames, localization, extras, and glue — with the engine's `window` boundary declared in `src/globals.d.ts`.
 
 Every build also stamps the service worker's cache name with a content hash of
 `dist/` (the `cc3:stamp-service-worker` plugin in `vite.config.ts` rewrites the

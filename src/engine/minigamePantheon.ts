@@ -1,12 +1,12 @@
-// @ts-nocheck — legacy 2.048 port, kept verbatim for the 1:1 TS conversion; type-checking intentionally disabled here.
-var M={};
+/* CC3 rewrite (phase 5): minigame re-typed; M is any to match engine pattern. */
+var M: any ={};
 M.parent=Game.Objects['Temple'];
 M.parent.minigame=M;
 M.launch=function()
 {
 	var M=this;
 	M.name=M.parent.minigameName;
-	M.init=function(div)
+	M.init=function(div: any)
 	{
 		//populate div with html and initialize values
 				
@@ -138,7 +138,7 @@ M.launch=function()
 		
 		M.lastSwapT=0;//frames since last swap
 		
-		M.godTooltip=function(id)
+		M.godTooltip=function(id: any)
 		{
 			return function(){
 				var me=M.godsById[id];
@@ -158,7 +158,7 @@ M.launch=function()
 			};
 		}
 		
-		M.slotTooltip=function(id)
+		M.slotTooltip=function(id: any)
 		{
 			return function(){
 				if (M.slot[id]!=-1)
@@ -190,14 +190,14 @@ M.launch=function()
 			};
 		}
 		
-		M.useSwap=function(n)
+		M.useSwap=function(n: any)
 		{
 			M.swapT=Date.now();
 			M.swaps-=n;
 			if (M.swaps<0) M.swaps=0;
 		}
 		
-		M.slotGod=function(god,slot)
+		M.slotGod=function(god: any,slot: any)
 		{
 			if (slot==god.slot) return false;
 			if (slot!=-1 && M.slot[slot]!=-1)
@@ -208,11 +208,11 @@ M.launch=function()
 			else if (god.slot!=-1) M.slot[god.slot]=-1;
 			if (slot!=-1) M.slot[slot]=god.id;
 			god.slot=slot;
-			Game.recalculateGains=true;
+			Game.recalculateGains=1;// CC3: typed as number in GameSurface; 2.048 set `true` — engine reads it as a truthy flag (main.ts), so `1` is runtime-identical.
 		}
 		
 		M.dragging=false;
-		M.dragGod=function(what)
+		M.dragGod=function(what: any)
 		{
 			M.dragging=what;
 			var div=l('templeGod'+what.id);
@@ -279,7 +279,7 @@ M.launch=function()
 		}
 		
 		M.slotHovered=-1;
-		M.hoverSlot=function(what)
+		M.hoverSlot=function(what: any)
 		{
 			M.slotHovered=what;
 			if (M.dragging)
@@ -291,7 +291,7 @@ M.launch=function()
 		}
 		
 		//external
-		Game.hasGod=function(what)
+		Game.hasGod=function(what: any)
 		{
 			var god=M.gods[what];
 			for (var i=0;i<3;i++)
@@ -300,7 +300,7 @@ M.launch=function()
 			}
 			return false;
 		}
-		Game.forceUnslotGod=function(god)
+		Game.forceUnslotGod=function(god: any)
 		{
 			var god=M.gods[god];
 			if (god.slot==-1) return false;
@@ -371,7 +371,7 @@ M.launch=function()
 			for (var i in M.slot)
 			{
 				var me=M.slot[i];
-				str+='<div class="ready templeGod templeGod'+(i%4)+' templeSlot titleFont" id="templeSlot'+i+'" '+Game.getDynamicTooltip('Game.ObjectsById['+M.parent.id+'].minigame.slotTooltip('+i+')','this')+'><div class="usesIcon shadowFilter templeGem templeGem'+(parseInt(i)+1)+'"></div></div>';
+				str+='<div class="ready templeGod templeGod'+(parseInt(i)%4)+' templeSlot titleFont" id="templeSlot'+i+'" '+Game.getDynamicTooltip('Game.ObjectsById['+M.parent.id+'].minigame.slotTooltip('+i+')','this')+'><div class="usesIcon shadowFilter templeGem templeGem'+(parseInt(i)+1)+'"></div></div>';
 			}
 			str+='</div>';
 			str+='<div id="templeInfo"><div '+Game.getDynamicTooltip('Game.ObjectsById['+M.parent.id+'].minigame.refillTooltip','this')+' id="templeLumpRefill" class="usesIcon shadowFilter lumpRefill" style="left:-6px;top:-10px;background-position:'+(-29*48)+'px '+(-14*48)+'px;"></div><div id="templeSwaps" '+Game.getTooltip('<div style="padding:8px;width:350px;font-size:11px;text-align:center;">Each time you slot a spirit, you use up one worship swap.<div class="line"></div>If you have 2 swaps left, the next one will refill after 1 hour.<br>If you have 1 swap left, the next one will refill after 4 hours.<br>If you have 0 swaps left, you will get one after 16 hours.<div class="line"></div>Unslotting a spirit costs no swaps.</div>')+'>-</div></div>';
@@ -399,7 +399,7 @@ M.launch=function()
 		{
 			var me=M.slot[i];
 			AddEvent(l('templeSlot'+i),'mouseover',function(what){return function(){M.hoverSlot(what);}}(i));
-			AddEvent(l('templeSlot'+i),'mouseout',function(what){return function(e){if (e.button==0){M.hoverSlot(-1);}}}(i));
+			AddEvent(l('templeSlot'+i),'mouseout',function(_what){return function(e){if (e.button==0){M.hoverSlot(-1);}}}(i));
 		}
 		
 		AddEvent(document,'mouseup',M.dropGod);
@@ -432,7 +432,7 @@ M.launch=function()
 		str+=' '+parseInt(M.parent.onMinigame?'1':'0');
 		return str;
 	}
-	M.load=function(str)
+	M.load=function(str: any)
 	{
 		//interpret str; called after .init
 		//note : not actually called in the Game's load; see "minigameSave" in main.js
@@ -501,7 +501,6 @@ M.launch=function()
 	}
 	M.init(l('rowSpecial'+M.parent.id));
 }
-var M=0;
 /* CC3: explicit module marker — at runtime these files are always ESM modules
  * (Vite bundles them as such), and this keeps their top-level var/function
  * declarations out of the TS global scope. Zero runtime effect. */

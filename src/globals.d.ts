@@ -47,6 +47,16 @@ declare global {
 	/* Platform config: falsy on the desktop build, else a bridge object
 	 * (the achievements module calls App.gotAchiev) — hence `any`. */
 	const App: any;
+	/* Version config (src/config.ts, published on window before the engine
+	 * evaluates; the engine reads them bare). */
+	const VERSION: number;
+	const BETA: number;
+	/* Optional preload hook set by the CC3 glue before Game.Load runs (the
+	 * engine guards it with typeof). */
+	const PRELOAD: any;
+	/* AdBlock-detection global referenced bare by the engine (guarded with
+	 * typeof); set by ad blockers at runtime, hence `any`. */
+	const showAds: any;
 	const Beautify: BeautifyFn;
 	const BeautifyInText: (str: string) => string;
 	/* Engine event-binding helper (engine var, published on window). */
@@ -65,6 +75,10 @@ declare global {
 	 * the jukebox methods dereference `Music.tracks` without a guard, the
 	 * way the original untyped code did. */
 	const Music: any;
+	/* AMD define used by the legacy FileSaver stub (engine/main.ts; the
+	 * `typeof define!=='undefined'` guard means it's never actually called
+	 * in the ESM build — declared so the guard type-checks). */
+	const define: any;
 	const PlaySound: PlaySoundFn;
 	/* Engine music-cue + sound helpers (engine vars/functions, published on
 	 * window); `any` — the jukebox surface is untyped legacy. */
@@ -77,6 +91,10 @@ declare global {
 	let LASTHEAVENLYSELECTED: any;
 	/* Engine floor-to-integer helper (engine function, published on window). */
 	const randomFloor: (n: number) => number;
+	/* Engine number-condenser (engine var, published on window): the input
+	 * number unchanged below 1e6, else its rounded 5-digit scientific
+	 * notation — always a number. */
+	const shortenNumber: (val: number) => number;
 	const getUpgradeName: (name: string) => string;
 	const tinyIcon: (icon: number | number[], css?: string) => string;
 	/* Icon CSS generator (engine function declaration, published on window):

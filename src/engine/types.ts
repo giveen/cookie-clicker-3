@@ -297,7 +297,9 @@ export interface Game {
 	/* --- layout / DOM --- */
 	l: HTMLElement | null;
 	wrapper: HTMLElement | null;
-	bounds: number[] | 0;
+	/* Runtime rect from Element.getBounds() (main.ts: Game.bounds=Game.l.getBounds()),
+	 * or 0 before the first layout pass (main.ts: Game.bounds=0). */
+	bounds: { x: number; y: number; width: number; height: number; top: number; bottom: number; left: number; right: number } | 0;
 	scale: number;
 	minLayoutW: number;
 	cssClasses: string[];

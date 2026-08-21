@@ -1,12 +1,12 @@
-// @ts-nocheck — legacy 2.048 port, kept verbatim for the 1:1 TS conversion; type-checking intentionally disabled here.
-var M={};
+/* CC3 rewrite (phase 5): minigame re-typed; M is any to match engine pattern. */
+var M: any ={};
 M.parent=Game.Objects['Wizard tower'];
 M.parent.minigame=M;
 M.launch=function()
 {
 	var M=this;
 	M.name=M.parent.minigameName;
-	M.init=function(div)
+	M.init=function(div: any)
 	{
 		//populate div with html and initialize values
 		
@@ -42,7 +42,7 @@ M.launch=function()
 				icon:[22,11],
 				costMin:10,
 				costPercent:0.6,
-				failFunc:function(fail)
+				failFunc:function(fail: any)
 				{
 					return fail+0.15*Game.shimmerTypes['golden'].n;
 				},
@@ -157,13 +157,13 @@ M.launch=function()
 				win:function()
 				{
 					Game.killBuff('Haggler\'s misery');
-					var buff=Game.gainBuff('haggler luck',60,2);
+					Game.gainBuff('haggler luck',60,2);
 					Game.Popup('<div style="font-size:80%;">Upgrades are cheaper!</div>',Game.mouseX,Game.mouseY);
 				},
 				fail:function()
 				{
 					Game.killBuff('Haggler\'s luck');
-					var buff=Game.gainBuff('haggler misery',60*60,2);
+					Game.gainBuff('haggler misery',60*60,2);
 					Game.Popup('<div style="font-size:80%;">Backfire!<br>Upgrades are pricier!</div>',Game.mouseX,Game.mouseY);
 				},
 			},
@@ -177,13 +177,13 @@ M.launch=function()
 				win:function()
 				{
 					Game.killBuff('Nasty goblins');
-					var buff=Game.gainBuff('pixie luck',60,2);
+					Game.gainBuff('pixie luck',60,2);
 					Game.Popup('<div style="font-size:80%;">Crafty pixies!<br>Buildings are cheaper!</div>',Game.mouseX,Game.mouseY);
 				},
 				fail:function()
 				{
 					Game.killBuff('Crafty pixies');
-					var buff=Game.gainBuff('pixie misery',60*60,2);
+					Game.gainBuff('pixie misery',60*60,2);
 					Game.Popup('<div style="font-size:80%;">Backfire!<br>Nasty goblins!<br>Buildings are pricier!</div>',Game.mouseX,Game.mouseY);
 				},
 			},
@@ -225,13 +225,13 @@ M.launch=function()
 				costPercent:0.1,
 				win:function()
 				{
-					var out=Game.SpawnWrinkler();
+					var out=(Game.SpawnWrinkler as any)();
 					if (!out){Game.Popup('<div style="font-size:80%;">Unable to spawn a wrinkler!</div>',Game.mouseX,Game.mouseY);return -1;}
 					Game.Popup('<div style="font-size:80%;">Rise, my precious!</div>',Game.mouseX,Game.mouseY);
 				},
 				fail:function()
 				{
-					var out=Game.PopRandomWrinkler();
+					var out=(Game.PopRandomWrinkler as any)();
 					if (!out){Game.Popup('<div style="font-size:80%;">Backfire!<br>But no wrinkler was harmed.</div>',Game.mouseX,Game.mouseY);return -1;}
 					Game.Popup('<div style="font-size:80%;">Backfire!<br>So long, ugly...</div>',Game.mouseX,Game.mouseY);
 				},
@@ -246,13 +246,13 @@ M.launch=function()
 				win:function()
 				{
 					Game.killBuff('Magic inept');
-					var buff=Game.gainBuff('magic adept',5*60,10);
+					Game.gainBuff('magic adept',5*60,10);
 					Game.Popup('<div style="font-size:80%;">Ineptitude diminished!</div>',Game.mouseX,Game.mouseY);
 				},
 				fail:function()
 				{
 					Game.killBuff('Magic adept');
-					var buff=Game.gainBuff('magic inept',10*60,5);
+					Game.gainBuff('magic inept',10*60,5);
 					Game.Popup('<div style="font-size:80%;">Backfire!<br>Ineptitude magnified!</div>',Game.mouseX,Game.mouseY);
 				},
 			},
@@ -287,7 +287,7 @@ M.launch=function()
 			M.magic=Math.min(M.magicM,M.magic);
 		}
 		
-		M.getFailChance=function(spell)
+		M.getFailChance=function(spell: any)
 		{
 			var failChance=0.15;
 			if (Game.hasBuff('Magic adept')) failChance*=0.1;
@@ -296,7 +296,7 @@ M.launch=function()
 			return failChance;
 		}
 		
-		M.castSpell=function(spell,obj)
+		M.castSpell=function(spell: any, obj: any)
 		{
 			var obj=obj||{};
 			var out=0;
@@ -336,13 +336,13 @@ M.launch=function()
 			return false;
 		}
 		
-		M.getSpellCost=function(spell)
+		M.getSpellCost=function(spell: any)
 		{
 			var out=spell.costMin;
 			if (spell.costPercent) out+=M.magicM*spell.costPercent;
 			return Math.floor(out);
 		}
-		M.getSpellCostBreakdown=function(spell)
+		M.getSpellCostBreakdown=function(spell: any)
 		{
 			var str='';
 			if (spell.costPercent) str+=Beautify(spell.costMin)+' magic +'+Beautify(Math.ceil(spell.costPercent*100))+'% of max magic';
@@ -350,7 +350,7 @@ M.launch=function()
 			return str;
 		}
 		
-		M.spellTooltip=function(id)
+		M.spellTooltip=function(id: any)
 		{
 			return function(){
 				var me=M.spellsById[id];
@@ -406,8 +406,8 @@ M.launch=function()
 				str+='<div class="grimoireSpell titleFont" id="grimoireSpell'+me.id+'" '+Game.getDynamicTooltip('Game.ObjectsById['+M.parent.id+'].minigame.spellTooltip('+me.id+')','this')+'><div class="usesIcon shadowFilter grimoireIcon" style="background-position:'+(-icon[0]*48)+'px '+(-icon[1]*48)+'px;"></div><div class="grimoirePrice" id="grimoirePrice'+me.id+'">-</div></div>';
 			}
 			str+='</div>';
-			var icon=[29,14];
-			str+='<div id="grimoireBar" class="smallFramed meterContainer"><div '+Game.getDynamicTooltip('Game.ObjectsById['+M.parent.id+'].minigame.refillTooltip','this')+' id="grimoireLumpRefill" class="usesIcon shadowFilter lumpRefill" style="left:-40px;top:-17px;background-position:'+(-icon[0]*48)+'px '+(-icon[1]*48)+'px;"></div><div id="grimoireBarFull" class="meter filling"></div><div id="grimoireBarText" class="titleFont"></div><div '+Game.getTooltip('<div style="padding:8px;width:300px;font-size:11px;text-align:center;">This is your magic meter. Each spell costs magic to use.<div class="line"></div>Your maximum amount of magic varies depending on your amount of <b>Wizard towers</b>, and their level.<div class="line"></div>Magic refills over time. The lower your magic meter, the slower it refills.</div>')+' style="position:absolute;left:0px;top:0px;right:0px;bottom:0px;"></div></div>';
+			var icon2=[29,14];
+			str+='<div id="grimoireBar" class="smallFramed meterContainer"><div '+Game.getDynamicTooltip('Game.ObjectsById['+M.parent.id+'].minigame.refillTooltip','this')+' id="grimoireLumpRefill" class="usesIcon shadowFilter lumpRefill" style="left:-40px;top:-17px;background-position:'+(-icon2[0]*48)+'px '+(-icon2[1]*48)+'px;"></div><div id="grimoireBarFull" class="meter filling"></div><div id="grimoireBarText" class="titleFont"></div><div '+Game.getTooltip('<div style="padding:8px;width:300px;font-size:11px;text-align:center;">This is your magic meter. Each spell costs magic to use.<div class="line"></div>Your maximum amount of magic varies depending on your amount of <b>Wizard towers</b>, and their level.<div class="line"></div>Magic refills over time. The lower your magic meter, the slower it refills.</div>')+' style="position:absolute;left:0px;top:0px;right:0px;bottom:0px;"></div></div>';
 			str+='<div id="grimoireInfo"></div>';
 		str+='</div>';
 		div.innerHTML=str;
@@ -454,7 +454,7 @@ M.launch=function()
 		;
 		return str;
 	}
-	M.load=function(str)
+	M.load=function(str: any)
 	{
 		//interpret str; called after .init
 		//note : not actually called in the Game's load; see "minigameSave" in main.js
@@ -495,14 +495,13 @@ M.launch=function()
 	M.draw=function()
 	{
 		//run each draw frame
-		M.magicBarTextL.innerHTML=Math.min(Math.floor(M.magicM),Beautify(M.magic))+'/'+Beautify(Math.floor(M.magicM))+(M.magic<M.magicM?(' (+'+Beautify((M.magicPS||0)*Game.fps,2)+'/s)'):'');
+		M.magicBarTextL.innerHTML=Math.min(Math.floor(M.magicM),Math.floor(M.magic))+'/'+Beautify(Math.floor(M.magicM))+(M.magic<M.magicM?(' (+'+Beautify((M.magicPS||0)*Game.fps,2)+'/s)'):'');
 		M.magicBarFullL.style.width=((M.magic/M.magicM)*100)+'%';
 		M.magicBarL.style.width=(M.magicM*3)+'px';
 		M.infoL.innerHTML='Spells cast : '+Beautify(M.spellsCast)+' (total : '+Beautify(M.spellsCastTotal)+')';
 	}
 	M.init(l('rowSpecial'+M.parent.id));
 }
-var M=0;
 /* CC3: explicit module marker — at runtime these files are always ESM modules
  * (Vite bundles them as such), and this keeps their top-level var/function
  * declarations out of the TS global scope. Zero runtime effect. */
