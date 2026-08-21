@@ -94,6 +94,12 @@ declare global {
 	/* Legacy no-op passthrough ("too many save corruptions, darn it to heck"):
 	 * returns its input unchanged. */
 	const pack3: (values: any) => any;
+	/* Legacy bitfield packers/unpackers (engine, published on window); the
+	 * save loader feeds them save strings and gets strings/arrays back. */
+	const unpack: (values: any) => any;
+	const unpack2: (values: any) => any;
+	const UncompressLargeBin: (values: any) => any;
+	const BeautifyAll: () => void;
 	const localStorageGet: (key: string) => string | null;
 	const localStorageSet: (key: string, str: string) => any;
 	/* FileSaver.js (bundled verbatim by the engine): triggers a download. */
@@ -138,6 +144,13 @@ declare global {
 			left: number;
 			right: number;
 		};
+	}
+
+	/* The legacy save loader round-trips possibly-null localStorage values
+	 * back into setItem unguarded (beta-save migration block); loosen
+	 * getItem's return to match the engine's untyped usage. */
+	interface Storage {
+		getItem(key: string): any;
 	}
 
 	interface Window {
