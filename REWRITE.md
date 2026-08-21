@@ -43,7 +43,7 @@ cleanup.
 | Branch  | HEAD      | Meaning                                                        |
 | ------- | --------- | -------------------------------------------------------------- |
 | `master`| `dafffc6` | The finished, deployable CC3 (deploy gate). Untouched by the rewrite. |
-| `rewrite` (work) | `a6f12f6` | The rewrite, built on top of the 1:1 conversion.        |
+| `rewrite` (work) | `f9cedd1` | The rewrite, built on top of the 1:1 conversion.        |
 
 Rewrite history (old → new):
 
@@ -66,6 +66,7 @@ c044c85  Rewrite Phase 3 (slice 3): the Game.Upgrade ctor is now the Upgrade cla
 e74bc73  Rewrite Phase 4 (slice 4): shimmer system → systems/shimmer.ts
 35798b4  Rewrite Phase 4 (slice 5): wrinkler system → systems/wrinkler.ts
 25e4312  Rewrite Phase 4 (slice 6): ascend/reincarnate + sugar lumps → systems/ascend.ts
+f9cedd1  Rewrite Phase 6 (slice 7): save-format compatibility check → tests/save-compat.spec.js
 73f4cb2  Rewrite Phase 5 + Phase 6 (slices 1–3): minigames typed; engine typed; utils/systems/ui extracted and wired
 3c9c717  Rewrite: update REWRITE.md branch state for phase 5 + phase 6 slices 1-3
 19cdde9  Rewrite Phase 6 (slice 3): extract bakeryName, seasons, modding, reset systems
