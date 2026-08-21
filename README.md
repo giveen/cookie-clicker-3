@@ -1,6 +1,6 @@
 # Cookie Clicker 3
 
-A modern, from-scratch rebuild of the tooling around [Cookie Clicker 2.048](https://github.com/DiSCooooo/Cookie-Clicker-2.048) (itself a port of Orteil's [Cookie Clicker](http://orteil.dashnet.org/cookieclicker/)). The game code is the original 2.048 engine, ported into TypeScript ES modules and then incrementally rewritten into idiomatic typed modules (see [REWRITE.md](REWRITE.md) for the full rewrite log), served by a zero-runtime-dependency Vite pipeline — no jQuery, no IE polyfills, no CDN requests, no ads, no trackers.
+Cookie Clicker 3 is a modern Cookie Clicker experience based on [Cookie Clicker 2.048](https://github.com/DiSCooooo/Cookie-Clicker-2.048) (itself a port of Orteil's [Cookie Clicker](http://orteil.dashnet.org/cookieclicker/)). The project preserves the original game's behavior in a strictly typed TypeScript ES-module web app, built with a zero-runtime-dependency Vite pipeline (see [REWRITE.md](REWRITE.md) for the full rewrite log) — no jQuery, no IE polyfills, no CDN requests, no ads, no trackers.
 
 ## What "modernized" means here
 
@@ -8,7 +8,7 @@ A modern, from-scratch rebuild of the tooling around [Cookie Clicker 2.048](http
 | --- | --- | --- |
 | Module system | One 890 KB classic `<script>` + runtime `<script>` injection for minigames and languages | ES modules throughout; minigames and languages are code-split Vite chunks loaded with dynamic `import()` |
 | Language | ES5-ish sloppy-mode classic script (JS) | TypeScript: full `strict` type-checking on all code — Phases 1–5 typed the content layer, core classes, systems, and minigames; Phase 6 Slice 1 typed `engine/main.ts` (the entire codebase now compiles clean under `tsc`) |
-| Build | None (static files) | Vite 5: dev server with HMR, production bundle with per-chunk code splitting and minification |
+| Build | None (static files) | Vite 6: dev server with HMR, production bundle with per-chunk code splitting and minification |
 | Save encoding | 2007-era WebToolkit Base64 (pure JS, UTF-8 double-encoding) | Native `btoa`/`atob` + `TextEncoder`/`TextDecoder`, byte-compatible with 2.048 saves |
 | Line endings / encoding | CRLF, BOMs | LF, no BOMs (normalized at port time) |
 | Fonts | Google Fonts CDN request at load | Self-hosted Merriweather Black woff2 (latin, latin-ext, cyrillic, cyrillic-ext) bundled by Vite |

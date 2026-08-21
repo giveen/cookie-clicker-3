@@ -831,13 +831,6 @@ Game.Launch=function()
 		
 		l('versionNumber').innerHTML='v. '+Game.version.toFixed(3)+(!App?('<div id="httpsSwitch" style="cursor:pointer;display:inline-block;background:url(img/'+(Game.https?'lockOn':'lockOff')+'.webp);width:16px;height:16px;position:relative;top:4px;left:0px;margin:0px -2px;"></div>'):'')+(Game.beta?' <span style="color:#ff0;">beta</span>':'');
 		
-		if (!App)
-		{
-			if (Game.beta) {var me=l('linkVersionBeta');me.parentNode.removeChild(me);}
-			else if (Game.version==1.0466) {var me=l('linkVersionOld');me.parentNode.removeChild(me);}
-			else {var me=l('linkVersionLive');me.parentNode.removeChild(me);}
-		}
-		
 		Game.lastActivity=Date.now();//reset on mouse move, key press or click
 		
 		//latency compensator stuff
@@ -1164,7 +1157,6 @@ Game.Launch=function()
 			});
 			
 			Game.attachTooltip(l('topbarOrteil'),'<div style="padding:8px;width:250px;text-align:center;">Back to Orteil\'s subdomain!<br>Lots of other games in there!</div>'+tinyIcon([17,5],'display:block;margin:-12px auto;'),'this');
-			Game.attachTooltip(l('topbarDashnet'),'<div style="padding:8px;width:250px;text-align:center;">Back to our homepage!</div>','this');
 			Game.attachTooltip(l('topbarTwitter'),'<div style="padding:8px;width:250px;text-align:center;">Orteil\'s twitter, which frequently features game updates.</div>','this');
 			Game.attachTooltip(l('topbarTumblr'),'<div style="padding:8px;width:250px;text-align:center;">Orteil\'s tumblr, which frequently features game updates.</div>','this');
 			Game.attachTooltip(l('topbarDiscord'),'<div style="padding:8px;width:250px;text-align:center;">Our official discord server.<br>You can share tips and questions about Cookie Clicker and all our other games!</div>','this');
@@ -1172,11 +1164,9 @@ Game.Launch=function()
 			Game.attachTooltip(l('topbarMerch'),'<div style="padding:8px;width:250px;text-align:center;">Cookie Clicker shirts, hoodies and stickers!</div>','this');
 			Game.attachTooltip(l('topbarMobileCC'),'<div style="padding:8px;width:250px;text-align:center;">Play Cookie Clicker on your phone!<br>(Android only; iOS version will be released later)</div>','this');
 			Game.attachTooltip(l('topbarSteamCC'),'<div style="padding:8px;width:250px;text-align:center;">Get Cookie Clicker on Steam!<br>Featuring music by C418.</div>','this');
-			Game.attachTooltip(l('topbarRandomgen'),'<div style="padding:8px;width:250px;text-align:center;">Check for updates!<br>{Current Version: 1.1.0}</div>','this');
+			Game.attachTooltip(l('topbarRandomgen'),'<div style="padding:8px;width:250px;text-align:center;">View the Cookie Clicker 3 source code on GitHub.</div>','this');
 			Game.attachTooltip(l('topbarIGM'),'<div style="padding:8px;width:250px;text-align:center;">Go and check out the creator of this downloadable version!<br>(Subscribe while your at it. :)</div>','this');
 			l('changeLanguage').innerHTML=loc("Change language");
-			l('links').childNodes[0].nodeValue=loc("Other versions");
-			//l('linkVersionBeta').innerHTML=loc("Beta");
 		}
 		
 		Game.attachTooltip(l('heralds'),function(){
