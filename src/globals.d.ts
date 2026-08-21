@@ -49,6 +49,8 @@ declare global {
 	const App: any;
 	const Beautify: BeautifyFn;
 	const BeautifyInText: (str: string) => string;
+	/* Engine event-binding helper (engine var, published on window). */
+	const AddEvent: AddEventFn;
 	/* Localized number formatter: returns {n: floored value, b: beautified}. */
 	const LBeautify: (val: number, floats?: number | boolean) => { n: number; b: string };
 	/* Engine number formatter (engine/main.ts, published on window): returns

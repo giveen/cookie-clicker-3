@@ -629,6 +629,7 @@ wrinklers, ascend/reincarnate, offline gain, the Loader/asset system.
 | ----- | ------- | ------ |
 | ~~1~~ | **Economy math** — `HowMuchPrestige`, `HowManyCookiesReset`, `EarnHeavenlyChips`, `GetHeavenlyMultiplier`, `ComputeCps`, `GetTieredCpsMult` → `systems/economy.ts`; engine keeps the same `Game.X` slots at the original Init positions | **done — commit `7d829c4`** (64/64 body lines verbatim; deltas: `!` on optional class surface + one `(me.fortune as any)`) |
 | ~~2~~ | **Save write** — `ExportSave`, `ImportSave`, `ImportSaveCode`, `FileSave`, `FileLoad`, `WriteSave` → `systems/save.ts`; save format byte-for-byte | **done — commit `2cfdb4c`** (251/251 body lines verbatim; deltas: `var me:any` ×4, `toCompress:any`, onload `e: any`; types.ts `LoadSave`/`Notify` widened, parseInt/parseFloat numeric overloads) |
+| ~~3~~ | **Save load** — `salvageSave`, `LoadSave` → `systems/save.ts` | **done — commit `0b81738`** (550/550 body lines verbatim; deltas: `str/spl/me/mestr/wrinklers:any`, `(i as any)*2` ×6; **lesson: moved symbols need their import in the same commit — tsc can't see the @ts-nocheck engine's assignment lines**, and kill stale `vite preview` on :4173 before trusting a rerun) |
 
 ### Phase 5 — minigames
 

@@ -11,6 +11,7 @@ import { Building } from "./core/building";
 import { Upgrade, TieredUpgrade, SynergyUpgrade } from "./core/upgrade";
 import { HowMuchPrestige, HowManyCookiesReset, EarnHeavenlyChips, GetHeavenlyMultiplier, ComputeCps, GetTieredCpsMult } from "./systems/economy";
 import { ExportSave, ImportSave, ImportSaveCode, FileSave, FileLoad, WriteSave, salvageSave, LoadSave } from "./systems/save";
+import { Shimmer, updateShimmers, killShimmers } from "./systems/shimmer";
 /* CC3: the original relied on implicit globals; declare them for module strict mode. */
 var Audio, localStorageGet, localStorageSet, Music, PlayCue, TopBarOffset, LASTHEAVENLYSELECTED, ON, OFF;
 /* CC3 rewrite (slice 3): the vanilla-content order/pool/power bookkeeping.
@@ -4363,120 +4364,10 @@ Game.Launch=function()
 		Game.shimmersL=l('shimmers');
 		Game.shimmers=[];//all shimmers currently on the screen
 		Game.shimmersN=Math.floor(Math.random()*10000);
-		Game.shimmer=function(type,obj,noCount)
-		{
-			this.type=type;
-			
-			this.l=document.createElement('div');
-			this.l.className='shimmer';
-			if (!Game.touchEvents) {AddEvent(this.l,'click',function(what){return function(event){what.pop(event);};}(this));}
-			else {AddEvent(this.l,'touchend',function(what){return function(event){what.pop(event);};}(this));}//touch events
-			
-			this.x=0;
-			this.y=0;
-			this.id=Game.shimmersN;
-			
-			this.force='';
-			this.forceObj=obj||0;
-			if (this.forceObj.type) this.force=this.forceObj.type;
-			this.noCount=noCount;
-			if (!this.noCount) {Game.shimmerTypes[this.type].n++;Game.recalculateGains=1;}
-			
-			this.init();
-			
-			Game.shimmersL.appendChild(this.l);
-			Game.shimmers.push(this);
-			Game.shimmersN++;
-		}
-		Game.shimmer.prototype.init=function()//executed when the shimmer is created
-		{
-			Game.shimmerTypes[this.type].initFunc(this);
-		}
-		Game.shimmer.prototype.update=function()//executed every frame
-		{
-			Game.shimmerTypes[this.type].updateFunc(this);
-		}
-		Game.shimmer.prototype.pop=function(event)//executed when the shimmer is popped by the player
-		{
-			if (event) event.preventDefault();
-			Game.loseShimmeringVeil('shimmer');
-			Game.Click=0;
-			Game.shimmerTypes[this.type].popFunc(this);
-		}
-		Game.shimmer.prototype.die=function()//executed after the shimmer disappears (from old age or popping)
-		{
-			if (Game.shimmerTypes[this.type].spawnsOnTimer && this.spawnLead)
-			{
-				//if this was the spawn lead for this shimmer type, set the shimmer type's "spawned" to 0 and restart its spawn timer
-				var type=Game.shimmerTypes[this.type];
-				type.time=0;
-				type.spawned=0;
-				type.minTime=type.getMinTime(this);
-				type.maxTime=type.getMaxTime(this);
-			}
-			Game.shimmersL.removeChild(this.l);
-			if (Game.shimmers.indexOf(this)!=-1) Game.shimmers.splice(Game.shimmers.indexOf(this),1);
-			if (!this.noCount) {Game.shimmerTypes[this.type].n=Math.max(0,Game.shimmerTypes[this.type].n-1);Game.recalculateGains=1;}
-		}
+		Game.shimmer=Shimmer;//CC3 rewrite (phase 4, slice 4): the ctor + 4 prototype methods moved to systems/shimmer.ts as the real Shimmer class; same Game slot, same call sites.
 		
-		
-		Game.updateShimmers=function()//run shimmer functions, kill overtimed shimmers and spawn new ones
-		{
-			for (var i in Game.shimmers)
-			{
-				Game.shimmers[i].update();
-			}
-			
-			//cookie storm!
-			if (Game.hasBuff('Cookie storm') && Math.random()<0.5)
-			{
-				var newShimmer=new Game.shimmer('golden',{type:'cookie storm drop'},1);
-				newShimmer.dur=Math.ceil(Math.random()*4+1);
-				newShimmer.life=Math.ceil(Game.fps*newShimmer.dur);
-				//newShimmer.force='cookie storm drop';
-				newShimmer.sizeMult=Math.random()*0.75+0.25;
-			}
-			
-			//spawn shimmers
-			for (var i in Game.shimmerTypes)
-			{
-				var me=Game.shimmerTypes[i];
-				if (me.spawnsOnTimer && me.spawnConditions())//only run on shimmer types that work on a timer
-				{
-					if (!me.spawned)//no shimmer spawned for this type? check the timer and try to spawn one
-					{
-						me.time++;
-						if (Math.random()<Math.pow(Math.max(0,(me.time-me.minTime)/(me.maxTime-me.minTime)),5))
-						{
-							var newShimmer=new Game.shimmer(i);
-							newShimmer.spawnLead=1;
-							if (Game.Has('Distilled essence of redoubled luck') && Math.random()<0.01) var newShimmer=new Game.shimmer(i);
-							me.spawned=1;
-						}
-					}
-				}
-			}
-		}
-		Game.killShimmers=function()//stop and delete all shimmers (used on resetting etc)
-		{
-			for (var i=Game.shimmers.length-1;i>=0;i--)
-			{
-				Game.shimmers[i].die();
-			}
-			for (var i in Game.shimmerTypes)
-			{
-				var me=Game.shimmerTypes[i];
-				if (me.reset) me.reset();
-				me.n=0;
-				if (me.spawnsOnTimer)
-				{
-					me.time=0;
-					me.spawned=0;
-					me.minTime=me.getMinTime(me);
-					me.maxTime=me.getMaxTime(me);
-				}
-			}
-		}
+		Game.updateShimmers=updateShimmers;//CC3 rewrite (phase 4, slice 4): moved verbatim to systems/shimmer.ts.
+		Game.killShimmers=killShimmers;//CC3 rewrite (phase 4, slice 4): moved verbatim to systems/shimmer.ts.
 		
 		Game.shimmerTypes={
 			//in these, "me" refers to the shimmer itself, and "this" to the shimmer's type object
