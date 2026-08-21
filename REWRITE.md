@@ -40,7 +40,7 @@ remaining Phase 6 work is verification + docs + cleanup (Slice 7).
 | Branch  | HEAD      | Meaning                                                        |
 | ------- | --------- | -------------------------------------------------------------- |
 | `master`| `dafffc6` | The finished, deployable CC3 (deploy gate). Untouched by the rewrite. |
-| `rewrite` (work) | `14cadf0` | The rewrite, built on top of the 1:1 conversion.        |
+| `rewrite` (work) | `a6f12f6` | The rewrite, built on top of the 1:1 conversion.        |
 
 Rewrite history (old → new):
 
@@ -67,6 +67,7 @@ e74bc73  Rewrite Phase 4 (slice 4): shimmer system → systems/shimmer.ts
 3c9c717  Rewrite: update REWRITE.md branch state for phase 5 + phase 6 slices 1-3
 19cdde9  Rewrite Phase 6 (slice 3): extract bakeryName, seasons, modding, reset systems
 14cadf0  Rewrite Phase 6 (slice 4): extract tooltip, crate, store, menu, DrawBackground UIs
+a6f12f6  Rewrite Phase 6 (slice 5): extract milks, changelog, heavenly positions, debug tools
 ```
 
 ## What "1:1" means here, and how it's enforced
