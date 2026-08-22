@@ -1975,10 +1975,10 @@ export function declareVanillaUpgrades(Game: EngineGame) {
 			{name:'Nine-lives efficiency',price:250000,effect:0.2},
 			{name:'Feline assembly',price:500000,effect:0.2},
 			{name:'Astral catnaps',price:1000000,effect:0.2},
-			{name:'Infinite yarn loop',price:5000000,effect:0.3},
-			{name:'Quantum litter boxes',price:25000000,effect:0.3},
-			{name:'Cosmic whisker arrays',price:125000000,effect:0.3},
-			{name:'Protein singularity',price:625000000,effect:0.1}
+			{name:'Infinite yarn loop',price:2500000,effect:0.3},
+			{name:'Quantum litter boxes',price:5000000,effect:0.3},
+			{name:'Cosmic whisker arrays',price:10000000,effect:0.3},
+			{name:'Protein singularity',price:25000000,effect:0.1}
 		];
 		order=350;
 		for (var catBaseIndex=0;catBaseIndex<catBaseUpgrades.length;catBaseIndex++)
@@ -1996,16 +1996,16 @@ export function declareVanillaUpgrades(Game: EngineGame) {
 		// 10 specialty upgrades: mild multiplicative and synergy effects.
 		// Unlocked by Cat count; effects are intentionally small.
 		var catSpecialUpgrades=[
-			{name:'Grandma-approved recipes',desc:'Cats gain <b>+0.5% CpS per Grandma</b>, up to +25%.',price:250000,unlock:10},
-			{name:'Purrfect timing',desc:'Clicking gains <b>+1% of your CpS</b>.',price:2500000,unlock:25},
-			{name:'Cat café loyalty',desc:'Cookie production multiplier <b>+1%</b>.',price:25000000,unlock:50},
-			{name:'Protein-rich kibble',desc:'Cats gain <b>+2% CpS</b>.',price:250000000,unlock:75},
-			{name:'Feather wand drills',desc:'Cats gain <b>+2% CpS</b>.',price:2500000000,unlock:100},
-			{name:'Sunbeam perches',desc:'Cats gain <b>+2% CpS</b>.',price:25000000000,unlock:150},
-			{name:'Catnip cultivation',desc:'Cats gain <b>+2% CpS</b>.',price:250000000000,unlock:200},
-			{name:'Scratching-post ovens',desc:'Cats gain <b>+2% CpS</b>.',price:2500000000000,unlock:250},
-			{name:'Climbing shelves',desc:'Cats gain <b>+2% CpS</b>.',price:25000000000000,unlock:350},
-			{name:'Nine lives logistics',desc:'Cats gain <b>+2% CpS</b>.',price:250000000000000,unlock:450}
+			{name:'Grandma-approved recipes',desc:'Cats gain <b>+0.5% CpS per Grandma</b>, up to +25%.',price:25000,unlock:10},
+			{name:'Purrfect timing',desc:'Clicking gains <b>+1% of your CpS</b>.',price:100000,unlock:25},
+			{name:'Cat café loyalty',desc:'Cookie production multiplier <b>+1%</b>.',price:100000,unlock:50},
+			{name:'Protein-rich kibble',desc:'Cats gain <b>+2% CpS</b>.',price:50000,unlock:75},
+			{name:'Feather wand drills',desc:'Cats gain <b>+2% CpS</b>.',price:100000,unlock:100},
+			{name:'Sunbeam perches',desc:'Cats gain <b>+2% CpS</b>.',price:250000,unlock:150},
+			{name:'Catnip cultivation',desc:'Cats gain <b>+2% CpS</b>.',price:500000,unlock:200},
+			{name:'Scratching-post ovens',desc:'Cats gain <b>+2% CpS</b>.',price:1000000,unlock:250},
+			{name:'Climbing shelves',desc:'Cats gain <b>+2% CpS</b>.',price:2000000,unlock:350},
+			{name:'Nine lives logistics',desc:'Cats gain <b>+2% CpS</b>.',price:5000000,unlock:450}
 		];
 		for (var catSpecialIndex=0;catSpecialIndex<catSpecialUpgrades.length;catSpecialIndex++)
 		{

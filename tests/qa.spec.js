@@ -79,7 +79,9 @@ test('?qa=content: typed content validation and economy report pass', async ({ p
 	expect(report).toMatch(/Grandma < Cats < Farm/);
 	expect(report).toMatch(/next purchase cost\/marginal CpS\/payback: PASS/);
 	expect(report).toMatch(/Cat\/Farm achievements registered: PASS/);
-	expect(report).toMatch(/full analysis covers all buildings\/upgrades and restores counts: PASS/);
+	expect(report).toMatch(/strategy runner compares 3 purchase policies: PASS/);
+	expect(report).toMatch(/cross-building balance audit covers every building and level: PASS/);
+	expect(report).toMatch(/full analysis covers all buildings\/upgrades, categories, and restores counts: PASS/);
 });
 
 test('Cursor upgrades: purchased finger sprite is applied to the cookie hands', async ({ page }) => {

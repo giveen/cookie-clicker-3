@@ -190,10 +190,27 @@ These weaken the CSP's XSS protection. That is an accepted, documented trade-off
   `Game.GetEconomyReport()`. For a complete read-only audit, use
   `Game.AnalyzeEconomy({ levels: [1, 10, 25, 50, 100, 250, 500] })`; it reports
   every building, every upgrade's contextual CpS/click contribution and
-  payback, plus fresh-run milestone scenarios and total investment. Custom
-  scenarios can provide `{ label, buildings, upgrades }`. The analyzer
+  payback, plus fresh-run milestone scenarios and total investment. Upgrade
+  reports are categorized as passive, click, mixed, prestige, seasonal, toggle,
+  tech, debug, or utility; click upgrades include payback at 1, 5, and 10
+  clicks/sec, and unusually long ordinary paybacks are flagged in `warnings`.
+  Custom scenarios can provide `{ label, buildings, upgrades }`. The analyzer
   snapshots and restores the live building, upgrade, cookie, and calculated
-  economy state. `?qa=content` exercises the all-building/all-upgrade coverage.
+  economy state.  `Game.SimulateStrategy({ strategy: 'bestPayback',
+  durationSeconds: 3600, clicksPerSecond: 5 })` runs a deterministic sandboxed
+  progression using `cheapest`, `bestPayback`, or `upgradesFirst` purchasing.
+  `Game.AnalyzeEconomy()` also includes `buildingBalance`, which evaluates
+  every building at each requested ownership level, reports total investment,
+  next-purchase cost, marginal CpS, and payback, and compares each payback with
+  the neighboring-building curve to flag local relative outliers. `?qa=content` exercises
+  the all-building balance audit, all-building/all-upgrade, and strategy coverage.
+  The audit drives the CC3 tail rebalance: 2.048 stacked an extra ×10 per
+  building from Fractal engine on (10×–1000× off the fitted curve); CC3 walks
+  the fitted ~2.1×-per-store-step curve from Antimatter condenser through
+  Cortex baker (Prism +15%, Chancemaker +42%, Fractal engine +78%, Javascript
+  console −88%, Idleverse −99%, Cortex baker −99.9%), and prices the Black
+  hole inverter mod building on the same curve. CpS, tiered upgrade ratios,
+  and all gameplay formulas are unchanged.
   `?qa=wrinkler` drives the
 Grandmapocalypse wrinklers: it enables `Game.elderWrath`, spawns a fully visible
 (phase 2) wrinkler, checks it sets `Game.cpsSucked` (5% of CpS, lowering the

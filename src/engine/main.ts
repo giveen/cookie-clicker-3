@@ -10,7 +10,7 @@ import { Game } from "./core/game";
 import { Building } from "./core/building";
 import { Upgrade, TieredUpgrade, SynergyUpgrade } from "./core/upgrade";
 import { HowMuchPrestige, HowManyCookiesReset, EarnHeavenlyChips, GetHeavenlyMultiplier, ComputeCps, GetTieredCpsMult } from "./systems/economy";
-import { ValidateContent, GetEconomyReport, SimulateEconomy, AnalyzeEconomy } from "./systems/contentValidation";
+import { ValidateContent, GetEconomyReport, SimulateEconomy, AnalyzeEconomy, SimulateStrategy } from "./systems/contentValidation";
 import { ExportSave, ImportSave, ImportSaveCode, FileSave, FileLoad, WriteSave, salvageSave, LoadSave } from "./systems/save";
 import { Shimmer, updateShimmers, killShimmers } from "./systems/shimmer";
 import { getWrinklersMax, ResetWrinklers, CollectWrinklers, playWrinklerSquishSound, SpawnWrinkler, PopRandomWrinkler, UpdateWrinklers, DrawWrinklers, SaveWrinklers, LoadWrinklers } from "./systems/wrinkler";
@@ -2498,6 +2498,7 @@ window.loadMinigameModule!(me.minigameUrl).then(function(){
 		Game.GetEconomyReport=function(){return GetEconomyReport(Game as any);};
 		Game.SimulateEconomy=function(scenarios: Record<string, number>[]){return SimulateEconomy(Game as any,scenarios);};
 		Game.AnalyzeEconomy=function(options: any){return AnalyzeEconomy(Game as any,options);};
+		Game.SimulateStrategy=function(options: any){return SimulateStrategy(Game as any,options);};
 		Game.baseResearchTime=Game.fps*60*30;
 		Game.SetResearch=function(what: any,_time: any)
 		{

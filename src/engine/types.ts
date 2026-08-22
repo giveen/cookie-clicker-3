@@ -206,10 +206,13 @@ export interface EconomySimulationPoint {
 	buildings: EconomyBuildingReport[];
 }
 
+export type EconomyUpgradeCategory = 'passive' | 'click' | 'mixed' | 'prestige' | 'seasonal' | 'toggle' | 'tech' | 'debug' | 'utility';
+
 export interface EconomyUpgradeReport {
 	name: string;
 	id: number;
 	pool: string;
+	category: EconomyUpgradeCategory;
 	buildingNames: string[];
 	basePrice: number;
 	currentPrice: number;
@@ -220,6 +223,8 @@ export interface EconomyUpgradeReport {
 	ownedClickCps: number;
 	purchaseClickCps: number;
 	paybackSeconds: number;
+	clickPaybackSeconds: { one: number; five: number; ten: number };
+	balanceWarning?: string;
 }
 
 export interface EconomyMilestoneReport {
@@ -231,11 +236,67 @@ export interface EconomyMilestoneReport {
 	leadingBuildings: string[];
 }
 
+export interface EconomyBuildingBalanceMilestone {
+	level: number;
+	totalInvestment: number;
+	totalCps: number;
+	nextPurchaseCost: number;
+	marginalCps: number;
+	paybackSeconds: number;
+	/** Payback relative to the geometric curve formed by neighboring buildings. */
+	paybackRatioToCurve: number;
+	balanceWarning?: string;
+}
+
+export interface EconomyBuildingBalanceReport {
+	name: string;
+	storeOrder: number;
+	basePrice: number;
+	baseCps: number;
+	milestones: EconomyBuildingBalanceMilestone[];
+	warnings: string[];
+}
+
 export interface EconomyAnalysisOptions {
 	/** Explicit milestone scenarios. Omit to use levels 1/10/25/50/100/250/500 for every building. */
 	scenarios?: Array<{ label: string; buildings: Record<string, number>; upgrades?: string[] }>;
 	/** Ownership levels used by the default milestone set. */
 	levels?: number[];
+}
+
+export type EconomyStrategyName = 'cheapest' | 'bestPayback' | 'upgradesFirst';
+
+export interface EconomyStrategyOptions {
+	strategy?: EconomyStrategyName;
+	durationSeconds?: number;
+	clicksPerSecond?: number;
+	sampleEverySeconds?: number;
+	maxPurchases?: number;
+}
+
+export interface EconomyStrategySample {
+	elapsedSeconds: number;
+	cookies: number;
+	cookiesEarned: number;
+	cps: number;
+	clickCps: number;
+	buildingAmounts: Record<string, number>;
+	upgradesBought: number;
+}
+
+export interface EconomyStrategyReport {
+	strategy: EconomyStrategyName;
+	durationSeconds: number;
+	elapsedSeconds: number;
+	cookies: number;
+	cookiesEarned: number;
+	cps: number;
+	clickCps: number;
+	buildingAmounts: Record<string, number>;
+	upgradesBought: string[];
+	purchases: number;
+	stoppedReason?: string;
+	samples: EconomyStrategySample[];
 }
 
 export interface FullEconomyReport {
@@ -244,8 +305,10 @@ export interface FullEconomyReport {
 	baselineCps: number;
 	baselineClickCps: number;
 	buildings: EconomyBuildingReport[];
+	buildingBalance: EconomyBuildingBalanceReport[];
 	upgrades: EconomyUpgradeReport[];
 	milestones: EconomyMilestoneReport[];
+	warnings: string[];
 }
 
 export interface Tier {
@@ -438,6 +501,7 @@ export interface Game {
 	GetEconomyReport(): EconomyReport;
 	SimulateEconomy(scenarios: Record<string, number>[]): EconomySimulationPoint[];
 	AnalyzeEconomy(options?: EconomyAnalysisOptions): FullEconomyReport;
+	SimulateStrategy(options?: EconomyStrategyOptions): EconomyStrategyReport;
 	ClickCookie(e: MouseEvent | null, amount?: number): void;
 	/* pic accepts an [iconColumn, iconRow] pair, a bare icon column/row, or a
 	 * sound name — the engine handles all of these at runtime. */

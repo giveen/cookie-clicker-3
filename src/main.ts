@@ -150,13 +150,17 @@ if (debugSurface && params.get('qa') === 'content') {
 			const report = G.GetEconomyReport();
 			const simulation = G.SimulateEconomy([{ Grandma: 10, Cats: 10, Farm: 10 }]);
 			const analysis = G.AnalyzeEconomy({ levels: [1, 10] });
+			const strategies = (['cheapest', 'bestPayback', 'upgradesFirst'] as const).map((strategy) => G.SimulateStrategy({ strategy, durationSeconds: 120, clicksPerSecond: 5, sampleEverySeconds: 60, maxPurchases: 1000 }));
 			const selected = names.map((name) => report.buildings.find((building) => building.name === name));
 			const orderOk = selected[0] && selected[1] && selected[2] && selected[0].storeOrder < selected[1].storeOrder && selected[1].storeOrder < selected[2].storeOrder;
 			const cpsOk = selected[0] && selected[1] && selected[2] && selected[0].cpsPerBuilding < selected[1].cpsPerBuilding && selected[1].cpsPerBuilding < selected[2].cpsPerBuilding;
 			const paybackOk = selected.every((building) => building && building.nextPurchaseCost > 0 && building.marginalCps > 0 && Number.isFinite(building.paybackSeconds));
 			const simulationOk = simulation.length === 1 && simulation[0].buildings.some((building) => building.name === 'Cats' && building.amount === 10) && G.Objects['Grandma'].amount === 10 && G.Objects['Cats'].amount === 10 && G.Objects['Farm'].amount === 10;
 			const achievementOk = ['Cat nap council','Purrfectly populated','Nine lives, nine rows','The purrduction line','A cat for every cushion','The whole litter','Barnstormer','A field of dreams','From barn to bakery'].every((name) => !!G.Achievements[name]);
-			const analysisOk = analysis.buildingCount === Object.keys(G.Objects).length && analysis.upgradeCount === Object.keys(G.Upgrades).length && analysis.milestones.length === analysis.buildingCount * 2 && analysis.upgrades.length === analysis.upgradeCount && G.Objects['Grandma'].amount === 10 && G.Objects['Cats'].amount === 10 && G.Objects['Farm'].amount === 10;
+			const analysisCategoriesOk = analysis.upgrades.some((upgrade) => upgrade.name === 'Purrfect timing' && upgrade.category === 'click' && Number.isFinite(upgrade.clickPaybackSeconds.five)) && analysis.upgrades.some((upgrade) => upgrade.name === 'Cardboard box basics' && upgrade.category === 'passive') && analysis.upgrades.some((upgrade) => upgrade.name === 'Heavenly cookies' && upgrade.category === 'prestige');
+			const strategyOk = strategies.length === 3 && strategies.every((run) => run.purchases > 0 && run.samples.length >= 2 && run.elapsedSeconds === 120);
+			const buildingBalanceOk = analysis.buildingBalance.length === analysis.buildingCount && analysis.buildingBalance.every((audit) => audit.milestones.length === 2 && audit.milestones.every((milestone) => milestone.level > 0 && milestone.totalInvestment >= 0 && milestone.totalCps >= 0 && milestone.nextPurchaseCost >= 0 && milestone.marginalCps >= 0 && milestone.paybackRatioToCurve >= 0));
+			const analysisOk = analysis.buildingCount === Object.keys(G.Objects).length && analysis.upgradeCount === Object.keys(G.Upgrades).length && analysis.milestones.length === analysis.buildingCount * 2 && analysis.buildingBalance.length === analysis.buildingCount && analysis.upgrades.length === analysis.upgradeCount && analysisCategoriesOk && buildingBalanceOk && strategyOk && G.Objects['Grandma'].amount === 10 && G.Objects['Cats'].amount === 10 && G.Objects['Farm'].amount === 10;
 			const pass = validation.valid && orderOk && cpsOk && paybackOk && simulationOk && achievementOk && analysisOk;
 			out.textContent =
 				'[QA-content] validation: ' + (validation.valid ? 'PASS' : 'FAIL') + ' (' + validation.buildingCount + ' buildings, ' + validation.upgradeCount + ' upgrades, ' + validation.errors + ' errors)\n' +
@@ -167,7 +171,9 @@ if (debugSurface && params.get('qa') === 'content') {
 				'[QA-content] next purchase cost/marginal CpS/payback: ' + (paybackOk ? 'PASS' : 'FAIL') + '\n' +
 				'[QA-content] simulator restores live counts: ' + (simulationOk ? 'PASS' : 'FAIL') + '\n' +
 				'[QA-content] Cat/Farm achievements registered: ' + (achievementOk ? 'PASS' : 'FAIL') + '\n' +
-				'[QA-content] full analysis covers all buildings/upgrades and restores counts: ' + (analysisOk ? 'PASS' : 'FAIL') + '\n' +
+				'[QA-content] strategy runner compares 3 purchase policies: ' + (strategyOk ? 'PASS' : 'FAIL') + '\n' +
+				'[QA-content] cross-building balance audit covers every building and level: ' + (buildingBalanceOk ? 'PASS' : 'FAIL') + '\n' +
+				'[QA-content] full analysis covers all buildings/upgrades, categories, and restores counts: ' + (analysisOk ? 'PASS' : 'FAIL') + '\n' +
 				'[QA-content] ' + (pass ? 'PASS: typed content validation and economy report verified' : 'FAIL: see checks above');
 		} catch (e: any) {
 			out.textContent = '[QA-content] ERROR: ' + e.constructor.name + ': ' + e.message;
