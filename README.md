@@ -39,7 +39,7 @@ src/
     core/               typed classes: Game, Building, Upgrade, Achievement
     content/            typed content: tiers, buildings, upgrades, achievements, foolObjects,
                         milks, changelog, heavenlyPositions (Phase 6 slice 5)
-    systems/            typed systems: economy, save, shimmer, wrinkler, ascend, buffs,
+    systems/            typed systems: economy, save, backup, shimmer, wrinkler, ascend, buffs,
                         ticker, santa, dragon, shimmerTypes, specialMenu, bakeryName,
                         seasons, modding, reset
     utils/              pure helpers: helpers, formatting, encoding, DOM, time, LoadScript,
@@ -167,8 +167,13 @@ These weaken the CSP's XSS protection. That is an accepted, documented trade-off
   Garden. `?qa=cookies` seeds cookies only (no minigames) for light
   store-buy testing. `?qa=golden` spawns and pops a forced "frenzy" golden
   cookie and reports the resulting buff/CpS (verifies the golden-cookie click
-  path). `?qa=save` exports a save, corrupts the live state, re-imports it, and
-  verifies the round-trip restores the state. `?qa=ascend` drives the full
+  path).  `?qa=save` exports a save, corrupts the live state, re-imports it, and
+  verifies the round-trip restores the state. `?qa=backup` verifies the
+  rolling save backups (`src/engine/systems/backup.ts`): every successful
+  save is captured into a per-game localStorage history (deduplicated,
+  pruned to the newest 10), and restoring an older backup returns the live
+  state to it. The Options menu's "Backups" section lists them for restore.
+  `?qa=ascend` drives the full
   ascension (Legacy/prestige) flow — `Game.Ascend(1)` intro (grants heavenly
   chips + prestige) then `Game.Reincarnate(1)` (the reset) — and verifies the
   run is reset while the prestige state (chips, prestige, resets) is kept.

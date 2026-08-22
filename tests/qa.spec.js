@@ -368,6 +368,16 @@ test('?qa=save: save export -> import round-trip restores state', async ({ page 
 	expect(report).toMatch(/cat achievement=true/);
 });
 
+test('?qa=backup: rolling save backups capture, prune, and restore', async ({ page }) => {
+	await boot(page, '&qa=backup');
+	const report = await qaReport(page, /PASS: rolling backups capture, prune, and restore correctly/);
+	expect(report).not.toMatch(/ERROR/);
+	expect(report).toMatch(/history=3/);
+	expect(report).toMatch(/dedupe: true/);
+	expect(report).toMatch(/prune-cap\(10\): true/);
+	expect(report).toMatch(/restored cookies=300/);
+});
+
 test('?qa=perf: 4-minigame frame cost holds the 30-tick loop target', async ({ page }) => {
 	await boot(page, '&qa=perf&qlvl=1');
 	// The probe samples the loop for ~3s before writing its verdict.

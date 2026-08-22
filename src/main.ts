@@ -56,9 +56,10 @@ if (debugSurface) {
  *   ?qa=cats100   seed 100 Cats to preview the compact multi-lane display
  *   ?qa=golden    spawn + pop a forced "frenzy" golden cookie, report the buff
  *   ?qa=save      export a save, corrupt state, re-import, verify round-trip
+ *   ?qa=backup    exercise the rolling save backup history (capture/list/restore)
  *   ?qa=content   validate content registries and report economy ordering
  * Never active in a plain production load. */
-if (debugSurface && params.has('qa') && params.get('qa') !== 'golden' && params.get('qa') !== 'save' && params.get('qa') !== 'perf' && params.get('qa') !== 'ascend' && params.get('qa') !== 'offline' && params.get('qa') !== 'special' && params.get('qa') !== 'a11y' && params.get('qa') !== 'wrinkler' && params.get('qa') !== 'icon' && params.get('qa') !== 'onecol' && params.get('qa') !== 'anim' && params.get('qa') !== 'binverter' && params.get('qa') !== 'content') {
+if (debugSurface && params.has('qa') && params.get('qa') !== 'golden' && params.get('qa') !== 'save' && params.get('qa') !== 'backup' && params.get('qa') !== 'perf' && params.get('qa') !== 'ascend' && params.get('qa') !== 'offline' && params.get('qa') !== 'special' && params.get('qa') !== 'a11y' && params.get('qa') !== 'wrinkler' && params.get('qa') !== 'icon' && params.get('qa') !== 'onecol' && params.get('qa') !== 'anim' && params.get('qa') !== 'binverter' && params.get('qa') !== 'content') {
 	const qaMode = params.get('qa'); // null for bare ?qa, else the value
 	const MINIGAME_BUILDINGS = ['Farm', 'Bank', 'Temple', 'Wizard tower'];
 	const tick = window.setInterval(() => {
@@ -277,6 +278,62 @@ if (debugSurface && params.get('qa') === 'save') {
 				'\n[QA-save] ' + (pass ? 'PASS: export->import round-trip restored state' : 'FAIL: state mismatch');
 		} catch (e: any) {
 			out.textContent = '[QA-save] ERROR: ' + e.constructor.name + ': ' + e.message;
+		}
+		window.clearInterval(tick);
+	}, 250);
+}
+
+// QA: verify the CC3 rolling save backups (systems/backup.ts). Captures
+// several known states, checks the history (order, dedupe, prune cap), then
+// restores an older backup and verifies the live state returns to it.
+// Usage: ?debug=1&qa=backup
+if (debugSurface && params.get('qa') === 'backup') {
+	const tick = window.setInterval(() => {
+		const G = window.Game;
+		if (!G || !G.ready || typeof G.WriteSave !== 'function' || typeof G.CaptureSave !== 'function' || typeof G.ListBackups !== 'function' || typeof G.RestoreBackup !== 'function') return;
+		if (G.__qaBackup) return;
+		G.__qaBackup = 1;
+		const out = document.createElement('div');
+		out.id = '__dbgqa';
+		out.style.cssText = 'position:fixed;top:0;left:0;z-index:99999;background:#fff;color:#060;font:12px monospace;white-space:pre-wrap;max-width:640px;';
+		document.body.appendChild(out);
+		try {
+			const backupKey = G.SaveTo + 'Backups';
+			// 1. capture three distinct states (cookies 100 / 200 / 300)
+			const captures: number[] = [];
+			for (const cookies of [100, 200, 300]) {
+				G.cookies = cookies;
+				G.recalculateGains = 1; G.CalculateGains();
+				G.CaptureSave(G.WriteSave(1));
+				captures.push(cookies);
+			}
+			const list1 = G.ListBackups(); // newest first
+			const countOk = list1.length === 3;
+			const orderOk = list1[0].timestamp > list1[1].timestamp && list1[1].timestamp > list1[2].timestamp;
+			// 2. dedupe: capturing the same save again adds nothing
+			G.CaptureSave(G.WriteSave(1));
+			const dedupeOk = G.ListBackups().length === 3;
+			// 3. prune: 12 captures keep only the newest 10
+			G.cookies = 400;
+			for (let i = 0; i < 9; i++) { G.CaptureSave(G.WriteSave(1) + '_' + i); }
+			const pruneOk = G.ListBackups().length === 10;
+			// 4. restore the oldest surviving backup (cookies=300; the 100 and 200
+			// entries were pruned by the cap) and verify the live state returns to it
+			const survivors = G.ListBackups(); // newest first
+			const oldest = survivors[survivors.length - 1];
+			const restoreOk = G.RestoreBackup(oldest.timestamp) && Math.abs(G.cookies - 300) < 0.01;
+			// 5. the restore wrote through to the main save slot (a fresh backup
+			// of the restored state is captured by the WriteSave hook)
+			const restoredSaved = Math.abs(G.cookies - 300) < 0.01 && G.ListBackups().length >= 10;
+			const pass = countOk && orderOk && dedupeOk && pruneOk && restoreOk && restoredSaved;
+			out.textContent =
+				'[QA-backup] captures=' + captures.join(',') + ' history=' + list1.length +
+				'\n[QA-backup] order newest-last: ' + orderOk + ' dedupe: ' + dedupeOk + ' prune-cap(10): ' + pruneOk +
+				'\n[QA-backup] restored cookies=' + G.cookies + ' (expect 300) restoreOk=' + restoreOk + ' restoredSaved=' + restoredSaved +
+				'\n[QA-backup] localStorage key=' + backupKey +
+				'\n[QA-backup] ' + (pass ? 'PASS: rolling backups capture, prune, and restore correctly' : 'FAIL: see checks above');
+		} catch (e: any) {
+			out.textContent = '[QA-backup] ERROR: ' + e.constructor.name + ': ' + e.message;
 		}
 		window.clearInterval(tick);
 	}, 250);

@@ -496,6 +496,13 @@ export interface Game {
 	WriteSave(type?: number): string;
 	ImportSaveCode(save: string): boolean;
 	ExportSaveCode(): string;
+	/* CC3 rolling save backups (systems/backup.ts): CaptureSave is called from
+	 * WriteSave; ListBackups/RestoreBackup/RefreshBackupList drive the Options
+	 * menu history. The backup entry shape is `{ timestamp, save }`. */
+	CaptureSave(saveData: string): void;
+	ListBackups(): Array<{ timestamp: number; save: string }>;
+	RestoreBackup(timestamp: number): boolean;
+	RefreshBackupList(): void;
 	CalculateGains(): void;
 	ValidateContent(): ContentValidationReport;
 	GetEconomyReport(): EconomyReport;

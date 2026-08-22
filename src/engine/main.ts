@@ -12,6 +12,7 @@ import { Upgrade, TieredUpgrade, SynergyUpgrade } from "./core/upgrade";
 import { HowMuchPrestige, HowManyCookiesReset, EarnHeavenlyChips, GetHeavenlyMultiplier, ComputeCps, GetTieredCpsMult } from "./systems/economy";
 import { ValidateContent, GetEconomyReport, SimulateEconomy, AnalyzeEconomy, SimulateStrategy } from "./systems/contentValidation";
 import { ExportSave, ImportSave, ImportSaveCode, FileSave, FileLoad, WriteSave, salvageSave, LoadSave } from "./systems/save";
+import { CaptureSave, ListBackups, RestoreBackup, RefreshBackupList } from "./systems/backup";
 import { Shimmer, updateShimmers, killShimmers } from "./systems/shimmer";
 import { getWrinklersMax, ResetWrinklers, CollectWrinklers, playWrinklerSquishSound, SpawnWrinkler, PopRandomWrinkler, UpdateWrinklers, DrawWrinklers, SaveWrinklers, LoadWrinklers } from "./systems/wrinkler";
 import { UpdateAscensionModePrompt, PickAscensionMode, UpdateAscendIntro, UpdateReincarnateIntro, Reincarnate, Ascend, UpdateAscend, AscendRefocus, PurchaseHeavenlyUpgrade, BuildAscendTree, lumpTooltip, computeLumpTimes, loadLumps, gainLumps, clickLump, harvestLumps, computeLumpType, canLumps, getLumpRefillMax, getLumpRefillRemaining, canRefillLump, refillLump, spendLump, doLumps } from "./systems/ascend";
@@ -1223,6 +1224,12 @@ Game.Launch=function()
 		Game.FileSave=FileSave;//CC3 rewrite (phase 4, slice 2): moved verbatim to systems/save.ts.
 		Game.FileLoad=FileLoad;//CC3 rewrite (phase 4, slice 2): moved verbatim to systems/save.ts.
 		
+		// CC3: rolling save backups (systems/backup.ts). CaptureSave is also
+		// called from WriteSave itself; the Game slots expose the menu + QA.
+		Game.CaptureSave=function(saveData: string){return CaptureSave(Game as any,saveData);};
+		Game.ListBackups=function(){return ListBackups(Game as any);};
+		Game.RestoreBackup=function(timestamp: number){return RestoreBackup(Game as any,timestamp);};
+		Game.RefreshBackupList=function(){return RefreshBackupList(Game as any);};
 		
 		Game.toReload=false;
 		Game.toSave=false;
