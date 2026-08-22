@@ -290,7 +290,7 @@ if (debugSurface && params.get('qa') === 'save') {
 if (debugSurface && params.get('qa') === 'backup') {
 	const tick = window.setInterval(() => {
 		const G = window.Game;
-		if (!G || !G.ready || typeof G.WriteSave !== 'function' || typeof G.CaptureSave !== 'function' || typeof G.ListBackups !== 'function' || typeof G.RestoreBackup !== 'function') return;
+		if (!G || !G.ready || typeof G.WriteSave !== 'function' || typeof G.CaptureSave !== 'function' || typeof G.ListBackups !== 'function' || typeof G.RestoreBackup !== 'function' || typeof G.DownloadBackup !== 'function') return;
 		if (G.__qaBackup) return;
 		G.__qaBackup = 1;
 		const out = document.createElement('div');
@@ -317,18 +317,21 @@ if (debugSurface && params.get('qa') === 'backup') {
 			G.cookies = 400;
 			for (let i = 0; i < 9; i++) { G.CaptureSave(G.WriteSave(1) + '_' + i); }
 			const pruneOk = G.ListBackups().length === 10;
-			// 4. restore the oldest surviving backup (cookies=300; the 100 and 200
-			// entries were pruned by the cap) and verify the live state returns to it
+			// 4. download the selected backup as a .txt save file (before restoring —
+			// the restore re-captures and would prune the oldest entry away)
 			const survivors = G.ListBackups(); // newest first
 			const oldest = survivors[survivors.length - 1];
+			const downloadOk = G.DownloadBackup(oldest.timestamp) && !G.DownloadBackup(1234567890123);
+			// 4b. restore the oldest surviving backup (cookies=300; the 100 and 200
+			// entries were pruned by the cap) and verify the live state returns to it
 			const restoreOk = G.RestoreBackup(oldest.timestamp) && Math.abs(G.cookies - 300) < 0.01;
 			// 5. the restore wrote through to the main save slot (a fresh backup
 			// of the restored state is captured by the WriteSave hook)
 			const restoredSaved = Math.abs(G.cookies - 300) < 0.01 && G.ListBackups().length >= 10;
-			const pass = countOk && orderOk && dedupeOk && pruneOk && restoreOk && restoredSaved;
+			const pass = countOk && orderOk && dedupeOk && pruneOk && restoreOk && restoredSaved && downloadOk;
 			out.textContent =
 				'[QA-backup] captures=' + captures.join(',') + ' history=' + list1.length +
-				'\n[QA-backup] order newest-last: ' + orderOk + ' dedupe: ' + dedupeOk + ' prune-cap(10): ' + pruneOk +
+				'\n[QA-backup] order newest-last: ' + orderOk + ' dedupe: ' + dedupeOk + ' prune-cap(10): ' + pruneOk + ' download: ' + downloadOk +
 				'\n[QA-backup] restored cookies=' + G.cookies + ' (expect 300) restoreOk=' + restoreOk + ' restoredSaved=' + restoredSaved +
 				'\n[QA-backup] localStorage key=' + backupKey +
 				'\n[QA-backup] ' + (pass ? 'PASS: rolling backups capture, prune, and restore correctly' : 'FAIL: see checks above');

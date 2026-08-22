@@ -368,7 +368,9 @@ test('?qa=save: save export -> import round-trip restores state', async ({ page 
 	expect(report).toMatch(/cat achievement=true/);
 });
 
-test('?qa=backup: rolling save backups capture, prune, and restore', async ({ page }) => {
+test('?qa=backup: rolling save backups capture, prune, restore, and download', async ({ page }) => {
+	const downloads = [];
+	page.on('download', (d) => downloads.push(d.suggestedFilename()));
 	await boot(page, '&qa=backup');
 	const report = await qaReport(page, /PASS: rolling backups capture, prune, and restore correctly/);
 	expect(report).not.toMatch(/ERROR/);
@@ -376,6 +378,8 @@ test('?qa=backup: rolling save backups capture, prune, and restore', async ({ pa
 	expect(report).toMatch(/dedupe: true/);
 	expect(report).toMatch(/prune-cap\(10\): true/);
 	expect(report).toMatch(/restored cookies=300/);
+	expect(report).toMatch(/download: true/);
+	expect(downloads.some((name) => /Backup-\d{4}-\d{4}\.txt$/.test(name))).toBe(true);
 });
 
 test('?qa=perf: 4-minigame frame cost holds the 30-tick loop target', async ({ page }) => {

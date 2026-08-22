@@ -12,7 +12,7 @@ import { Upgrade, TieredUpgrade, SynergyUpgrade } from "./core/upgrade";
 import { HowMuchPrestige, HowManyCookiesReset, EarnHeavenlyChips, GetHeavenlyMultiplier, ComputeCps, GetTieredCpsMult } from "./systems/economy";
 import { ValidateContent, GetEconomyReport, SimulateEconomy, AnalyzeEconomy, SimulateStrategy } from "./systems/contentValidation";
 import { ExportSave, ImportSave, ImportSaveCode, FileSave, FileLoad, WriteSave, salvageSave, LoadSave } from "./systems/save";
-import { CaptureSave, ListBackups, RestoreBackup, RefreshBackupList } from "./systems/backup";
+import { CaptureSave, ListBackups, RestoreBackup, DownloadBackup, RefreshBackupList } from "./systems/backup";
 import { Shimmer, updateShimmers, killShimmers } from "./systems/shimmer";
 import { getWrinklersMax, ResetWrinklers, CollectWrinklers, playWrinklerSquishSound, SpawnWrinkler, PopRandomWrinkler, UpdateWrinklers, DrawWrinklers, SaveWrinklers, LoadWrinklers } from "./systems/wrinkler";
 import { UpdateAscensionModePrompt, PickAscensionMode, UpdateAscendIntro, UpdateReincarnateIntro, Reincarnate, Ascend, UpdateAscend, AscendRefocus, PurchaseHeavenlyUpgrade, BuildAscendTree, lumpTooltip, computeLumpTimes, loadLumps, gainLumps, clickLump, harvestLumps, computeLumpType, canLumps, getLumpRefillMax, getLumpRefillRemaining, canRefillLump, refillLump, spendLump, doLumps } from "./systems/ascend";
@@ -1229,6 +1229,7 @@ Game.Launch=function()
 		Game.CaptureSave=function(saveData: string){return CaptureSave(Game as any,saveData);};
 		Game.ListBackups=function(){return ListBackups(Game as any);};
 		Game.RestoreBackup=function(timestamp: number){return RestoreBackup(Game as any,timestamp);};
+		Game.DownloadBackup=function(timestamp: number){return DownloadBackup(Game as any,timestamp);};
 		Game.RefreshBackupList=function(){return RefreshBackupList(Game as any);};
 		
 		Game.toReload=false;

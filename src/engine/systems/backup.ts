@@ -115,6 +115,30 @@ export function RestoreBackup(game: Game, timestamp: number): boolean {
 	return ok;
 }
 
+/** A file-safe name for a backup download, e.g. `MyBakeryBackup-0822-1433.txt`. */
+export function BackupFileName(game: Game, timestamp: number): string {
+	const date = new Date(timestamp);
+	const pad = (value: number) => String(value).padStart(2, '0');
+	const name = game.bakeryName.replace(/[^a-zA-Z0-9]+/g, '');
+	return name + 'Backup-' + pad(date.getMonth() + 1) + pad(date.getDate()) + '-' + pad(date.getHours()) + pad(date.getMinutes()) + '.txt';
+}
+
+/**
+ * Download a backup as a .txt save file — the same format the "Save to
+ * file" button produces, so the file imports like any other export. Mirrors
+ * FileSave's App guard (embedded hosts handle downloads themselves).
+ */
+export function DownloadBackup(game: Game, timestamp: number): boolean {
+	if (App) return false;
+	if (!Number.isFinite(timestamp)) return false;
+	const backups = readBackups(game);
+	const backup = backups.find((entry) => entry.timestamp === timestamp);
+	if (!backup || !backup.save) return false;
+	const blob = new Blob([backup.save], { type: 'text/plain;charset=utf-8' });
+	saveAs(blob, BackupFileName(game, timestamp));
+	return true;
+}
+
 /** The Options-menu dropdown markup for the backup list. */
 export function BackupListHtml(game: Game): string {
 	const backups = ListBackups(game);
@@ -128,7 +152,8 @@ export function BackupListHtml(game: Game): string {
 		'<div class="listing">' +
 		'<select id="backupSelect" style="max-width:220px;margin-right:4px;">' + options + '</select>' +
 		'<a class="option smallFancyButton" onclick="Game.RestoreBackup(parseInt(document.getElementById(\'backupSelect\').value,10));PlaySound(\'snd/tick.mp3\');">' + loc("Restore") + '</a>' +
-		'<label>' + loc("Restore an earlier autosave (keeps the last %1 saves)", String(BACKUP_LIMIT)) + '</label>' +
+		'<a class="option smallFancyButton" onclick="Game.DownloadBackup(parseInt(document.getElementById(\'backupSelect\').value,10));PlaySound(\'snd/tick.mp3\');">' + loc("Download backup file") + '</a>' +
+		'<label>' + loc("Restore or download an earlier autosave (keeps the last %1 saves)", String(BACKUP_LIMIT)) + '</label>' +
 		'</div>'
 	);
 }

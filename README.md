@@ -172,7 +172,9 @@ These weaken the CSP's XSS protection. That is an accepted, documented trade-off
   rolling save backups (`src/engine/systems/backup.ts`): every successful
   save is captured into a per-game localStorage history (deduplicated,
   pruned to the newest 10), and restoring an older backup returns the live
-  state to it. The Options menu's "Backups" section lists them for restore.
+  state to it. The Options menu's "Backups" section lists them for restore
+  or download as a timestamped `.txt` save file (same format as "Save to
+  file", so it imports anywhere).
   `?qa=ascend` drives the full
   ascension (Legacy/prestige) flow — `Game.Ascend(1)` intro (grants heavenly
   chips + prestige) then `Game.Reincarnate(1)` (the reset) — and verifies the
