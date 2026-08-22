@@ -71,6 +71,14 @@ test('?qa=golden: golden-cookie click path spawns a frenzy buff', async ({ page 
 	await assertNoUncaughtErrors(page);
 });
 
+test('?qa=content: typed content validation and economy report pass', async ({ page }) => {
+	await boot(page, '&qa=content');
+	const report = await qaReport(page, /PASS: typed content validation and economy report verified/);
+	expect(report).not.toMatch(/FAIL/);
+	expect(report).not.toMatch(/ERROR/);
+	expect(report).toMatch(/Grandma < Cats < Farm/);
+});
+
 test('Cursor upgrades: purchased finger sprite is applied to the cookie hands', async ({ page }) => {
 	await boot(page, '');
 	await page.waitForFunction(() => window.Game && window.Game.ready === 1 && window.Game.LeftBackground, null, BOOT);
@@ -114,6 +122,111 @@ test('Cursor upgrades: purchased finger sprite is applied to the cookie hands', 
 	expect(state.beforePurchase).toBe(0);
 	expect(state.iconDraws).toBeGreaterThan(0);
 	expect(state.iconSource).toEqual(state.expectedSource);
+	await assertNoUncaughtErrors(page);
+});
+
+test('Grandmas: cozy idle motion stays grounded and purchases get a bounce state', async ({ page }) => {
+	await boot(page, '');
+	await page.waitForFunction(() => window.Game && window.Game.ready === 1 && window.Game.Objects.Grandma && window.Game.Objects.Grandma.canvas, null, BOOT);
+	const state = await page.evaluate(async () => {
+		const G = window.Game;
+		const grandma = G.Objects.Grandma;
+		grandma.amount = 3;
+		grandma.unlocked = 1;
+		grandma.bought = 3;
+		grandma.refresh();
+		await new Promise((resolve) => setTimeout(resolve, 500));
+		const firstFrame = grandma.canvas.toDataURL();
+		const positionsBefore = grandma.pics.map((pic) => [pic.x, pic.y]);
+		await new Promise((resolve) => setTimeout(resolve, 500));
+		const secondFrame = grandma.canvas.toDataURL();
+		const positionsAfter = grandma.pics.map((pic) => [pic.x, pic.y]);
+		grandma.amount = 4;
+		grandma.bought = 4;
+		grandma.refresh();
+		await new Promise((resolve) => setTimeout(resolve, 150));
+		const newGrandma = grandma.pics.find((pic) => pic.id === 3);
+		return {
+			animationChanged: firstFrame !== secondFrame,
+			positionsStable: JSON.stringify(positionsBefore) === JSON.stringify(positionsAfter),
+			newGrandmaBorn: newGrandma && typeof newGrandma.born === 'number',
+		};
+	});
+	expect(state.animationChanged).toBe(true);
+	expect(state.positionsStable).toBe(true);
+	expect(state.newGrandmaBorn).toBe(true);
+	await assertNoUncaughtErrors(page);
+});
+
+test('Cats: 24 balanced upgrades use the Protein spritesheet and apply mixed bonuses', async ({ page }) => {
+	await boot(page, '');
+	await page.waitForFunction(() => window.Game && window.Game.ready === 1 && window.Game.Objects.Cats, null, BOOT);
+	const state = await page.evaluate(async () => {
+		const G = window.Game;
+		const cats = G.Objects.Cats;
+		const baseNames = [
+			'Cardboard box basics','Sunbeam training','Whisker refinement','Midnight zoomies',
+			'Tuna-grade nutrition','Claw-powered kneading','Purrfect production','Nine-lives efficiency',
+			'Feline assembly','Astral catnaps','Infinite yarn loop','Quantum litter boxes',
+			'Cosmic whisker arrays','Protein singularity'
+		];
+		const specialNames = [
+			'Grandma-approved recipes','Purrfect timing','Cat café loyalty','Protein-rich kibble',
+			'Feather wand drills','Sunbeam perches','Catnip cultivation','Scratching-post ovens',
+			'Climbing shelves','Nine lives logistics'
+		];
+		const allNames = baseNames.concat(specialNames);
+		const load = (name) => new Promise((resolve, reject) => {
+			const image = new Image();
+			image.onload = () => resolve([image.naturalWidth, image.naturalHeight]);
+			image.onerror = reject;
+			image.src = name;
+		});
+		const sheet = await load('img/cat-upgrades/protein_spritesheet.png');
+		cats.amount = 75;
+		cats.unlocked = 1;
+		cats.bought = 75;
+		cats.buyFunction();
+		cats.refresh();
+		const upgrades = allNames.map((name) => G.Upgrades[name]);
+		const basePrices = baseNames.map((name) => G.Upgrades[name].basePrice);
+		const iconCount = upgrades.filter((upgrade) => upgrade && upgrade.icon[2] === 'img/cat-upgrades/protein_spritesheet.png').length;
+		const unlockedAt75 = specialNames.slice(0, 4).every((name) => G.Upgrades[name].unlocked === 1);
+		// Verify all 24 Cat upgrades are tied to the Cats building with tier keys
+		const buildingTieCount = upgrades.filter((u) => u && u.buildingTie && u.buildingTie.name === 'Cats').length;
+		const tierCount = upgrades.filter((u) => u && u.tier).length;
+		const tieredInBuilding = Object.keys(cats.tieredUpgrades || {}).length;
+		const grandma = G.Objects.Grandma;
+		grandma.amount = 10;
+		for (const name of allNames) G.Upgrades[name].bought = 0;
+		G.CalculateGains();
+		const baseline = { catCps: cats.storedCps, cps: G.cookiesPs, click: G.computedMouseCps };
+		for (const name of ['Grandma-approved recipes','Purrfect timing','Cat café loyalty','Protein-rich kibble']) G.Upgrades[name].bought = 1;
+		G.CalculateGains();
+		return {
+			registered: upgrades.filter(Boolean).length,
+			sheet,
+			iconCount,
+			basePrices,
+			unlockedAt75,
+			buildingTieCount,
+			tierCount,
+			tieredInBuilding,
+			boosted: { catCps: cats.storedCps, cps: G.cookiesPs, click: G.computedMouseCps },
+			baseline,
+		};
+	});
+	expect(state.registered).toBe(24);
+	expect(state.sheet).toEqual([288, 192]);
+	expect(state.iconCount).toBe(24);
+	expect(state.basePrices.every((price, index, prices) => index === 0 || price > prices[index - 1])).toBe(true);
+	expect(state.unlockedAt75).toBe(true);
+	expect(state.buildingTieCount).toBe(24);
+	expect(state.tierCount).toBe(24);
+	expect(state.tieredInBuilding).toBe(24);
+	expect(state.boosted.catCps).toBeGreaterThan(state.baseline.catCps);
+	expect(state.boosted.cps).toBeGreaterThan(state.baseline.cps);
+	expect(state.boosted.click).toBeGreaterThan(state.baseline.click);
 	await assertNoUncaughtErrors(page);
 });
 

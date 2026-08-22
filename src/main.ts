@@ -56,8 +56,9 @@ if (debugSurface) {
  *   ?qa=cats100   seed 100 Cats to preview the compact multi-lane display
  *   ?qa=golden    spawn + pop a forced "frenzy" golden cookie, report the buff
  *   ?qa=save      export a save, corrupt state, re-import, verify round-trip
+ *   ?qa=content   validate content registries and report economy ordering
  * Never active in a plain production load. */
-if (debugSurface && params.has('qa') && params.get('qa') !== 'golden' && params.get('qa') !== 'save' && params.get('qa') !== 'perf' && params.get('qa') !== 'ascend' && params.get('qa') !== 'offline' && params.get('qa') !== 'special' && params.get('qa') !== 'a11y' && params.get('qa') !== 'wrinkler' && params.get('qa') !== 'icon' && params.get('qa') !== 'onecol' && params.get('qa') !== 'anim' && params.get('qa') !== 'binverter') {
+if (debugSurface && params.has('qa') && params.get('qa') !== 'golden' && params.get('qa') !== 'save' && params.get('qa') !== 'perf' && params.get('qa') !== 'ascend' && params.get('qa') !== 'offline' && params.get('qa') !== 'special' && params.get('qa') !== 'a11y' && params.get('qa') !== 'wrinkler' && params.get('qa') !== 'icon' && params.get('qa') !== 'onecol' && params.get('qa') !== 'anim' && params.get('qa') !== 'binverter' && params.get('qa') !== 'content') {
 	const qaMode = params.get('qa'); // null for bare ?qa, else the value
 	const MINIGAME_BUILDINGS = ['Farm', 'Bank', 'Temple', 'Wizard tower'];
 	const tick = window.setInterval(() => {
@@ -118,6 +119,50 @@ if (debugSurface && params.has('qa') && params.get('qa') !== 'golden' && params.
 			}
 			if (farm.onMinigame) window.clearInterval(tick); // Garden open: done
 		}
+	}, 250);
+}
+
+// QA: validate registered content and report the current building economy.
+// This is intentionally read-only with respect to content definitions; it seeds
+// three building counts only so the report has comparable per-building values.
+// Usage: ?debug=1&qa=content
+if (debugSurface && params.get('qa') === 'content') {
+	const tick = window.setInterval(() => {
+		const G = window.Game;
+		if (!G || !G.ready || !G.Objects || typeof G.ValidateContent !== 'function' || typeof G.GetEconomyReport !== 'function') return;
+		if (G.__qaContent) return;
+		G.__qaContent = 1;
+		const out = document.createElement('div');
+		out.id = '__dbgqa';
+		out.style.cssText = 'position:fixed;top:0;left:0;z-index:99999;background:#fff;color:#060;font:12px monospace;white-space:pre-wrap;max-width:760px;';
+		document.body.appendChild(out);
+		try {
+			const names = ['Grandma', 'Cats', 'Farm'];
+			for (const name of names) {
+				const building = G.Objects[name];
+				if (!building) throw new Error('Missing building: ' + name);
+				building.amount = 10;
+				building.unlocked = 1;
+				building.bought = 10;
+			}
+			G.recalculateGains = 1;
+			const validation = G.ValidateContent();
+			const report = G.GetEconomyReport();
+			const selected = names.map((name) => report.buildings.find((building) => building.name === name));
+			const orderOk = selected[0] && selected[1] && selected[2] && selected[0].storeOrder < selected[1].storeOrder && selected[1].storeOrder < selected[2].storeOrder;
+			const cpsOk = selected[0] && selected[1] && selected[2] && selected[0].cpsPerBuilding < selected[1].cpsPerBuilding && selected[1].cpsPerBuilding < selected[2].cpsPerBuilding;
+			const pass = validation.valid && orderOk && cpsOk;
+			out.textContent =
+				'[QA-content] validation: ' + (validation.valid ? 'PASS' : 'FAIL') + ' (' + validation.buildingCount + ' buildings, ' + validation.upgradeCount + ' upgrades, ' + validation.errors + ' errors)\n' +
+				'[QA-content] economy snapshot total CpS=' + report.totalCps.toFixed(2) + '\n' +
+				selected.map((building) => building ? '[QA-content] ' + building.name + ': order=' + building.storeOrder + ', amount=' + building.amount + ', CpS/unit=' + building.cpsPerBuilding.toFixed(2) + ', total=' + building.totalCps.toFixed(2) : '[QA-content] missing building').join('\n') + '\n' +
+				'[QA-content] store order Grandma < Cats < Farm: ' + (orderOk ? 'PASS' : 'FAIL') + '\n' +
+				'[QA-content] CpS/unit Grandma < Cats < Farm: ' + (cpsOk ? 'PASS' : 'FAIL') + '\n' +
+				'[QA-content] ' + (pass ? 'PASS: typed content validation and economy report verified' : 'FAIL: see checks above');
+		} catch (e: any) {
+			out.textContent = '[QA-content] ERROR: ' + e.constructor.name + ': ' + e.message;
+		}
+		window.clearInterval(tick);
 	}, 250);
 }
 
