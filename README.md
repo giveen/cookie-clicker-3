@@ -187,7 +187,14 @@ These weaken the CSP's XSS protection. That is an accepted, documented trade-off
   upgrade, tier, registry, and store-order relationships, then prints a typed
   economy snapshot for Grandma, Cats, and Farm. The same helpers are available
   to development tooling as `Game.ValidateContent()` and
-  `Game.GetEconomyReport()`. `?qa=wrinkler` drives the
+  `Game.GetEconomyReport()`. For a complete read-only audit, use
+  `Game.AnalyzeEconomy({ levels: [1, 10, 25, 50, 100, 250, 500] })`; it reports
+  every building, every upgrade's contextual CpS/click contribution and
+  payback, plus fresh-run milestone scenarios and total investment. Custom
+  scenarios can provide `{ label, buildings, upgrades }`. The analyzer
+  snapshots and restores the live building, upgrade, cookie, and calculated
+  economy state. `?qa=content` exercises the all-building/all-upgrade coverage.
+  `?qa=wrinkler` drives the
 Grandmapocalypse wrinklers: it enables `Game.elderWrath`, spawns a fully visible
 (phase 2) wrinkler, checks it sets `Game.cpsSucked` (5% of CpS, lowering the
 displayed CpS + draining cookies), then pops it and verifies `Game.wrinklersPopped`

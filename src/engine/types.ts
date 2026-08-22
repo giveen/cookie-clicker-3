@@ -190,11 +190,62 @@ export interface EconomyBuildingReport {
 	cpsPerBuilding: number;
 	totalCps: number;
 	share: number;
+	nextPurchaseCost: number;
+	marginalCps: number;
+	paybackSeconds: number;
 }
 
 export interface EconomyReport {
 	totalCps: number;
 	buildings: EconomyBuildingReport[];
+}
+
+export interface EconomySimulationPoint {
+	amounts: Record<string, number>;
+	totalCps: number;
+	buildings: EconomyBuildingReport[];
+}
+
+export interface EconomyUpgradeReport {
+	name: string;
+	id: number;
+	pool: string;
+	buildingNames: string[];
+	basePrice: number;
+	currentPrice: number;
+	bought: boolean;
+	unlocked: boolean;
+	ownedCps: number;
+	purchaseCps: number;
+	ownedClickCps: number;
+	purchaseClickCps: number;
+	paybackSeconds: number;
+}
+
+export interface EconomyMilestoneReport {
+	label: string;
+	buildingAmounts: Record<string, number>;
+	totalInvestment: number;
+	totalCps: number;
+	clickCps: number;
+	leadingBuildings: string[];
+}
+
+export interface EconomyAnalysisOptions {
+	/** Explicit milestone scenarios. Omit to use levels 1/10/25/50/100/250/500 for every building. */
+	scenarios?: Array<{ label: string; buildings: Record<string, number>; upgrades?: string[] }>;
+	/** Ownership levels used by the default milestone set. */
+	levels?: number[];
+}
+
+export interface FullEconomyReport {
+	buildingCount: number;
+	upgradeCount: number;
+	baselineCps: number;
+	baselineClickCps: number;
+	buildings: EconomyBuildingReport[];
+	upgrades: EconomyUpgradeReport[];
+	milestones: EconomyMilestoneReport[];
 }
 
 export interface Tier {
@@ -385,6 +436,8 @@ export interface Game {
 	CalculateGains(): void;
 	ValidateContent(): ContentValidationReport;
 	GetEconomyReport(): EconomyReport;
+	SimulateEconomy(scenarios: Record<string, number>[]): EconomySimulationPoint[];
+	AnalyzeEconomy(options?: EconomyAnalysisOptions): FullEconomyReport;
 	ClickCookie(e: MouseEvent | null, amount?: number): void;
 	/* pic accepts an [iconColumn, iconRow] pair, a bare icon column/row, or a
 	 * sound name — the engine handles all of these at runtime. */

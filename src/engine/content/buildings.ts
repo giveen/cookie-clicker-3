@@ -144,6 +144,8 @@ export function declareVanillaBuildings(Game: EngineGame) {
 		},function (this: Building) {
 			Game.UnlockTiered(this);
 			if (this.amount>=Game.SpecialGrandmaUnlock && Game.Objects['Grandma'].amount>0) Game.Unlock(this.grandma!.name);
+			if (this.amount>=25) Game.Win('Barnstormer');
+			if (this.amount>=100) Game.Win('A field of dreams');
 		});
 		Game.last.minigameUrl='minigameGarden.js';
 		Game.last.minigameName=loc("Garden");
@@ -444,6 +446,8 @@ export function declareVanillaBuildings(Game: EngineGame) {
 			{
 				if (this.amount>=catUpgradeUnlocks[catUpgradeUnlockIndex][0]) Game.Unlock(catUpgradeUnlocks[catUpgradeUnlockIndex][1]);
 			}
+			if (this.amount>=100) Game.Win('A cat for every cushion');
+			if (this.amount>=450) Game.Win('The whole litter');
 		});
 		// The automatic building curve is intentionally overridden: 500 cookies
 		// for 4 CpS sits between Grandma (100/1) and Farm (1100/8).

@@ -129,7 +129,7 @@ if (debugSurface && params.has('qa') && params.get('qa') !== 'golden' && params.
 if (debugSurface && params.get('qa') === 'content') {
 	const tick = window.setInterval(() => {
 		const G = window.Game;
-		if (!G || !G.ready || !G.Objects || typeof G.ValidateContent !== 'function' || typeof G.GetEconomyReport !== 'function') return;
+		if (!G || !G.ready || !G.Objects || typeof G.ValidateContent !== 'function' || typeof G.GetEconomyReport !== 'function' || typeof G.AnalyzeEconomy !== 'function') return;
 		if (G.__qaContent) return;
 		G.__qaContent = 1;
 		const out = document.createElement('div');
@@ -148,16 +148,26 @@ if (debugSurface && params.get('qa') === 'content') {
 			G.recalculateGains = 1;
 			const validation = G.ValidateContent();
 			const report = G.GetEconomyReport();
+			const simulation = G.SimulateEconomy([{ Grandma: 10, Cats: 10, Farm: 10 }]);
+			const analysis = G.AnalyzeEconomy({ levels: [1, 10] });
 			const selected = names.map((name) => report.buildings.find((building) => building.name === name));
 			const orderOk = selected[0] && selected[1] && selected[2] && selected[0].storeOrder < selected[1].storeOrder && selected[1].storeOrder < selected[2].storeOrder;
 			const cpsOk = selected[0] && selected[1] && selected[2] && selected[0].cpsPerBuilding < selected[1].cpsPerBuilding && selected[1].cpsPerBuilding < selected[2].cpsPerBuilding;
-			const pass = validation.valid && orderOk && cpsOk;
+			const paybackOk = selected.every((building) => building && building.nextPurchaseCost > 0 && building.marginalCps > 0 && Number.isFinite(building.paybackSeconds));
+			const simulationOk = simulation.length === 1 && simulation[0].buildings.some((building) => building.name === 'Cats' && building.amount === 10) && G.Objects['Grandma'].amount === 10 && G.Objects['Cats'].amount === 10 && G.Objects['Farm'].amount === 10;
+			const achievementOk = ['Cat nap council','Purrfectly populated','Nine lives, nine rows','The purrduction line','A cat for every cushion','The whole litter','Barnstormer','A field of dreams','From barn to bakery'].every((name) => !!G.Achievements[name]);
+			const analysisOk = analysis.buildingCount === Object.keys(G.Objects).length && analysis.upgradeCount === Object.keys(G.Upgrades).length && analysis.milestones.length === analysis.buildingCount * 2 && analysis.upgrades.length === analysis.upgradeCount && G.Objects['Grandma'].amount === 10 && G.Objects['Cats'].amount === 10 && G.Objects['Farm'].amount === 10;
+			const pass = validation.valid && orderOk && cpsOk && paybackOk && simulationOk && achievementOk && analysisOk;
 			out.textContent =
 				'[QA-content] validation: ' + (validation.valid ? 'PASS' : 'FAIL') + ' (' + validation.buildingCount + ' buildings, ' + validation.upgradeCount + ' upgrades, ' + validation.errors + ' errors)\n' +
 				'[QA-content] economy snapshot total CpS=' + report.totalCps.toFixed(2) + '\n' +
 				selected.map((building) => building ? '[QA-content] ' + building.name + ': order=' + building.storeOrder + ', amount=' + building.amount + ', CpS/unit=' + building.cpsPerBuilding.toFixed(2) + ', total=' + building.totalCps.toFixed(2) : '[QA-content] missing building').join('\n') + '\n' +
 				'[QA-content] store order Grandma < Cats < Farm: ' + (orderOk ? 'PASS' : 'FAIL') + '\n' +
 				'[QA-content] CpS/unit Grandma < Cats < Farm: ' + (cpsOk ? 'PASS' : 'FAIL') + '\n' +
+				'[QA-content] next purchase cost/marginal CpS/payback: ' + (paybackOk ? 'PASS' : 'FAIL') + '\n' +
+				'[QA-content] simulator restores live counts: ' + (simulationOk ? 'PASS' : 'FAIL') + '\n' +
+				'[QA-content] Cat/Farm achievements registered: ' + (achievementOk ? 'PASS' : 'FAIL') + '\n' +
+				'[QA-content] full analysis covers all buildings/upgrades and restores counts: ' + (analysisOk ? 'PASS' : 'FAIL') + '\n' +
 				'[QA-content] ' + (pass ? 'PASS: typed content validation and economy report verified' : 'FAIL: see checks above');
 		} catch (e: any) {
 			out.textContent = '[QA-content] ERROR: ' + e.constructor.name + ': ' + e.message;
@@ -218,11 +228,14 @@ if (debugSurface && params.get('qa') === 'save') {
 		out.style.cssText = 'position:fixed;top:0;left:0;z-index:99999;background:#fff;color:#060;font:12px monospace;white-space:pre-wrap;max-width:640px;';
 		document.body.appendChild(out);
 		try {
-			const COOKIES = 12345.678, CURSORS = 10, GRANDMAS = 5;
-			// 1. seed state A
+			const COOKIES = 12345.678, CURSORS = 10, GRANDMAS = 5, CATS = 7;
+			// 1. seed state A, including the new Cat building/content
 			G.cookies = COOKIES;
 			G.Objects['Cursor'].amount = CURSORS; G.Objects['Cursor'].unlocked = 1; G.Objects['Cursor'].bought = 1;
 			G.Objects['Grandma'].amount = GRANDMAS; G.Objects['Grandma'].unlocked = 1; G.Objects['Grandma'].bought = 1;
+			G.Objects['Cats'].amount = CATS; G.Objects['Cats'].unlocked = 1; G.Objects['Cats'].bought = CATS;
+			G.Upgrades['Cardboard box basics'].unlocked = 1; G.Upgrades['Cardboard box basics'].bought = 1;
+			G.Achievements['Cat nap council'].won = 1;
 			G.recalculateGains = 1; G.CalculateGains();
 			const cpsA = G.cookiesPs;
 			// 2. export the save string
@@ -231,6 +244,9 @@ if (debugSurface && params.get('qa') === 'save') {
 			G.cookies = 7;
 			G.Objects['Cursor'].amount = 0;
 			G.Objects['Grandma'].amount = 0;
+			G.Objects['Cats'].amount = 0;
+			G.Upgrades['Cardboard box basics'].bought = 0;
+			G.Achievements['Cat nap council'].won = 0;
 			G.recalculateGains = 1; G.CalculateGains();
 			const cpsCorrupt = G.cookiesPs;
 			// 4. re-import the export
@@ -240,15 +256,18 @@ if (debugSurface && params.get('qa') === 'save') {
 			const cookiesOk = Math.abs(G.cookies - COOKIES) < 0.01;
 			const cursorsOk = G.Objects['Cursor'].amount === CURSORS;
 			const grandmasOk = G.Objects['Grandma'].amount === GRANDMAS;
+			const catsOk = G.Objects['Cats'].amount === CATS;
+			const catUpgradeOk = G.Upgrades['Cardboard box basics'].bought === 1;
+			const catAchievementOk = G.Achievements['Cat nap council'].won === 1;
 			const cpsOk = Math.abs(G.cookiesPs - cpsA) < 0.01;
-			const pass = ok && cookiesOk && cursorsOk && grandmasOk && cpsOk;
+			const pass = ok && cookiesOk && cursorsOk && grandmasOk && catsOk && catUpgradeOk && catAchievementOk && cpsOk;
 			out.textContent =
 				'[QA-save] export length=' + saveStr.length +
 				'\n[QA-save] ImportSaveCode returned=' + ok +
-				'\n[QA-save] state A: cookies=' + COOKIES + ' cursors=' + CURSORS + ' grandmas=' + GRANDMAS + ' cps=' + cpsA.toFixed(2) +
-				'\n[QA-save] corrupted: cookies=7 cursors=0 grandmas=0 cps=' + cpsCorrupt.toFixed(2) +
-				'\n[QA-save] after import: cookies=' + G.cookies.toFixed(3) + ' cursors=' + G.Objects['Cursor'].amount + ' grandmas=' + G.Objects['Grandma'].amount + ' cps=' + G.cookiesPs.toFixed(2) +
-				'\n[QA-save] checks: cookies=' + cookiesOk + ' cursors=' + cursorsOk + ' grandmas=' + grandmasOk + ' cps=' + cpsOk +
+				'\n[QA-save] state A: cookies=' + COOKIES + ' cursors=' + CURSORS + ' grandmas=' + GRANDMAS + ' cats=' + CATS + ' cps=' + cpsA.toFixed(2) +
+				'\n[QA-save] corrupted: cookies=7 cursors=0 grandmas=0 cats=0 cps=' + cpsCorrupt.toFixed(2) +
+				'\n[QA-save] after import: cookies=' + G.cookies.toFixed(3) + ' cursors=' + G.Objects['Cursor'].amount + ' grandmas=' + G.Objects['Grandma'].amount + ' cats=' + G.Objects['Cats'].amount + ' cps=' + G.cookiesPs.toFixed(2) +
+				'\n[QA-save] checks: cookies=' + cookiesOk + ' cursors=' + cursorsOk + ' grandmas=' + grandmasOk + ' cats=' + catsOk + ' cat upgrade=' + catUpgradeOk + ' cat achievement=' + catAchievementOk + ' cps=' + cpsOk +
 				'\n[QA-save] ' + (pass ? 'PASS: export->import round-trip restored state' : 'FAIL: state mismatch');
 		} catch (e: any) {
 			out.textContent = '[QA-save] ERROR: ' + e.constructor.name + ': ' + e.message;
