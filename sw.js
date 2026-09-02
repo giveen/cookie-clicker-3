@@ -11,7 +11,7 @@
  *     can never turn into a failed fetch.
  *
  * Deploy updates: CACHE is stamped at build time (the cc3:stamp-service-worker
- * plugin in vite.config.ts) — `4f370e6afdf6` becomes a content hash of the built
+ * plugin in vite.config.ts) — `3a6257770a52` becomes a content hash of the built
  * dist/, so every changed build gets a new cache name. Returning clients then
  * see the changed sw.js on their next navigation, install the new SW, and its
  * activate() drops the old cache. With a static cache name the browser would
@@ -20,7 +20,7 @@
  * file is served as-is with the literal placeholder; the SW only registers in
  * production builds, so the placeholder never becomes a live cache name.
  */
-const CACHE = 'cookie-clicker-3-4f370e6afdf6';
+const CACHE = 'cookie-clicker-3-3a6257770a52';
 const MAX_ENTRIES = 512;
 
 self.addEventListener('install', (event) => {
@@ -40,6 +40,14 @@ self.addEventListener('fetch', (event) => {
 	const { request } = event;
 	if (request.method !== 'GET') return;
 	if (new URL(request.url).origin !== self.location.origin) return;
+
+	// CC3 perf: media requests are excluded from the SW entirely. Streaming
+	// <audio> is fetched with Range requests (cache.put() would strip the 206
+	// body; storing the full 200 would pin ~12 MB of music in the 512-entry
+	// cache), and tracks only load on first play anyway. Bypassing the SW lets
+	// the browser's own media pipeline (and its HTTP cache) handle them.
+	const url = new URL(request.url);
+	if (url.pathname.startsWith('/snd/music/') || request.headers.has('range')) return;
 
 	event.respondWith(
 		(async () => {
