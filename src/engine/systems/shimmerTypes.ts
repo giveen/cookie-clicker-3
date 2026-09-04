@@ -155,7 +155,13 @@ type BoundsRect = { left: number; right: number; top: number; bottom: number };
 					else if (Math.random()<0.03 && Game.cookiesEarned>=100000) list.push('chain cookie','cookie storm');
 					if (Math.random()<0.05 && Game.season=='fools') list.push('everything must go');
 					if (Math.random()<0.1 && (Math.random()<0.05 || !Game.hasBuff('Dragonflight'))) list.push('click frenzy');
+					//CC3: Zoomies — rare cat-themed treat, rarer than Click frenzy
+					//and only with 10+ cats so the celebration always has an audience.
+					if (Game.Objects['Cats'] && Game.Objects['Cats'].amount>=10 && Math.random()<0.05) list.push('zoomies');
 					if (me.wrath && Math.random()<0.1) list.push('cursed finger');
+					//CC3: Hairball — wrath-cookie cat debuff, the sour mirror of
+					//Zoomies, with the same 10+ cats gate.
+					if (me.wrath && Game.Objects['Cats'] && Game.Objects['Cats'].amount>=10 && Math.random()<0.25) list.push('hairball');
 					
 					if (Game.BuildingsOwned>=10 && Math.random()<0.25) list.push('building special');
 					
@@ -303,6 +309,14 @@ type BoundsRect = { left: number; right: number; top: number; bottom: number };
 					else if (choice=='click frenzy')
 					{
 						buff=Game.gainBuff('click frenzy',Math.ceil(13*effectDurMod),777);
+					}
+					else if (choice=='zoomies')
+					{
+						buff=Game.gainBuff('zoomies',Math.ceil(7*effectDurMod),777);
+					}
+					else if (choice=='hairball')
+					{
+						buff=Game.gainBuff('hairball',Math.ceil(30*effectDurMod),0.1);
 					}
 					else if (choice=='dragonflight')
 					{
@@ -599,6 +613,7 @@ type BoundsRect = { left: number; right: number; top: number; bottom: number };
 			"Elder frenzy","blood frenzy",
 			"Clot","clot",
 			"Click frenzy","click frenzy",
+			"Zoomies","zoomies",
 			"Cursed finger","cursed finger",
 			"Cookie chain","chain cookie",
 			"Cookie storm","cookie storm",
@@ -628,4 +643,10 @@ type BoundsRect = { left: number; right: number; top: number; bottom: number };
 			'Javascript console':['Refactoring','Antipattern'],
 			'Idleverse':['Cosmic nursery','Big crunch'],
 			'Cortex baker':['Brainstorm','Brain freeze'],
+			// CC3: the Cats building participates in "Building special" (any
+			// Game.Object with amount>=10 can be picked), so it needs entries in
+			// this map — buffs.ts reads Game.goldenCookieBuildingBuffs[obj.name]
+			// unguarded and a missing key crashes the cookie click with a
+			// TypeError.
+			'Cats':['Purrfect synergy','Catnapped'],
 		};

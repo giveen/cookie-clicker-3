@@ -115,6 +115,10 @@ export function declareCats(Game: EngineGame) {
 				for (var i2 in Game.CatSynergies) { if (Game.Has(Game.CatSynergies[i2])) catSynergiesOwned++; }
 				catMult*=1+0.05*catSynergiesOwned;
 			}
+			// CC3: the wrath-cookie Hairball debuff cuts cat production only
+			// (the buff carries no multCpS; this reads its `power` directly).
+			var hairballBuff=Game.hasBuff('Hairball');
+			if (hairballBuff) mult*=hairballBuff.power?hairballBuff.power:0.1;
 			return (me.baseCps+catAdd)*mult*catMult;
 		},function (this: Building) {
 			Game.UnlockTiered(this);
@@ -152,7 +156,13 @@ export function declareCats(Game: EngineGame) {
 		// The normal building renderer keeps sprites static. Cats use the same
 		// canvas and amount-based layout as Grandma, with a mostly-idle mix of
 		// animation personalities so buying more visibly changes the scene.
-		var catAnimationModes=[0,1,0,2,0,3,0,4];//idle, walk, idle, run, idle, jump, idle, running jump
+		var catAnimationModes=[0,1,0,0,0,0,0,0];//idle, walk, idle, idle, idle, idle, idle, idle
+		// While the Zoomies golden-cookie buff is active the whole herd dashes:
+		// same draw loop, just a walk/run-heavy mix and double frame speed.
+		var catZoomiesModes=[0,1,1,2,1,0,2,1];//idle, walk, walk, run, walk, idle, run, walk
+		// During the wrath-cookie Hairball debuff every cat stops to cough:
+		// pure idle mix at half frame speed (the hurt sheet lives at index 6).
+		var catHairballModes=[0,0,6,0,0,0,0,0];//idle, idle, hurt, idle, idle, idle, idle, idle
 		cats.draw=function(this: Building)
 		{
 			if (this.amount<=0 || !this.canvas || !this.ctx) return false;
@@ -168,9 +178,9 @@ export function declareCats(Game: EngineGame) {
 			// Keep every cat at the original 80x64 sprite size. A large amount
 			// may overlap on the ground, but cats should never shrink or float
 			// into the sky just because more were purchased.
-			// CC3: capped at 50 (was 100) — the full herd of animated sprites at
-			// 80x64 with per-cat motion math cost visible frame time.
-			var count=Math.min(this.amount,50);
+		// CC3: capped at 30 (was 50) — the full herd of animated sprites at
+		// 80x64 with per-cat motion math cost visible frame time.
+		var count=Math.min(this.amount,30);
 			var catScale=1;
 			ctx.clearRect(0,0,width,height);
 			ctx.imageSmoothingEnabled=false;
@@ -189,13 +199,20 @@ export function declareCats(Game: EngineGame) {
 
 			for (var i=0;i<count;i++)
 			{
-				// Most cats are idle, while later purchases introduce walkers,
-				// runners, and playful reactions. This is independent of the
-				// unrelated "fancy" preference so the cats always animate.
-				var animationIndex=catAnimationModes[i%catAnimationModes.length];
+				// Most cats are idle; only every eighth cat walks the floor and
+				// none run — a herd of crossing sprites was the main animation
+				// cost. Exceptions give the cat cookies a visual payoff in the
+				// room: Zoomies sends the herd dashing, Hairball stops it to
+				// cough (both swap the mode mix and the frame speed). This is
+				// independent of the unrelated "fancy" preference so the cats
+				// always animate.
+				var zoomies=Game.hasBuff('Zoomies')?1:0;
+				var hairball=Game.hasBuff('Hairball')?1:0;
+				var modes=zoomies?catZoomiesModes:(hairball?catHairballModes:catAnimationModes);
+				var animationIndex=modes[i%modes.length];
 				var animation=catAnimations[animationIndex];
 				var sprite=Pic(animation.pic);
-				var frame=Math.floor((Game.T+i*7)/3)%animation.frames;
+				var frame=Math.floor((Game.T+i*7)/(zoomies?2:(hairball?8:4)))%animation.frames;
 				var drawWidth=animation.width*catScale;
 				var drawHeight=64*catScale;
 				var travelDistance=Math.max(1,width-drawWidth);

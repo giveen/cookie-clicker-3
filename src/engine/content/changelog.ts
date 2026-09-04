@@ -78,6 +78,10 @@ export function declareVanillaChangelog(Game: EngineGame) {
 	'<div class="listing">&bull; the Cracking cookie\'s crumble got a visual pass: the crack starts hairline and widens like the ascension intro, chunks fly tighter, the faint gray box is gone, and click particles and wrinklers stay visible above the cracked cookie</div>'+
 	'<div class="listing">&bull; store rows that haven\'t changed are no longer rewritten on every refresh, keeping purchases snappy even in a full store grid</div>'+
 	'<div class="listing">&bull; fixed the Cat Colony panel not refreshing when the cat count changes</div>'+
+	'<div class="listing">&bull; the cat room is lighter on the eyes and the CPU: the herd draws at most 30 cats, only every eighth one walks the floor (none run or jump), and sprites update a touch slower</div>'+
+	'<div class="listing">&bull; golden cookie Building specials can now pick cats: "Purrfect synergy" boosts and wrath-cookie "Catnapped" slows your CpS (previously this crashed the cookie click)</div>'+
+	'<div class="listing">&bull; new rare golden cookie effect "Zoomies": with 10+ cats, a golden cookie can send clicking power x777 for 7 seconds while the whole cat room tears around in delight — rarer than Click frenzy, and also spawnable from Decide Your Destiny</div>'+
+	'<div class="listing">&bull; wrath cookies can now inflict "Hairball" on cat owners (10+ cats, 25% chance): cat production x0.1 for 30 seconds while every cat in the room stops to cough — the rest of your bakery is unaffected</div>'+
 	'<div class="listing">&bull; Decide Your Destiny now survives corrupt or hand-edited saves</div>'+
 	'</div><div class="subsection update">'+
 	'<div class="title">02/09/2026 - performance pass</div>'+

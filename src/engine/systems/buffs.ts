@@ -483,4 +483,41 @@ export function declareVanillaBuffs()//CC3 rewrite (phase 6, slice 3): the 26 va
 			max:true
 		};
 	});
+	// CC3: Zoomies — rare cat-themed golden cookie effect, a short punchy
+	// cousin of Click frenzy (x777 for 13s) with a cat room visual payoff.
+	// Declared LAST in this function on purpose: buff save/load is keyed on
+	// the archetype's declaration id, so appending keeps every existing buff
+	// at its original save id (same rule as the Cats building declaration).
+	new BuffType('zoomies',function(time: any,pow: any)
+	{
+		return {
+			name:'Zoomies',
+			desc:loc("Clicking power x%1 for %2! The cats are going crazy!",[pow,Game.sayTime(time*Game.fps,-1)]),
+			// Reuses the cat upgrade sheet's "Midnight zoomies" cell — an
+			// already-shipping 48px asset (writeIcon supports custom sheets).
+			icon:[3,0,'img/cat-upgrades/protein_spritesheet.png',48],
+			time:time*Game.fps,
+			add:true,
+			multClick:pow,
+			aura:1
+		};
+	});
+	// CC3: Hairball — wrath-only counterpart to Zoomies. Deliberately NOT a
+	// global clot reskin: the buff carries no multCpS, and the Cats building
+	// reads its `power` in cps() to cut CAT production only, so the rest of
+	// the bakery is unaffected. Declared LAST (after zoomies) — same
+	// save-id rule as above.
+	new BuffType('hairball',function(time: any,pow: any)
+	{
+		return {
+			name:'Hairball',
+			desc:loc("Your cats are busy coughing up hairballs! Cat production x%1 for %2!",[pow,Game.sayTime(time*Game.fps,-1)]),
+			// Reuses the cat upgrade sheet's "Claw-powered kneading" cell.
+			icon:[4,0,'img/cat-upgrades/protein_spritesheet.png',48],
+			time:time*Game.fps,
+			add:true,
+			power:pow,
+			aura:2
+		};
+	});
 }

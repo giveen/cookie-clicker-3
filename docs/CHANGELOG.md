@@ -37,6 +37,19 @@ in-game log, and are not duplicated here.
   hairline and widens like the ascension intro, chunks fly tighter, the
   faint gray box is gone, and click particles and wrinklers stay visible
   above the cracked cookie
+- the cat room is lighter on the eyes and the CPU: the herd draws at most
+  30 cats, only every eighth one walks the floor (none run or jump), and
+  sprites update a touch slower
+- golden cookie Building specials can now pick cats: "Purrfect synergy"
+  boosts and wrath-cookie "Catnapped" slows your CpS (previously this
+  crashed the cookie click)
+- new rare golden cookie effect "Zoomies": with 10+ cats, a golden cookie
+  can send clicking power x777 for 7 seconds while the whole cat room
+  tears around in delight — rarer than Click frenzy, and also spawnable
+  from Decide Your Destiny
+- wrath cookies can now inflict "Hairball" on cat owners (10+ cats, 25%
+  chance): cat production x0.1 for 30 seconds while every cat in the room
+  stops to cough — the rest of your bakery is unaffected
 - store rows that haven't changed are no longer rewritten on every refresh,
   keeping purchases snappy even in a full store grid
 - fixed the Cat Colony panel not refreshing when the cat count changes
