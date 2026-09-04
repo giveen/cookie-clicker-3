@@ -50,6 +50,10 @@ in-game log, and are not duplicated here.
 - wrath cookies can now inflict "Hairball" on cat owners (10+ cats, 25%
   chance): cat production x0.1 for 30 seconds while every cat in the room
   stops to cough — the rest of your bakery is unaffected
+- phones and tablets are detected as touch devices again (detection had
+  been disabled upstream): long-press a building to hold-buy it, tap
+  golden cookies to pop them, and store rows no longer select text or
+  flash when long-pressed
 - store rows that haven't changed are no longer rewritten on every refresh,
   keeping purchases snappy even in a full store grid
 - fixed the Cat Colony panel not refreshing when the cat count changes

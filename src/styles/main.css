@@ -2455,6 +2455,11 @@ from {background-position:0px 0px;}
 	border:none;
 	text-align:left;
 	line-height:inherit;
+	/* CC3 touch: a hold-to-buy long-press must not summon text selection or
+	 * the platform tap flash — the row is a press-and-hold control. */
+	-webkit-tap-highlight-color:rgba(0,0,0,0);
+	-webkit-user-select:none;
+	user-select:none;
 }
 .product:after
 {

@@ -762,10 +762,18 @@ Game.Launch=function()
 {
 	Game.mobile=0;
 	Game.touchEvents=0;
-	//if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) Game.mobile=1;
-	//if (Game.mobile) Game.touchEvents=1;
-	//if ('ontouchstart' in document.documentElement) Game.touchEvents=1;
-	
+	//CC3: touch support. Upstream shipped with both the mobile UA sniffing and
+	//the 'ontouchstart' detection commented out, which left every
+	//touch-specific branch in the engine dead — including hold-to-buy's
+	//touchstart arming on store rows. Restore real detection: the UA list is
+	//vanilla's own; the pointer media query additionally catches UA strings
+	//that masquerade as desktop (iPadOS Safari reports Macintosh) by matching
+	//only devices whose PRIMARY input is coarse, which a mouse+keyboard
+	//desktop never reports. The manual Game.Mobile() layout toggle still
+	//works independently of this detection.
+	if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) Game.mobile=1;
+	if (Game.mobile) Game.touchEvents=1;
+	if (!Game.touchEvents && window.matchMedia && window.matchMedia('(pointer:coarse)').matches) Game.touchEvents=1;
 	
 	var css=document.createElement('style');
 	css.type='text/css';
