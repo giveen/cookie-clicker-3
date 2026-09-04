@@ -83,6 +83,7 @@ export function declareVanillaChangelog(Game: EngineGame) {
 	'<div class="listing">&bull; new rare golden cookie effect "Zoomies": with 10+ cats, a golden cookie can send clicking power x777 for 7 seconds while the whole cat room tears around in delight — rarer than Click frenzy, and also spawnable from Decide Your Destiny</div>'+
 	'<div class="listing">&bull; wrath cookies can now inflict "Hairball" on cat owners (10+ cats, 25% chance): cat production x0.1 for 30 seconds while every cat in the room stops to cough — the rest of your bakery is unaffected</div>'+
 	'<div class="listing">&bull; phones and tablets are detected as touch devices again (detection had been disabled upstream): long-press a building to hold-buy it, tap golden cookies to pop them, and store rows no longer select text or flash when long-pressed</div>'+
+	'<div class="listing">&bull; removed the Transcendence tracker from Stats: the second prestige layer is being reworked and will return in a fuller form later</div>'+
 	'<div class="listing">&bull; Decide Your Destiny now survives corrupt or hand-edited saves</div>'+
 	'</div><div class="subsection update">'+
 	'<div class="title">02/09/2026 - performance pass</div>'+

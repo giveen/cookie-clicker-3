@@ -54,6 +54,8 @@ in-game log, and are not duplicated here.
   been disabled upstream): long-press a building to hold-buy it, tap
   golden cookies to pop them, and store rows no longer select text or
   flash when long-pressed
+- removed the Transcendence tracker from Stats: the second prestige layer
+  is being reworked and will return in a fuller form later
 - store rows that haven't changed are no longer rewritten on every refresh,
   keeping purchases snappy even in a full store grid
 - fixed the Cat Colony panel not refreshing when the cat count changes

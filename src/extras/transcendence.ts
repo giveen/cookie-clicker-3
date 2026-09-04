@@ -1129,90 +1129,6 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 	}
 
 	/* ================================================================
-	 * UI: STATS SECTION
-	 * ================================================================ */
-
-	function appendStats(): void {
-		const G = window.Game;
-		if (!G) return;
-		const menu = document.getElementById('menu');
-		if (!menu) return;
-		if (menu.querySelector('#cc3TranscendStats')) return;
-
-		const wrap = document.createElement('div');
-		wrap.id = 'cc3TranscendStats';
-		wrap.className = 'selectable';
-		wrap.innerHTML = statsHtml();
-		menu.appendChild(wrap);
-	}
-
-	function statsHtml(): string {
-		let html = '';
-		html += '<div class="subsection" style="margin-top:12px;">';
-		html += '<div class="title" style="font-size:16px;">Transcendence</div>';
-
-		if (state.transcendences === 0 && !canTranscend()) {
-			const G = window.Game;
-			if (G) {
-				const remaining = Math.max(0, GATE_COOKIES - G.cookiesReset);
-				html += '<div style="font-size:11px;color:#888;">';
-				html += 'Transcendence unlocks when you\'ve filled the ascend meter<br>(';
-				if (remaining > 0) {
-					html += Beautify(remaining) + ' more Cookies needed from past runs';
-				} else {
-					html += 'reach 10,000 prestige';
-				}
-				html += ').</div>';
-			}
-		}
-
-		html += '<div style="margin-top:4px;">';
-		html += '<b>Eternal Essence:</b> ' + state.ee + ' | ';
-		html += '<b>Lifetime EE:</b> ' + state.eeEarned + ' | ';
-		html += '<b>Transcendences:</b> ' + state.transcendences;
-		html += '</div>';
-
-		if (state.eeEarned > 0) {
-			html += '<div style="margin-top:4px;">';
-			html += '<b>Doctrine nodes:</b> ' + state.doctrine.length + '/' + DOCTRINE.length;
-			html += '</div>';
-		}
-
-		// Milestones
-		if (state.milestones.length > 0) {
-			html += '<div style="margin-top:8px;font-size:11px;">';
-			html += '<b>Milestones:</b> ';
-			const milestoneNames: string[] = [];
-			for (const m of MILESTONES) {
-				if (hasMilestone(m.threshold)) {
-					milestoneNames.push(m.name);
-				}
-			}
-			html += milestoneNames.join(', ') || 'none';
-			html += '</div>';
-		}
-
-		// Next EE gain preview
-		const G = window.Game;
-		if (G && state.transcendences > 0) {
-			const nextEE = computeEE(G.cookiesReset + G.cookiesEarned);
-			html += '<div style="margin-top:4px;font-size:11px;">';
-			html += 'Next Transcendence: <b>+' + nextEE + ' EE</b>';
-			html += '</div>';
-		}
-
-		// Total prestige all time
-		if (state.totalPrestigeAllTime > 0) {
-			html += '<div style="margin-top:4px;font-size:11px;">';
-			html += 'Total prestige (all time): <b>' + Beautify(state.totalPrestigeAllTime) + '</b>';
-			html += '</div>';
-		}
-
-		html += '</div>';
-		return html;
-	}
-
-	/* ================================================================
 	 * UNLOCK CHECK
 	 * ================================================================ */
 
@@ -1342,9 +1258,6 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 		G.registerHook('reset', resetHook);
 		G.registerHook('reincarnate', reincarnateHook);
 		G.registerHook('check', checkHook);
-
-		// Stats menu section
-		G.customStatsMenu.push(appendStats);
 
 		// Patch cost discounts
 		patchEff();
