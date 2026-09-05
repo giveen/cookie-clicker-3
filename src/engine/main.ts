@@ -239,6 +239,17 @@ var loc=function(id: any, params?: any, baseline?: any)
 	return parseLoc(baseline||id,params);
 }
 
+var locParamToString=function(param: any)
+{
+	// LBeautify() deliberately returns {n: original, b: formatted}; use the
+	// display value whenever a placeholder is substituted into a plain string.
+	// Pluralized strings are handled separately above, but dynamically-built
+	// strings (such as mod building names) do not have a localization entry and
+	// would otherwise stringify this object as "[object Object]".
+	if (param && typeof param==='object' && typeof param.n!=='undefined' && typeof param.b!=='undefined') return param.b;
+	return param;
+}
+
 var parseLoc=function(str: any, params?: any)
 {
 	/*
@@ -282,7 +293,7 @@ var parseLoc=function(str: any, params?: any)
 		if (inPercent)
 		{
 			inPercent=false;
-			if (!isNaN(it) && params.length>=parseInt(it)-1) out+=params[parseInt(it)-1];
+			if (!isNaN(it) && params.length>=parseInt(it)-1) out+=locParamToString(params[parseInt(it)-1]);
 			else out+='%'+it;
 		}
 		else if (it=='%') inPercent=true;

@@ -632,6 +632,8 @@ if (debugSurface && params.get('qa') === 'binverter') {
 			chk('buy(1) -> amount 1', me.amount === 1);
 			chk('CpS grew after buy (' + Math.round(cpsBefore) + ' -> ' + Math.round(cpsAfter) + ')', cpsAfter > cpsBefore);
 			chk('tier-1 achievement "Single singularity" won', !!(G.Achievements['Single singularity'] && G.Achievements['Single singularity'].won === 1));
+			const singleAch = G.Achievements['Single singularity'];
+			chk('tier-1 achievement description uses the building name', !!singleAch && singleAch.desc.indexOf('[object Object]') === -1 && (singleAch.ddesc || '').indexOf('[object Object]') === -1 && singleAch.desc.indexOf('1 black hole inverter') !== -1);
 
 			// 4. save export->import round-trip
 			me.amount = 7; me.highest = 7; me.level = 3;
