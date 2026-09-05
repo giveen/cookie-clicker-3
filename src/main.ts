@@ -2943,6 +2943,15 @@ if (debugSurface && params.get('qa') === 'minipanel') {
 				spacer.id = 'qaMiniSpacer';
 				spacer.style.height = '600px';
 				firstRow.parentNode!.insertBefore(spacer, firstRow);
+				// A spacer below the last row gives the scroller room to scroll DOWN when
+				// the bottom rows open: the per-frame compensation scrolls down to pin the
+				// row bottom, and without bottom depth it hits the max-scroll clamp and the
+				// click point drifts. Mirrors the top spacer's scrollTop=0 protection.
+				const lastRow = document.getElementById('row' + G.Objects[BUILDINGS[BUILDINGS.length - 1]].id) as HTMLElement;
+				const bottomSpacer = document.createElement('div');
+				bottomSpacer.id = 'qaMiniSpacerBottom';
+				bottomSpacer.style.height = '600px';
+				lastRow.parentNode!.appendChild(bottomSpacer);
 				for (const name of BUILDINGS) {
 					const b: any = G.Objects[name];
 					const row = document.getElementById('row' + b.id) as HTMLElement;
@@ -2976,6 +2985,7 @@ if (debugSurface && params.get('qa') === 'minipanel') {
 					chk(name + ': close converges to the canvas row with the edge pinned (drift ' + closeDrift + 'px)', !b.__minigameAnim && !b.onMinigame && row.offsetHeight === 144 && closeDrift <= 4);
 				}
 				spacer.remove();
+				bottomSpacer.remove();
 				area.scrollTop = 0;
 			} catch (e: any) {
 				lines.push('ERROR: ' + e.constructor.name + ': ' + e.message);

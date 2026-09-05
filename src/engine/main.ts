@@ -2425,7 +2425,7 @@ window.loadMinigameModule!(me.minigameUrl).then(function(){
 			if (me.id>0)
 			{
 				me.canvas=l('rowCanvas'+me.id);
-				me.ctx=me.canvas.getContext('2d',{alpha:false});
+				me.ctx=me.canvas.getContext('2d',{alpha:false,desynchronized:true});
 				me.pics=[];
 				var icon=[0*64,me.icon*64];
 				// Cats get the animated sleeping-cat sheet instead of a static
@@ -4282,7 +4282,19 @@ window.loadMinigameModule!(me.minigameUrl).then(function(){
 			Timer.say('END DRAW');
 		}
 		else requestAnimationFrame(Game.Draw);*/
-		if (Game.visible) Game.Draw();
+		//CC3 perf: present the frame on the next vsync instead of painting
+		//synchronously inside the logic tick. The paint no longer adds to the
+		//loop's setTimeout period (logic holds closer to Game.fps) and the
+		//canvas present is aligned to the display refresh (no tearing). One
+		//draw is kept in flight; drawT (and every drawT%N cadence the draw
+		//subsystems are tuned to) still advances once per logic tick. Falls
+		//back to a synchronous paint where requestAnimationFrame is missing.
+		if (Game.visible && !Game.__drawPending)
+		{
+			Game.__drawPending=1;
+			if (typeof requestAnimationFrame==='function') requestAnimationFrame(function(){Game.__drawPending=0;Game.Draw();});
+			else {Game.__drawPending=0;Game.Draw();}
+		}
 		
 		//if (!hasFocus) Game.tooltip.hide();
 		

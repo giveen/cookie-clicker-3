@@ -2847,6 +2847,10 @@ body:not(.noMotion) #buildingsMaster .tinyProductIcon.catSleepIcon
 	left:0px;
 	top:0px;
 	z-index:10000000000;
+	/*CC3 perf: self-contained overlay layer — layout containment keeps its
+	  (few, transient) children out of the page's layout invalidation scope.
+	  layout only, no paint: shimmers must not be clipped.*/
+	contain:layout;
 	filter:drop-shadow(0px 4px 4px rgba(0,0,0,0.75));
 	-webkit-filter:drop-shadow(0px 4px 4px rgba(0,0,0,0.75));
 }
@@ -2856,6 +2860,10 @@ body:not(.noMotion) #buildingsMaster .tinyProductIcon.catSleepIcon
 	position:absolute;
 	z-index:10000000000;
 	display:none;
+	/*CC3 perf: each golden/wrath cookie animates transform+opacity every
+	  frame (shimmerTypes updateFunc); promote it to its own compositor layer
+	  so that animation stays off the main-thread layout/paint path.*/
+	will-change:transform,opacity;
 }
 .shimmer:hover
 {
@@ -3049,6 +3057,9 @@ body.noMotion #tutorialCallout{transition:none;}
 	margin-left:-125px;
 	bottom:0px;
 	z-index:100000000;
+	/*CC3 perf: self-contained overlay layer — layout containment (no paint:
+	  notes must not be clipped) keeps notification layout out of page scope.*/
+	contain:layout;
 }
 #notes .remaining {padding:3px;opacity:0.75;text-shadow:0px 0px 2px #000,0px 1px 0px #000;}
 .note

@@ -23,14 +23,7 @@
  *
  * No runtime imports: `Game`, `AddEvent`, `Math` resolve through
  * src/globals.d.ts / lib.dom.
- *
- * CC3 perf: the shimmer ctor always pushes a new object to Game.shimmers
- * and increments Game.shimmersN. For transient shimmers (golden cookies,
- * cookie storm drops, reindeer), this creates GC pressure during active
- * gameplay. The die() method already removes from the array and cleans up;
- * we keep that path but add a set-dead flag so the update loop can skip
- * over dead entries efficiently, and defer the array splice to the next
- * cleanup pass instead of doing it every frame in the hot path.
+ */
 
 export class Shimmer {
 	[key: string]: any;
@@ -88,41 +81,17 @@ export class Shimmer {
 				type.maxTime=type.getMaxTime(this);
 			}
 			Game.shimmersL!.removeChild(this.l);
-			// CC3 perf: mark as dead and defer splice to cleanup pass.
-			// Removing from the array during the hot update loop causes O(n) shifts;
-			// instead we mark dead and batch-remove in killShimmers/cleanup.
-			this.dead=1;
-			this.life=-1;
+			if (Game.shimmers.indexOf(this)!=-1) Game.shimmers.splice(Game.shimmers.indexOf(this),1);
 			if (!this.noCount) {Game.shimmerTypes[this.type].n=Math.max(0,Game.shimmerTypes[this.type].n-1);Game.recalculateGains=1;}
-		}
-		/**
-		 * Cleanup dead shimmers from the array. Call this periodically (e.g., every
-		 * few frames or when shimmersN grows disproportionately) to reclaim array
-		 * slots without doing O(n) splices in the hot update path.
-		 */
-		static cleanupDead()
-		{
-			for (var i=Game.shimmers.length-1; i>=0; i--)
-			{
-				if (Game.shimmers[i].dead)
-				{
-					Game.shimmers.splice(i,1);
-				}
-			}
 		}
 }
 
 
 export function updateShimmers()//run shimmer functions, kill overtimed shimmers and spawn new ones
 		{
-			// CC3 perf: skip dead shimmers in the hot update loop.
-			// Dead shimmers are cleaned up in a batched pass (Shimmer.cleanupDead)
-			// rather than spliced out every frame (which causes O(n) array shifts).
 			for (var i in Game.shimmers)
 			{
-				var s=Game.shimmers[i];
-				if (s.dead) continue;
-				s.update();
+				Game.shimmers[i].update();
 			}
 
 			//cookie storm!

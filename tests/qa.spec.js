@@ -290,7 +290,7 @@ test('Cats: save-safe building slot, Grandma/Farm ordering, and animated sprites
 	await assertNoUncaughtErrors(page);
 });
 
-test('Cats: compact multi-lane renderer caps visible cats at 50 without attack states', async ({ page }) => {
+test('Cats: renderer caps visible cats at 30 without attack states', async ({ page }) => {
 	await boot(page, '');
 	await page.waitForFunction(() => window.Game.Objects && window.Game.Objects.Cats && window.Game.Objects.Cats.canvas, null, BOOT);
 	const state = await page.evaluate(async () => {
@@ -326,8 +326,8 @@ test('Cats: compact multi-lane renderer caps visible cats at 50 without attack s
 		return { amount: cats.amount, catDraws, maxFrameDraws, attackDraws, minCatWidth, minCatY, canvas: [cats.canvas.width, cats.canvas.height] };
 	});
 	expect(state.amount).toBe(100);
-	expect(state.maxFrameDraws).toBe(50); // the visible-cat cap
-	expect(state.catDraws).toBeGreaterThanOrEqual(50);
+	expect(state.maxFrameDraws).toBe(30); // the visible-cat cap (cats.ts deliberately caps at 30 for perf)
+	expect(state.catDraws).toBeGreaterThanOrEqual(30);
 	expect(state.attackDraws).toBe(0);
 	expect(state.minCatWidth).toBeGreaterThanOrEqual(80);
 	expect(state.minCatY).toBeGreaterThanOrEqual(45);
