@@ -166,9 +166,17 @@ export function makeStackDraw(Game: EngineGame) {
 			const p = Pic(pic.pic);
 			if (pic.frame !== -1 && pic.frame != null) {
 				const cw = p.width / frames;
-				ctx.drawImage(p, pic.frame * cw, 0, cw, p.height, pic.x, pic.y, pic.drawW, pic.drawH);
+				// CC3 perf: MDN recommends integer coordinates for drawImage to avoid
+				// sub-pixel anti-aliasing overhead. pic.x/pic.y are already floored at
+				// store time (stackPosition), but ensure drawW/drawH are also integers
+				// to avoid sub-pixel scaling artifacts.
+				ctx.drawImage(p, pic.frame * cw, 0, cw, p.height,
+					Math.floor(pic.x), Math.floor(pic.y),
+					Math.floor(pic.drawW), Math.floor(pic.drawH));
 			} else {
-				ctx.drawImage(p, pic.x, pic.y, pic.drawW, pic.drawH);
+				ctx.drawImage(p,
+					Math.floor(pic.x), Math.floor(pic.y),
+					Math.floor(pic.drawW), Math.floor(pic.drawH));
 			}
 		}
 		return true;

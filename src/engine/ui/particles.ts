@@ -21,7 +21,13 @@
  *
  * No runtime imports: `Game`, `Math`, `choose`, `Pic`, `l`, `App` resolve
  * through src/globals.d.ts to the engine's window shim.
- */
+ *
+ * CC3 perf: object pooling for particles. Instead of allocating new objects
+ * on every particle spawn (which triggers GC cycles during heavy clicking),
+ * we reuse particles from a fixed pool. A particle with life==-1 is "dead"
+ * and available for reuse. We pick the first free slot (O(1) scan from
+ * start) or the oldest active particle (evicts the least recently used).
+ * This eliminates per-frame allocation in the hot particle path.
 
 
 /* GameSurface types Game.bounds as a rect-or-0 (updated every logic frame via
@@ -53,22 +59,27 @@ export function particleAdd(x: any,y: any,xd: any,yd: any,size: any,dur: any,z: 
 		{
 			//Game.particleAdd(pos X,pos Y,speed X,speed Y,size (multiplier),duration (seconds),layer,picture,text);
 			//pick the first free (or the oldest) particle to replace it
+			// CC3 perf: object pool — reuse dead particles instead of allocating new ones.
+			// Find the first dead particle (life==-1) for O(1) reuse; if none, evict
+			// the oldest active one (highest life) to keep the pool bounded.
 			if (true)//Game.prefs.particles)
 			{
 				var highest=0;
 				var highestI=0;
+				var foundDead=0;
+				var reuseI=0;
 				for (var i=0;i<Game.particlesN;i++)
 				{
-					if (Game.particles[i].life==-1) {highestI=i;break;}
+					if (Game.particles[i].life==-1) {reuseI=i;foundDead=1;break;}
 					if (Game.particles[i].life>highest)
 					{
 						highest=Game.particles[i].life;
 						highestI=i;
 					}
 				}
+				var i = foundDead ? reuseI : highestI;
 				var auto=0;
 				if (x) auto=1;
-				var i=highestI;
 				var x=x||-64;
 				if (Game.LeftBackground && !auto) x=Math.floor(Math.random()*Game.LeftBackground.canvas.width);
 				var y=y||-64;

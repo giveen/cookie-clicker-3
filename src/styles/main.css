@@ -118,6 +118,25 @@ button:focus {outline:1px solid rgba(255,200,100,0.5);outline-offset:-1px;}
 
 
 /*=====================================================================================
+CSS CUSTOM PROPERTIES (typed via @property for animatable variables)
+=======================================================================================*/
+/* Glow/brightness animation variable — used by cookie, sections, popup alerts.
+   Typed as <number> lets the browser interpolate it in transitions/animations
+   instead of treating it as an opaque token. */
+@property --glow-intensity {
+	syntax: '<number>';
+	initial-value: 1;
+	inherits: false;
+}
+/* Section/subsection entrance opacity (0→1 on first paint after scroll-into-view).
+   Used by scroll-driven entrance animations below. */
+@property --section-opacity {
+	syntax: '<number>';
+	initial-value: 0;
+	inherits: false;
+}
+
+/*=====================================================================================
 BASE
 =======================================================================================*/
 html,body
@@ -216,6 +235,13 @@ SECTIONS
 	background:linear-gradient(to right,rgba(0,0,0,0),rgba(0,0,0,0),rgba(0,0,0,0.5),rgba(0,0,0,0),rgba(0,0,0,0));
 	margin:12px 0px;
 	text-shadow:0px -2px 6px rgba(255,255,200,0.6),0px 1px 0px rgba(100,100,100,1),0px 2px 4px rgba(0,0,0,1);
+	/* CC3 modern: animate glow intensity via the typed --glow-intensity property.
+	   Browsers that support @property interpolate this in transitions; older
+	   browsers fall back to the static 1. */
+	opacity:var(--section-opacity, 1);
+	text-shadow:0px -2px calc(6px * var(--glow-intensity, 1)) rgba(255,255,200,0.6),
+	           0px 1px 0px rgba(100,100,100,1),
+	           0px 2px 4px rgba(0,0,0,1);
 }
 .section:after
 {
@@ -1991,6 +2017,59 @@ from {top:20px;opacity:0;}
 	/*overflow:hidden;*/
 }
 .row.enabled{display:block;}
+
+/* CC3 modern: scroll-driven entrance animation for building rows.
+   As a row scrolls into the viewport, its --section-opacity animates from 0→1,
+   and the row fades+translates up slightly. This runs entirely in CSS on the
+   compositor thread — no JS scroll listeners, no IntersectionObserver.
+   Supported in Chromium 115+, Firefox 123+ (with flag), Safari 17.4+.
+   Fallback: rows just appear (the animation-range means out-of-view rows stay
+   invisible, but that's acceptable since the game paints everything anyway). */
+.row.enabled
+{
+	animation: rowEnter ease-out both;
+	animation-timeline: view();
+	animation-range: entry 0% cover 30%;
+}
+@keyframes rowEnter
+{
+	from
+	{
+		opacity: 0;
+		transform: translateY(8px);
+	}
+	to
+	{
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+/* Ensure static rows (not yet animated by scroll timeline because they haven't
+   entered the viewport) still show at full opacity when the game first paints —
+   the animation-range above covers the first 30% of the scrollport, after which
+   all rows are visible. For rows outside that range at initial paint, set a
+   default opacity so they aren't hidden on first load (browsers that don't
+   support view-timeline fall back to the initial keyframe value). */
+.row.enabled
+{
+	opacity: 1; /* reset after animation completes; browsers without view() ignore animation-timeline */
+}
+.row
+{
+	/* CC3 modern: style the entire row container based on any descendant hover
+	   state, without adding JS class toggles. :has() lets the row know a child
+	   is hovered so we can highlight the row background/contour. */
+	&:has(.mouseOver:hover)
+	{
+		background:rgba(255,255,255,0.04);
+	}
+	&:has(.mouseOver:active)
+	{
+		background:rgba(0,0,0,0.06);
+	}
+}
+
 .row .rowCanvas
 {
 	width:100%;

@@ -248,7 +248,7 @@ export function declareCats(Game: EngineGame) {
 					ctx.translate(Math.floor(x+drawWidth),0);
 					ctx.scale(-1,1);
 				}
-				ctx.drawImage(sprite,frame*animation.width,0,animation.width,64,movingRight?0:Math.floor(x),Math.floor(y),drawWidth,drawHeight);
+				ctx.drawImage(sprite,frame*animation.width,0,animation.width,64,movingRight?0:Math.floor(x),Math.floor(y),Math.floor(drawWidth),Math.floor(drawHeight));
 				ctx.restore();
 			}
 		};
