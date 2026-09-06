@@ -47,7 +47,7 @@ import { DrawBackground } from "./ui/drawBackground";/* CC3: the original relied
 import { declareVanillaMilks } from "./content/milks";
 import { computeHeavenlyLayout, applyHeavenlyPreset, syncHeavenlyLayoutIfStale, HEAVENLY_PRESETS } from "./systems/heavenlyLayout";
 import { debugStr, Debug } from "./utils/debug";
-import type { HeavenlyUpgradeRef } from "./types";
+import type { HeavenlyUpgradeRef, LanguageString, LanguageHeader } from "./types";
 var Audio: new (src?: string) => HTMLAudioElement;
 var localStorageGet: (key: string) => string | null | 0;
 var localStorageSet: (key: string, str: string) => void;
@@ -170,18 +170,24 @@ function toFixed(x: number): string | number
 
 //Beautify and number-formatting adapted from the Frozen Cookies add-on (http://cookieclicker.wikia.com/wiki/Frozen_Cookies_%28JavaScript_Add-on%29)
 //=== LOCALIZATION ===
+/* Localized-string param: a plain value, an LBeautify() {n,b} pack, or an
+ * array of those (matches the window LocFn contract in types.ts). */
+type LocParam = string | number | {n: number, b: string};
+type LocParams = LocParam | LocParam[];
+type LangInfo = {file: string, nameEN: string, name: string, changeLanguage: string, icon: number, w: number, isEN?: boolean};
+type LocPatch = {id: number, type: number, title: string, points: string[]};
 
-var locStrings: any={};
-var locStringsFallback: any={};
+var locStrings: Record<string, string | string[]>={};
+var locStringsFallback: Record<string, string | string[]>={};
 var locId='NONE';
 var EN=true;
 var locName='none';
-var locPatches: any[]=[];
-var locPlur: any='nplurals=2;plural=(n!=1);';//see http://docs.translatehouse.org/projects/localization-guide/en/latest/l10n/pluralforms.html
+var locPatches: LocPatch[]=[];
+var locPlur: string | ((n: number) => number)='nplurals=2;plural=(n!=1);';//see http://docs.translatehouse.org/projects/localization-guide/en/latest/l10n/pluralforms.html
 var locPlurFallback=locPlur;
 //note : plural index will be downgraded to the last matching, ie. in this case, if we get "0" but don't have a 3rd option, use the 2nd option (or 1st, lacking that too)
-var locStringsByPart: any={};
-var FindLocStringByPart=function(match: any)
+var locStringsByPart: Record<string, string>={};
+var FindLocStringByPart=function(match: string)
 {
 	return locStringsByPart[match]||undefined;
 	/*
@@ -194,7 +200,7 @@ var FindLocStringByPart=function(match: any)
 	*/
 }
 
-var Langs: any={
+var Langs: Record<string, LangInfo>={
 	'EN':{file:'EN',nameEN:'English',name:'English',changeLanguage:'Language',icon:0,w:1,isEN:true},
 	'FR':{file:'FR',nameEN:'French',name:'Fran&ccedil;ais',changeLanguage:'Langue',icon:0,w:1},
 	'DE':{file:'DE',nameEN:'German',name:'Deutsch',changeLanguage:'Sprache',icon:0,w:1},
@@ -228,13 +234,13 @@ var Langs: any={
 		...you may nest localized strings, and use LBeautify() to pack Beautified values
 */
 var locBlink=false;
-var localizationNotFound: any[]=[];
-var loc=function(id: any, params?: any, baseline?: any)
+var localizationNotFound: string[]=[];
+var loc=function(id: string, params?: LocParams, baseline?: string)
 {
 	var fallback=false;
 	var found=locStrings[id];
 	if (!found) {found=locStringsFallback[id];fallback=true;}
-	var str: any='';
+	var str: string | string[]='';
 	if (found)
 	{
 		str=parseLoc(found,params);
@@ -252,7 +258,7 @@ var loc=function(id: any, params?: any, baseline?: any)
 	return parseLoc(baseline||id,params);
 }
 
-var locParamToString=function(param: any)
+var locParamToString=function(param: LocParam)
 {
 	// LBeautify() deliberately returns {n: original, b: formatted}; use the
 	// display value whenever a placeholder is substituted into a plain string.
@@ -263,7 +269,7 @@ var locParamToString=function(param: any)
 	return param;
 }
 
-var parseLoc=function(str: any, params?: any)
+var parseLoc=function(str: string | string[], params?: LocParams)
 {
 	/*
 		parses localization strings
@@ -271,7 +277,7 @@ var parseLoc=function(str: any, params?: any)
 		-a pluralized string is detected if we have at least 1 param and the matching localized string is an array
 	*/
 	if (typeof params==='undefined') params=[];
-	else if (params.constructor!==Array) params=[params];
+	else if (params.constructor!==Array) params=[params as LocParam];
 	if (!str) return '';
 	//if (str.constructor===Array) return str;
 	//if (typeof str==='function') return str(params);
@@ -283,14 +289,14 @@ var parseLoc=function(str: any, params?: any)
 	{
 		if (typeof params[0]==='object')//an object containing a beautified number
 		{
-			var plurIndex=locPlur(params[0].n);
+			var plurIndex=(locPlur as (n: number) => number)(params[0].n);
 			plurIndex=Math.min(str.length-1,plurIndex);
 			str=str[plurIndex];
 			str=replaceAll('%1',params[0].b,str);
 		}
 		else
 		{
-			var plurIndex=locPlur(params[0]);
+			var plurIndex=(locPlur as (n: number) => number)(params[0] as number);
 			plurIndex=Math.min(str.length-1,plurIndex);
 			str=str[plurIndex];
 			str=replaceAll('%1',params[0],str);
@@ -306,7 +312,7 @@ var parseLoc=function(str: any, params?: any)
 		if (inPercent)
 		{
 			inPercent=false;
-			if (!isNaN(it) && params.length>=parseInt(it)-1) out+=locParamToString(params[parseInt(it)-1]);
+			if (!isNaN(Number(it)) && params.length>=parseInt(it)-1) out+=locParamToString(params[parseInt(it)-1]);
 			else out+='%'+it;
 		}
 		else if (it=='%') inPercent=true;
@@ -315,21 +321,21 @@ var parseLoc=function(str: any, params?: any)
 	return out;
 }
 
-var LBeautify=function(val: any, floats?: any)
+var LBeautify=function(val: number, floats?: number | boolean)
 {
 	//returns an object in the form {n:original value floored,b:beautified value as string} for localization purposes
 	return {n:Math.floor(Math.abs(val)),b:Beautify(val,floats)};
 }
 
-var ModLanguage=function(id: any, json: any){
+var ModLanguage=function(id: string, json: Record<string, string | string[]> & {'REPLACE ALL'?: Record<string, string>}){
 	if (id=='*') id=locId;
 	if (id!=locId || !Langs[id]) return false;
 	if (json['REPLACE ALL'])
 	{
-		var rep=function(str: any,from: any,to: any)
+		var rep=function(str: string,from: string,to: string)
 		{
 			var regex=new RegExp(from,'ig');
-			return str.replace(regex,function(match: any){
+			return str.replace(regex,function(match: string){
 				return (match[0]==match[0].toLowerCase())?to:cap(to);
 			});
 		}
@@ -340,12 +346,12 @@ var ModLanguage=function(id: any, json: any){
 			{
 				if (Array.isArray(locStrings[ii]))
 				{
-					for (var iii in locStrings[ii])
+					for (var iii in (locStrings[ii] as string[]))
 					{
-						locStrings[ii][iii]=rep(locStrings[ii][iii],i,to);
+						(locStrings[ii] as string[])[iii]=rep((locStrings[ii] as string[])[iii] as string,i,to);
 					}
 				}
-				else locStrings[ii]=rep(locStrings[ii],i,to);
+				else locStrings[ii]=rep(locStrings[ii] as string,i,to);
 			}
 		}
 	}
@@ -354,7 +360,7 @@ var ModLanguage=function(id: any, json: any){
 	return;
 }
 
-var AddLanguage=function(id: any, _name: any, json: any, mod: any)
+var AddLanguage=function(id: string, _name: string, json: Record<string, LanguageString>, mod?: boolean)
 {
 	//used in loc files
 	//if mod is true, this file is augmenting the current language
@@ -368,7 +374,7 @@ var AddLanguage=function(id: any, _name: any, json: any, mod: any)
 	{
 		for (var i in json)
 		{
-			locStrings[i]=json[i];
+			locStrings[i]=json[i] as string | string[];
 		}
 		for (var i in locStrings)
 		{
@@ -379,33 +385,33 @@ var AddLanguage=function(id: any, _name: any, json: any, mod: any)
 	}
 	else
 	{
-		locStrings=json;
-		locPlur=json['']['plural-forms']||locPlurFallback;
+		locStrings=json as Record<string, string | string[]>;
+		locPlur=(json[''] as LanguageHeader)['plural-forms']||locPlurFallback;
 		delete locStrings[''];
 		for (var i in locStrings)
 		{
 			if (locStrings[i]=='/') locStrings[i]=i;
 		}
 		
-		locPlur=(function(plural_form: any){
+		locPlur=(function(plural_form: string){
 			//lifted and modified from gettext.js
 			var pf_re=new RegExp('^\\s*nplurals\\s*=\\s*[0-9]+\\s*;\\s*plural\\s*=\\s*(?:\\s|[-\\?\\|&=!<>+*/%:;n0-9_\(\)])+');
 			if (!pf_re.test(plural_form))
 			throw new Error('The plural form "'+plural_form+'" is not valid');
 			return new Function('n','var plural, nplurals; '+ plural_form +' return plural;');
 			//return new Function('n','var plural, nplurals; '+ plural_form +' return { nplurals: nplurals, plural: (plural === true ? 1 : (plural ? plural : 0)) };');
-		})(locPlur);
+		})(locPlur as string) as (n: number) => number;
 		
 		locPatches=[];
 		for (var i in locStrings){
 			if (i.split('|')[0]=='Update notes')
 			{
 				var patch=i.split('|');
-				var patchTranslated=locStrings[i].split('|');
+			var patchTranslated=(locStrings[i] as string).split('|');
 				locPatches.push({id:parseInt(patch[1]),type:1,title:patchTranslated[2],points:patchTranslated.slice(3)})
 			}
 		}
-		var sortMap=function(a: any,b: any)
+		var sortMap=function(a: LocPatch,b: LocPatch)
 		{
 			if (a.id<b.id) return 1;
 			else return -1;
@@ -436,7 +442,7 @@ var LocalizeUpgradesAndAchievs=function()
 	{
 		var it=allThings[i];
 		var type=it.getType();
-		var found=0;
+		var found: string | 0 | undefined = 0;//0: the 2.048 "not found yet" sentinel; the truthy checks below drop it
 		found=FindLocStringByPart(type+' name '+it.id);
 		if (found) it.dname=loc(found);
 		
@@ -451,13 +457,13 @@ var LocalizeUpgradesAndAchievs=function()
 	BeautifyAll();
 	return;
 }
-var getUpgradeName=function(name: any)
+var getUpgradeName=function(name: string)
 {
 	var it=Game.Upgrades[name];
 	var found=FindLocStringByPart('Upgrade name '+it.id);
 	if (found) return loc(found); else return name;
 }
-var getAchievementName=function(name: any)
+var getAchievementName=function(name: string)
 {
 	var it=Game.Achievements[name];
 	var found=FindLocStringByPart('Achievement name '+it.id);
@@ -4127,7 +4133,7 @@ window.loadMinigameModule!(me.minigameUrl).then(function(){
 				str=[str.slice(0,spacePos),add,str.slice(spacePos)].join('');
 			}
 			
-			str=loc("%1 cookie",{n:Math.round(Game.cookiesd),b:str});
+			str=loc("%1 cookie",{n:Math.round(Game.cookiesd),b:str}) as string;
 			if (str.length>14) str=str.replace(' ','<br>');
 			
 			if (Game.prefs.monospace) str='<span class="monospace">'+str+'</span>';
