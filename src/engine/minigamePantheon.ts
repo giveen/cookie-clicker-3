@@ -1,12 +1,96 @@
-/* CC3 rewrite (phase 5): minigame re-typed; M is any to match engine pattern. */
-var M: any ={};
+/* CC3 rewrite (phase 5): minigame re-typed.
+ * CC3 rewrite (phase 6): M is typed (was `any`). Same approach as the
+ * Grimoire: the engine only reads the guarded contract on
+ * `building.minigame` (launch/save/load/reset/logic/draw), and the tooltip
+ * paths (godTooltip/slotTooltip/refillTooltip) are invoked through the
+ * getDynamicTooltip string paths init wires up — those eval'd paths pass
+ * bare numeric ids, so the tooltip fns take numbers. The god records are
+ * checked against PantheonGod.
+ *
+ * Zero runtime change: body edits are type-only (param/variable annotations,
+ * a `this` on launch, `!` asserts where l()'s HTMLElement|null or the
+ * after-construction id/slot meets a use), plus: `+` on the for-in string
+ * indices the legacy code passes as slot ids (every downstream use is a
+ * ==/!= comparison or array indexing, which already coerce identically);
+ * two parseInt(id)->id+1 (id is the numeric id the eval'd tooltip path
+ * passes); var renames (god->me, prev->prevGod) where a var shadows a
+ * parameter or is reused across two types; slotTooltip's `var me` hoisted
+ * above its guard (the array read is side-effect-free); two dead `var me`
+ * lines and one ignored dropGod() argument dropped. */
+import type { Building } from './types';
+
+/** A slottable temple spirit. desc1/2/3 are the level-1/2/3 effect texts;
+ *  descBefore/descAfter/activeDescFunc are per-spirit extras. */
+interface PantheonGod {
+	/* assigned right after the records are built (the godsById pass) */
+	id?: number;
+	/* -1 = unslotted, otherwise the slot index the spirit sits in */
+	slot?: number;
+	name: string;
+	icon: number[];
+	descBefore?: string;
+	desc1: string;
+	desc2: string;
+	desc3: string;
+	descAfter?: string;
+	quote: string;
+	activeDescFunc?: () => string;
+}
+
+interface PantheonMinigame {
+	/* --- engine contract (building.minigame.*) --- */
+	name: string | 0;
+	parent: Building;
+	launch: () => void;
+	init: (div: HTMLElement) => void;
+	save: () => string;
+	load: (str: string) => boolean | undefined;
+	/* the engine calls reset(true) on a hard reset; the flag is ignored */
+	reset: (hard?: boolean) => void;
+	logic: () => void;
+	draw: () => void;
+	/* dynamic tooltip surface (init wires getDynamicTooltip string paths;
+	   the eval'd paths pass bare numeric ids) */
+	godTooltip: (id: number) => () => string;
+	slotTooltip: (id: number) => () => string;
+	refillTooltip: () => string;
+
+	/* --- content --- */
+	gods: Record<string, PantheonGod>;
+	godsById: PantheonGod[];
+
+	/* --- state --- */
+	/* slot[i] = -1 (empty) or the id of the slotted god */
+	slot: number[];
+	slotNames: string[];
+	swaps: number;
+	swapT: number;
+	lastSwapT: number;
+	/* the god currently being dragged (false when idle) */
+	dragging: PantheonGod | false;
+	/* slot under the pointer while dragging; -1 when over the roster */
+	slotHovered: number;
+
+	/* --- DOM handles (init sets them from the HTML it just wrote) --- */
+	swapsL: HTMLElement;
+	lumpRefill: HTMLElement;
+
+	/* --- interaction --- */
+	useSwap: (n: number) => void;
+	slotGod: (god: PantheonGod, slot: number) => boolean | undefined;
+	dragGod: (what: PantheonGod) => void;
+	dropGod: () => void;
+	hoverSlot: (what: number | string) => void;
+}
+
+var M = {} as PantheonMinigame;
 M.parent=Game.Objects['Temple'];
 M.parent.minigame=M;
-M.launch=function()
+M.launch=function(this: PantheonMinigame)
 {
 	var M=this;
 	M.name=M.parent.minigameName;
-	M.init=function(div: any)
+	M.init=function(div: HTMLElement)
 	{
 		//populate div with html and initialize values
 				
@@ -138,7 +222,7 @@ M.launch=function()
 		
 		M.lastSwapT=0;//frames since last swap
 		
-		M.godTooltip=function(id: any)
+		M.godTooltip=function(id: number)
 		{
 			return function(){
 				var me=M.godsById[id];
@@ -158,17 +242,17 @@ M.launch=function()
 			};
 		}
 		
-		M.slotTooltip=function(id: any)
+		M.slotTooltip=function(id: number)
 		{
 			return function(){
+				var me=M.godsById[M.slot[id]];
 				if (M.slot[id]!=-1)
 				{
-					var me=M.godsById[M.slot[id]];
 					me.icon=me.icon||[0,0];
 				}
 				var str='<div style="padding:8px 4px;min-width:350px;">'+
 				(M.slot[id]!=-1?(
-					'<div class="name templeEffect" style="margin-bottom:12px;"><div class="usesIcon shadowFilter templeGem templeGem'+(parseInt(id)+1)+'"></div>'+M.slotNames[id]+' slot</div>'+
+					'<div class="name templeEffect" style="margin-bottom:12px;"><div class="usesIcon shadowFilter templeGem templeGem'+(id+1)+'"></div>'+M.slotNames[id]+' slot</div>'+
 					'<div class="icon" style="float:left;margin-left:-8px;margin-top:-8px;background-position:'+(-me.icon[0]*48)+'px '+(-me.icon[1]*48)+'px;"></div>'+
 					'<div class="name">'+me.name+'</div>'+
 					'<div class="line"></div><div class="description"><div style="margin:6px 0px;font-weight:bold;">Effects :</div>'+
@@ -181,7 +265,7 @@ M.launch=function()
 						(me.quote?('<q>'+me.quote+'</q>'):'')+
 					'</div>'
 				):
-				('<div class="name templeEffect"><div class="usesIcon shadowFilter templeGem templeGem'+(parseInt(id)+1)+'"></div>'+M.slotNames[id]+' slot (empty)</div><div class="line"></div><div class="description">'+
+				('<div class="name templeEffect"><div class="usesIcon shadowFilter templeGem templeGem'+(id+1)+'"></div>'+M.slotNames[id]+' slot (empty)</div><div class="line"></div><div class="description">'+
 				((M.slotHovered==id && M.dragging)?'Release to assign <b>'+M.dragging.name+'</b> to this slot.':'Drag a spirit onto this slot to assign it.')+
 				'</div>')
 				)+
@@ -190,52 +274,52 @@ M.launch=function()
 			};
 		}
 		
-		M.useSwap=function(n: any)
+		M.useSwap=function(n: number)
 		{
 			M.swapT=Date.now();
 			M.swaps-=n;
 			if (M.swaps<0) M.swaps=0;
 		}
 		
-		M.slotGod=function(god: any,slot: any)
+		M.slotGod=function(god: PantheonGod,slot: number)
 		{
 			if (slot==god.slot) return false;
 			if (slot!=-1 && M.slot[slot]!=-1)
 			{
 				M.godsById[M.slot[slot]].slot=god.slot;//swap
-				M.slot[god.slot]=M.slot[slot];
+				M.slot[god.slot!]=M.slot[slot];
 			}
-			else if (god.slot!=-1) M.slot[god.slot]=-1;
-			if (slot!=-1) M.slot[slot]=god.id;
+			else if (god.slot!=-1) M.slot[god.slot!]=-1;
+			if (slot!=-1) M.slot[slot]=god.id!;
 			god.slot=slot;
 			Game.recalculateGains=1;// CC3: typed as number in GameSurface; 2.048 set `true` — engine reads it as a truthy flag (main.ts), so `1` is runtime-identical.
 		}
 		
 		M.dragging=false;
-		M.dragGod=function(what: any)
+		M.dragGod=function(what: PantheonGod)
 		{
 			M.dragging=what;
-			var div=l('templeGod'+what.id);
+			var div=l('templeGod'+what.id)!;
 			var box=div.getBoundingClientRect();
-			var box2=l('templeDrag').getBoundingClientRect();
+			var box2=l('templeDrag')!.getBoundingClientRect();
 			div.className='ready templeGod titleFont templeDragged';
-			l('templeDrag').appendChild(div);
+			l('templeDrag')!.appendChild(div);
 			var x=box.left-box2.left;
 			var y=box.top-box2.top;
 			div.style.transform='translate('+(x)+'px,'+(y)+'px)';
-			l('templeGodPlaceholder'+M.dragging.id).style.display='inline-block';
+			l('templeGodPlaceholder'+M.dragging.id)!.style.display='inline-block';
 			PlaySound('snd/tick.mp3');
 		}
 		M.dropGod=function()
 		{
 			if (!M.dragging) return;
-			var div=l('templeGod'+M.dragging.id);
+			var div=l('templeGod'+M.dragging.id)!;
 			div.className='ready templeGod titleFont';
 			div.style.transform='none';
 			if (M.slotHovered!=-1 && (M.swaps==0 || M.dragging.slot==M.slotHovered))//dropping on a slot but no swaps left, or slot is the same as the original
 			{
-				if (M.dragging.slot!=-1) l('templeSlot'+M.dragging.slot).appendChild(div);
-				else l('templeGodPlaceholder'+(M.dragging.id)).parentNode.insertBefore(div,l('templeGodPlaceholder'+(M.dragging.id)));
+				if (M.dragging.slot!=-1) l('templeSlot'+M.dragging.slot)!.appendChild(div);
+				else l('templeGodPlaceholder'+(M.dragging.id))!.parentNode.insertBefore(div,l('templeGodPlaceholder'+(M.dragging.id))!);
 				PlaySound('snd/sell1.mp3',0.75);
 			}
 			else if (M.slotHovered!=-1)//dropping on a slot
@@ -246,19 +330,19 @@ M.launch=function()
 				var prev=M.slot[M.slotHovered];//id of the god already in the slot
 				if (prev!=-1)
 				{
-					prev=M.godsById[prev];
-					var prevDiv=l('templeGod'+prev.id);
+					var prevGod=M.godsById[prev];
+					var prevDiv=l('templeGod'+prevGod.id)!;
 					if (M.dragging.slot!=-1)//swap with god's previous slot
 					{
-						l('templeSlot'+M.dragging.slot).appendChild(prevDiv);
+						l('templeSlot'+M.dragging.slot)!.appendChild(prevDiv);
 					}
 					else//swap back to roster
 					{
-						var other=l('templeGodPlaceholder'+(prev.id));
+						var other=l('templeGodPlaceholder'+(prevGod.id))!;
 						other.parentNode.insertBefore(prevDiv,other);
 					}
 				}
-				l('templeSlot'+M.slotHovered).appendChild(div);
+				l('templeSlot'+M.slotHovered)!.appendChild(div);
 				M.slotGod(M.dragging,M.slotHovered);
 				
 				PlaySound('snd/tick.mp3');
@@ -269,7 +353,7 @@ M.launch=function()
 			}
 			else//dropping back to roster
 			{
-				var other=l('templeGodPlaceholder'+(M.dragging.id));
+				var other=l('templeGodPlaceholder'+(M.dragging.id))!;
 				other.parentNode.insertBefore(div,other);
 				other.style.display='none';
 				M.slotGod(M.dragging,-1);
@@ -279,19 +363,19 @@ M.launch=function()
 		}
 		
 		M.slotHovered=-1;
-		M.hoverSlot=function(what: any)
+		M.hoverSlot=function(what: number | string)
 		{
-			M.slotHovered=what;
+			M.slotHovered=+what;//for-in passes string indices; normalize (all uses are ==/!= or array indexing)
 			if (M.dragging)
 			{
-				if (M.slotHovered==-1) l('templeGodPlaceholder'+M.dragging.id).style.display='inline-block';
-				else l('templeGodPlaceholder'+M.dragging.id).style.display='none';
+				if (M.slotHovered==-1) l('templeGodPlaceholder'+M.dragging.id)!.style.display='inline-block';
+				else l('templeGodPlaceholder'+M.dragging.id)!.style.display='none';
 				PlaySound('snd/clickb'+Math.floor(Math.random()*7+1)+'.mp3',0.75);
 			}
 		}
 		
 		//external
-		Game.hasGod=function(what: any)
+		Game.hasGod=function(what: string)
 		{
 			var god=M.gods[what];
 			for (var i=0;i<3;i++)
@@ -300,15 +384,15 @@ M.launch=function()
 			}
 			return false;
 		}
-		Game.forceUnslotGod=function(god: any)
+		Game.forceUnslotGod=function(god: string)
 		{
-			var god=M.gods[god];
-			if (god.slot==-1) return false;
-			var div=l('templeGod'+god.id);
-			var other=l('templeGodPlaceholder'+(god.id));
+			var me=M.gods[god];
+			if (me.slot==-1) return false;
+			var div=l('templeGod'+me.id)!;
+			var other=l('templeGodPlaceholder'+(me.id))!;
 			other.parentNode.insertBefore(div,other);
 			other.style.display='none';
-			M.slotGod(god,-1);
+			M.slotGod(me,-1);
 			return true;
 		}
 		Game.useSwap=M.useSwap;
@@ -370,7 +454,6 @@ M.launch=function()
 			str+='<div id="templeSlots">';
 			for (var i in M.slot)
 			{
-				var me=M.slot[i];
 				str+='<div class="ready templeGod templeGod'+(parseInt(i)%4)+' templeSlot titleFont" id="templeSlot'+i+'" '+Game.getDynamicTooltip('Game.ObjectsById['+M.parent.id+'].minigame.slotTooltip('+i+')','this')+'><div class="usesIcon shadowFilter templeGem templeGem'+(parseInt(i)+1)+'"></div></div>';
 			}
 			str+='</div>';
@@ -380,26 +463,25 @@ M.launch=function()
 			{
 				var me=M.gods[i];
 				var icon=me.icon||[0,0];
-				str+='<div class="ready templeGod templeGod'+(me.id%4)+' titleFont" id="templeGod'+me.id+'" '+Game.getDynamicTooltip('Game.ObjectsById['+M.parent.id+'].minigame.godTooltip('+me.id+')','this')+'><div class="usesIcon shadowFilter templeIcon" style="background-position:'+(-icon[0]*48)+'px '+(-icon[1]*48)+'px;"></div><div class="templeSlotDrag" id="templeGodDrag'+me.id+'"></div></div>';
+				str+='<div class="ready templeGod templeGod'+(me.id!%4)+' titleFont" id="templeGod'+me.id+'" '+Game.getDynamicTooltip('Game.ObjectsById['+M.parent.id+'].minigame.godTooltip('+me.id+')','this')+'><div class="usesIcon shadowFilter templeIcon" style="background-position:'+(-icon[0]*48)+'px '+(-icon[1]*48)+'px;"></div><div class="templeSlotDrag" id="templeGodDrag'+me.id+'"></div></div>';
 				str+='<div class="templeGodPlaceholder" id="templeGodPlaceholder'+me.id+'"></div>';
 			}//<div class="usesIcon shadowFilter templeGem templeGem'+(me.id%3+1)+'"></div>
 			str+='</div>';
 		str+='</div>';
 		div.innerHTML=str;
-		M.swapsL=l('templeSwaps');
-		M.lumpRefill=l('templeLumpRefill');
+		M.swapsL=l('templeSwaps')!;
+		M.lumpRefill=l('templeLumpRefill')!;
 		
 		for (var i in M.gods)
 		{
 			var me=M.gods[i];
-			AddEvent(l('templeGodDrag'+me.id),'mousedown',function(what){return function(e){if (e.button==0){M.dragGod(what);}}}(me));
-			AddEvent(l('templeGodDrag'+me.id),'mouseup',function(what){return function(e){if (e.button==0){M.dropGod(what);}}}(me));
+			AddEvent(l('templeGodDrag'+me.id)!,'mousedown',function(what){return function(e){if (e.button==0){M.dragGod(what);}}}(me));
+			AddEvent(l('templeGodDrag'+me.id)!,'mouseup',function(_what){return function(e){if (e.button==0){M.dropGod();}}}(me));
 		}
 		for (var i in M.slot)
 		{
-			var me=M.slot[i];
-			AddEvent(l('templeSlot'+i),'mouseover',function(what){return function(){M.hoverSlot(what);}}(i));
-			AddEvent(l('templeSlot'+i),'mouseout',function(_what){return function(e){if (e.button==0){M.hoverSlot(-1);}}}(i));
+			AddEvent(l('templeSlot'+i)!,'mouseover',function(what){return function(){M.hoverSlot(what);}}(i));
+			AddEvent(l('templeSlot'+i)!,'mouseout',function(_what){return function(e){if (e.button==0){M.hoverSlot(-1);}}}(i));
 		}
 		
 		AddEvent(document,'mouseup',M.dropGod);
@@ -432,7 +514,7 @@ M.launch=function()
 		str+=' '+parseInt(M.parent.onMinigame?'1':'0');
 		return str;
 	}
-	M.load=function(str: any)
+	M.load=function(str: string)
 	{
 		//interpret str; called after .init
 		//note : not actually called in the Game's load; see "minigameSave" in main.js
@@ -442,11 +524,11 @@ M.launch=function()
 			var bit=spl[i++].split('/')||[];
 			for (var ii in M.slot)
 			{
-				if (parseFloat(bit[ii])!=-1)
+				if (parseFloat(bit[+ii])!=-1)
 				{
-					var god=M.godsById[parseFloat(bit[ii])];
-					M.slotGod(god,ii);
-					l('templeSlot'+god.slot).appendChild(l('templeGod'+god.id));
+					var god=M.godsById[parseFloat(bit[+ii])];
+					M.slotGod(god,+ii);
+					l('templeSlot'+god.slot)!.appendChild(l('templeGod'+god.id)!);
 				}
 			}
 		M.swaps=parseFloat(spl[i++]||3);
@@ -457,13 +539,13 @@ M.launch=function()
 	{
 		M.swaps=3;
 		M.swapT=Date.now();
-		for (var i in M.slot) {M.slot[i]=-1;}
+		for (var i in M.slot) {M.slot[+i]=-1;}
 		for (var i in M.gods)
 		{
 			var me=M.gods[i];
 			me.slot=-1;
-			var other=l('templeGodPlaceholder'+(me.id));
-			other.parentNode.insertBefore(l('templeGod'+me.id),other);
+			var other=l('templeGodPlaceholder'+(me.id))!;
+			other.parentNode.insertBefore(l('templeGod'+me.id)!,other);
 			other.style.display='none';
 		}
 	}
@@ -482,16 +564,16 @@ M.launch=function()
 		//run each draw frame
 		if (M.dragging)
 		{
-			var box=l('templeDrag').getBoundingClientRect();
+			var box=l('templeDrag')!.getBoundingClientRect();
 			var x=Game.mouseX-box.left-60/2;
 			var y=Game.mouseY-box.top;
 			if (M.slotHovered!=-1)//snap to slots
 			{
-				var box2=l('templeSlot'+M.slotHovered).getBoundingClientRect();
+				var box2=l('templeSlot'+M.slotHovered)!.getBoundingClientRect();
 				x=box2.left-box.left;
 				y=box2.top-box.top;
 			}
-			l('templeGod'+M.dragging.id).style.transform='translate('+(x)+'px,'+(y)+'px)';
+			l('templeGod'+M.dragging.id)!.style.transform='translate('+(x)+'px,'+(y)+'px)';
 		}
 		var t=1000*60*60;
 		if (M.swaps==0) t=1000*60*60*16;
@@ -499,7 +581,7 @@ M.launch=function()
 		var t2=M.swapT+t-Date.now();
 		M.swapsL.innerHTML='Worship swaps : <span class="titleFont" style="color:'+(M.swaps>0?'#fff':'#c00')+';">'+M.swaps+'/'+(3)+'</span>'+((M.swaps<3)?' (next in '+Game.sayTime((t2/1000+1)*Game.fps,-1)+')':'');
 	}
-	M.init(l('rowSpecial'+M.parent.id));
+	M.init(l('rowSpecial'+M.parent.id)!);
 }
 /* CC3: explicit module marker — at runtime these files are always ESM modules
  * (Vite bundles them as such), and this keeps their top-level var/function
