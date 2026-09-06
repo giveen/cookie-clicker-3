@@ -831,7 +831,7 @@ Game.Launch=function()
 	}
 	
 	Game.visible=true;
-	AddEvent(document,'visibilitychange',function(_e: any){if (document.visibilityState==='hidden') Game.visible=false; else Game.visible=true;});
+	AddEvent(document,'visibilitychange',function(_e: Event){if (document.visibilityState==='hidden') Game.visible=false; else Game.visible=true;});
 	
 	
 	if (!EN)
@@ -853,7 +853,7 @@ Game.Launch=function()
 	//automatic season detection (might not be 100% accurate)
 	var year=new Date().getFullYear();
 	var leap=(((year%4==0)&&(year%100!=0))||(year%400==0))?1:0;
-	var day: any=Math.floor((new Date().getTime()-new Date(year,0,0).getTime())/(1000*60*60*24));
+	var day=Math.floor((new Date().getTime()-new Date(year,0,0).getTime())/(1000*60*60*24));
 	if (day>=41 && day<=46) Game.baseSeason='valentines';
 	else if (day+leap>=90 && day<=92+leap) Game.baseSeason='fools';
 	else if (day>=304-7+leap && day<=304+leap) Game.baseSeason='halloween';
@@ -861,8 +861,8 @@ Game.Launch=function()
 	else
 	{
 		//easter is a pain goddamn
-		var easterDay: any=function(Y: any){var C = Math.floor(Y/100);var N = Y - 19*Math.floor(Y/19);var K = Math.floor((C - 17)/25);var I = C - Math.floor(C/4) - Math.floor((C - K)/3) + 19*N + 15;I = I - 30*Math.floor((I/30));I = I - Math.floor(I/28)*(1 - Math.floor(I/28)*Math.floor(29/(I + 1))*Math.floor((21 - N)/11));var J = Y + Math.floor(Y/4) + I + 2 - C + Math.floor(C/4);J = J - 7*Math.floor(J/7);var L = I - J;var M = 3 + Math.floor((L + 40)/44);var D = L + 28 - 31*Math.floor(M/4);return new Date(Y,M-1,D);}(year);
-		easterDay=Math.floor((easterDay-new Date(easterDay.getFullYear(),0,0).getTime())/(1000*60*60*24));
+		var easterDay: Date | number=function(Y: number){var C = Math.floor(Y/100);var N = Y - 19*Math.floor(Y/19);var K = Math.floor((C - 17)/25);var I = C - Math.floor(C/4) - Math.floor((C - K)/3) + 19*N + 15;I = I - 30*Math.floor((I/30));I = I - Math.floor(I/28)*(1 - Math.floor(I/28)*Math.floor(29/(I + 1))*Math.floor((21 - N)/11));var J = Y + Math.floor(Y/4) + I + 2 - C + Math.floor(C/4);J = J - 7*Math.floor(J/7);var L = I - J;var M = 3 + Math.floor((L + 40)/44);var D = L + 28 - 31*Math.floor(M/4);return new Date(Y,M-1,D);}(year);
+		easterDay=Math.floor((easterDay.getTime()-new Date(easterDay.getFullYear(),0,0).getTime())/(1000*60*60*24));
 		if (day>=easterDay-7 && day<=easterDay) Game.baseSeason='easter';
 	}
 		//CC3 rewrite (phase 6, slice 5): the info/about + version-history HTML moved verbatim to content/changelog.ts; same Launch position. The module is the DEFERRED changelog chunk (src/main.ts starts its fetch at parse time and the launch gate above awaits it) — by the time Launch runs the module is loaded, so this resolves on the next microtask and Game.updateLog is built before any menu can open.
@@ -1130,12 +1130,12 @@ Game.Launch=function()
 		}
 		Game.DefaultPrefs();
 		
-		window.onbeforeunload=function(event: any)
+		window.onbeforeunload=function(event: Event | undefined)
 		{
 			if (Game.prefs && Game.prefs.warn)
 			{
 				if (typeof event=='undefined') event=window.event;
-				if (event) event.returnValue=loc("Are you sure you want to close Cookie Clicker?");
+			if (event) (event as BeforeUnloadEvent).returnValue=loc("Are you sure you want to close Cookie Clicker?");
 			}
 		}
 		
@@ -1188,7 +1188,7 @@ Game.Launch=function()
 		{
 			if (!App) ajax('server.php?q=checkupdate',Game.CheckUpdatesResponse);
 		}
-		Game.CheckUpdatesResponse=function(response: any)
+		Game.CheckUpdatesResponse=function(response: string)
 		{
 			var r=response.split('|');
 			var str='';
@@ -1222,30 +1222,30 @@ Game.Launch=function()
 		Game.GrabData=function()
 		{
 			if (!App) ajax('grab.txt',Game.GrabDataResponse);
-			else App.grabData(function(res: any){
+			else App.grabData(function(res: {playersN?: number} | null | undefined){
 				Game.heralds=res?(res.playersN||1):1;
 				Game.heralds=Math.max(0,Math.min(100,Math.ceil(Game.heralds/100*100)/100));
 				l('heraldsAmount').textContent=Math.floor(Game.heralds);
 			});
 		}
-		Game.GrabDataResponse=function(response: any)
+		Game.GrabDataResponse=function(response: string)
 		{
 			/*
 				response should be formatted as
 				{"herald":3,"grandma":"a|b|c|...}
 			*/
-			var r: any={};
+			var r: Record<string, unknown>={};
 			try{
 				r=JSON.parse(response);
 				if (typeof r['herald']!=='undefined')
 				{
-					Game.heralds=parseInt(r['herald']);
+					Game.heralds=parseInt(r['herald'] as string);
 					Game.heralds=Math.max(0,Math.min(100,Game.heralds));
 				}
 				if (typeof r['grandma']!=='undefined' && r['grandma']!='')
 				{
-					Game.customGrandmaNames=r['grandma'].split('|');
-					Game.customGrandmaNames=Game.customGrandmaNames.filter(function(el: any){return el!='';});
+					Game.customGrandmaNames=(r['grandma'] as string).split('|');
+					Game.customGrandmaNames=Game.customGrandmaNames.filter(function(el: string){return el!='';});
 				}
 				
 				l('heraldsAmount').textContent=Math.floor(Game.heralds);
