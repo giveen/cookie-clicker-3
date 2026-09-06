@@ -136,6 +136,22 @@ CSS CUSTOM PROPERTIES (typed via @property for animatable variables)
 	inherits: false;
 }
 
+/* CC3 design tokens: the recurring spacing scale + base palette, promoted to
+   custom properties so a scale/color change is one edit. New CC3 code should
+   use these; the untouched 2.048 core stays literal until a block is touched. */
+:root
+{
+	--sp-1:4px;
+	--sp-2:8px;
+	--sp-3:12px;
+	--sp-4:16px;
+	--void:#000;
+	--ink:#fff;
+	--faint:#666;
+	--dim:#999;
+	--line:#ccc;
+}
+
 /*=====================================================================================
 BASE
 =======================================================================================*/
@@ -2015,21 +2031,67 @@ from {top:20px;opacity:0;}
 	padding-bottom:16px;
 	display:none;
 	/*overflow:hidden;*/
-}
-.row.enabled{display:block;}
 
-/* CC3 modern: scroll-driven entrance animation for building rows.
-   As a row scrolls into the viewport, its --section-opacity animates from 0→1,
-   and the row fades+translates up slightly. This runs entirely in CSS on the
-   compositor thread — no JS scroll listeners, no IntersectionObserver.
-   Supported in Chromium 115+, Firefox 123+ (with flag), Safari 17.4+.
-   Fallback: rows just appear (the animation-range means out-of-view rows stay
-   invisible, but that's acceptable since the game paints everything anyway). */
-.row.enabled
-{
-	animation: rowEnter ease-out both;
-	animation-timeline: view();
-	animation-range: entry 0% cover 30%;
+	&.enabled
+	{
+		display:block;
+	}
+
+	/* CC3 modern: scroll-driven entrance animation for building rows.
+	   As a row scrolls into the viewport, its --section-opacity animates from 0→1,
+	   and the row fades+translates up slightly. This runs entirely in CSS on the
+	   compositor thread — no JS scroll listeners, no IntersectionObserver.
+	   Supported in Chromium 115+, Firefox 123+ (with flag), Safari 17.4+.
+	   Fallback: rows just appear (the animation-range means out-of-view rows stay
+	   invisible, but that's acceptable since the game paints everything anyway). */
+	&.enabled
+	{
+		animation: rowEnter ease-out both;
+		animation-timeline: view();
+		animation-range: entry 0% cover 30%;
+	}
+
+	/* Ensure static rows (not yet animated by scroll timeline because they haven't
+	   entered the viewport) still show at full opacity when the game first paints —
+	   the animation-range above covers the first 30% of the scrollport, after which
+	   all rows are visible. For rows outside that range at initial paint, set a
+	   default opacity so they aren't hidden on first load (browsers that don't
+	   support view-timeline fall back to the initial keyframe value). */
+	&.enabled
+	{
+		opacity: 1; /* reset after animation completes; browsers without view() ignore animation-timeline */
+	}
+
+	.rowCanvas
+	{
+		width:100%;
+		height:128px;
+		/*overflow-x:scroll;
+		overflow-y:hidden;*/
+		background:var(--void);
+		display:block;
+	}
+	.rowSpecial
+	{
+		min-height:24px;
+		z-index:100;
+		width:100%;
+		top:0px;
+		left:0px;
+		background:var(--void) url(img/mapBG.webp) fixed;
+		display:none;
+	}
+	&.onMinigame .rowCanvas{display:none;}
+	&.onMinigame .rowSpecial{display:block;}
+	/*.row.muted .rowCanvas,.row.muted .rowSpecial{display:none;}*/
+	/*.row.muted .separatorBottom{background:rgba(0,0,0,0.75);box-shadow:1px 1px 0px rgba(255,255,255,0.1) inset,-1px -1px 0px rgba(0,0,0,0.5) inset;}*/
+	&.muted{display:none;}
+	.object
+	{
+		position:absolute;
+		width:64px;
+		height:64px;
+	}
 }
 @keyframes rowEnter
 {
@@ -2045,57 +2107,9 @@ from {top:20px;opacity:0;}
 	}
 }
 
-/* Ensure static rows (not yet animated by scroll timeline because they haven't
-   entered the viewport) still show at full opacity when the game first paints —
-   the animation-range above covers the first 30% of the scrollport, after which
-   all rows are visible. For rows outside that range at initial paint, set a
-   default opacity so they aren't hidden on first load (browsers that don't
-   support view-timeline fall back to the initial keyframe value). */
-.row.enabled
-{
-	opacity: 1; /* reset after animation completes; browsers without view() ignore animation-timeline */
-}
-.row
-{
-	/* CC3 modern: style the entire row container based on any descendant hover
-	   state, without adding JS class toggles. :has() lets the row know a child
-	   is hovered so we can highlight the row background/contour. */
-	&:has(.mouseOver:hover)
-	{
-		background:rgba(255,255,255,0.04);
-	}
-	&:has(.mouseOver:active)
-	{
-		background:rgba(0,0,0,0.06);
-	}
-}
-
-.row .rowCanvas
-{
-	width:100%;
-	height:128px;
-	/*overflow-x:scroll;
-	overflow-y:hidden;*/
-	background:#000;
-	display:block;
-}
-.row .rowSpecial
-{
-	min-height:24px;
-	z-index:100;
-	width:100%;
-	top:0px;
-	left:0px;
-	background:#000 url(img/mapBG.webp) fixed;
-	display:none;
-}
-.row.onMinigame .rowCanvas{display:none;}
-.row.onMinigame .rowSpecial{display:block;}
-/*.row.muted .rowCanvas,.row.muted .rowSpecial{display:none;}*/
-/*.row.muted .separatorBottom{background:rgba(0,0,0,0.75);box-shadow:1px 1px 0px rgba(255,255,255,0.1) inset,-1px -1px 0px rgba(0,0,0,0.5) inset;}*/
-.row.muted{display:none;}
-
-.row .info, #sectionLeft .info
+/* The building-info tooltip is shared by the row and the left section; :is()
+   keeps the two origins in one rule. */
+:is(.row, #sectionLeft) .info
 {
 	display:none;
 	/*visibility:hidden;*/
@@ -2106,20 +2120,20 @@ from {top:20px;opacity:0;}
 	transition: opacity 0.1s ease-out;
 	opacity:0;
 }
-.row .info, #sectionLeft .info
+:is(.row, #sectionLeft) .info
 {
 	position:absolute;
 	top:0px;
 	left:0px;
 	height:112px;
-	padding:8px;
+	padding:var(--sp-2);
 	font-size:12px;
 	line-height:125%;
 	background:url(img/infoBG.webp);
-	color:#666;
+	color:var(--faint);
 	z-index:100000;
 }
-.row .info:after
+:is(.row, #sectionLeft) .info:after
 {
 	width:16px;
 	height:128px;
@@ -2138,15 +2152,9 @@ from {top:20px;opacity:0;}
 	top:-16px;
 	height:auto;
 }
-.row:hover .info, #sectionLeft:hover .info
+:is(.row, #sectionLeft):hover .info
 {
 	opacity:1;
-}
-.row .object
-{
-	position:absolute;
-	width:64px;
-	height:64px;
 }
 #sectionLeftInfo
 {
@@ -3583,8 +3591,41 @@ STOP THE FANCY
 	height:48px;
 	z-index:10000;
 	background:rgba(0,0,0,0.85);
-	border-top:1px solid #000;
+	border-top:1px solid var(--void);
 	box-sizing:border-box;
+
+	button
+	{
+		flex:1;
+		appearance:none;
+		-webkit-appearance:none;
+		margin:0;
+		border:none;
+		border-right:1px solid rgba(255,255,255,0.15);
+		background:none;
+		color:var(--ink);
+		font-family:inherit;
+		font-size:15px;
+		font-weight:bold;
+		text-shadow:0px 1px 2px var(--void);
+		cursor:pointer;
+		padding:0;
+		height:48px;
+		line-height:48px;
+
+		&:last-child
+		{
+			border-right:none;
+		}
+		&:hover
+		{
+			background:rgba(255,255,255,0.08);
+		}
+		&[aria-pressed="true"]
+		{
+			background:rgba(255,255,255,0.14);
+		}
+	}
 }
 /* --oneColBarH: the 48px bar, grown by the bottom safe area (iOS home
    indicator) when the PWA runs full-screen (viewport-fit=cover, set in
@@ -3603,37 +3644,6 @@ body.oneColumn #oneColTabs
 	display:flex;
 	height:var(--oneColBarH);
 	padding-bottom:calc(env(safe-area-inset-bottom,0px) / var(--cc3Scale,1));
-}
-#oneColTabs button
-{
-	flex:1;
-	appearance:none;
-	-webkit-appearance:none;
-	margin:0;
-	border:none;
-	border-right:1px solid rgba(255,255,255,0.15);
-	background:none;
-	color:#fff;
-	font-family:inherit;
-	font-size:15px;
-	font-weight:bold;
-	text-shadow:0px 1px 2px #000;
-	cursor:pointer;
-	padding:0;
-	height:48px;
-	line-height:48px;
-}
-#oneColTabs button:last-child
-{
-	border-right:none;
-}
-#oneColTabs button:hover
-{
-	background:rgba(255,255,255,0.08);
-}
-#oneColTabs button[aria-pressed="true"]
-{
-	background:rgba(255,255,255,0.14);
 }
 /* hide all columns + the separator beams in one-column mode ... */
 body.oneColumn #sectionLeft,
