@@ -1,4 +1,185 @@
-/* CC3 rewrite (phase 5): minigame re-typed; M is any to match engine pattern. */
+/* CC3 rewrite (phase 5): minigame re-typed; M is any to match engine pattern.
+ * CC3 rewrite (phase 6): M is typed (was `any`). Same approach as the
+ * Pantheon/Grimoire: the engine only reads the guarded contract on
+ * `building.minigame` (launch/save/load/reset/logic/draw/onResize/effs,
+ * plus the level-up and ascend callbacks onLevel/onRuinTheFun), and the
+ * tooltip paths (soilTooltip/seedTooltip/toolTooltip/tileTooltip/
+ * refillTooltip) are invoked through the getDynamicTooltip string paths
+ * init wires up - those eval'd paths pass bare numeric ids/coords, so the
+ * tooltip fns take numbers.
+ *
+ * Zero runtime change: body edits are type-only (param annotations, a
+ * `this` on launch, two content-literal casts - the plants/soils records
+ * only carry their content fields at declaration and gain id/key/unlocked
+ * & co. in the init pass - and the local `neigh` in the spread/contam
+ * loops renamed to `pl` where it is reused across number[] and Plant). */
+import type { Building } from './types';
+
+/** A garden plant definition plus the runtime state the init pass and the
+ *  game assign to it. The M.plants literal carries only the content fields
+ *  and is cast to Record<string, Plant>. */
+interface Plant {
+	name: string;
+	icon: number;
+	cost: number;
+	costM: number;
+	ageTick: number;
+	ageTickR: number;
+	mature: number;
+	children: string[];
+	effsStr: string;
+	q: string;
+	/* optional content extras */
+	immortal?: number;
+	noContam?: boolean;
+	fungus?: boolean;
+	weed?: boolean;
+	/* chance to contaminate a neighboring tile per step */
+	contam?: number;
+	detailsStr?: string;
+	/* assigned in the init plantsById pass (default true) */
+	id?: number;
+	key?: string;
+	unlocked?: number;
+	matureBase?: number;
+	plantable?: boolean;
+	/* legacy: never assigned; lockSeed's guard reads it (always falsy) */
+	locked?: number;
+	/* DOM ref (init assigns it in buildPanel) */
+	l?: HTMLElement;
+	/* lifecycle hooks (called with the plant as this) */
+	onHarvest?: (this: Plant, x: number, y: number, age: number) => void;
+	onDie?: (x: number, y: number) => void;
+	onKill?: (x: number, y: number, age: number) => void;
+}
+/** A soil type. The M.soils literal carries only the content fields and is
+ *  cast to Record<string, Soil>; id/key are assigned in the init pass. */
+interface Soil {
+	name: string;
+	icon: number;
+	tick: number;
+	effMult: number;
+	weedMult: number;
+	req: number;
+	effsStr: string;
+	q: string;
+	id?: number;
+	key?: string;
+}
+/** A panel tool (info/harvestAll/freeze/convert). */
+interface Tool {
+	name: string;
+	icon: number;
+	desc?: string;
+	descFunc?: () => string;
+	/* bound to the tool element when clicked */
+	func: (this: HTMLElement) => void;
+	isOn?: () => number;
+	isDisplayed?: () => boolean;
+	/* assigned in the init toolsById pass */
+	id?: number;
+	key?: string;
+}
+
+interface GardenMinigame {
+	/* --- engine contract (building.minigame.*) --- */
+	name: string | 0;
+	parent: Building;
+	launch: () => void;
+	init: (div: HTMLElement) => void;
+	save: () => string;
+	load: (str: string) => boolean | undefined;
+	/* the engine calls reset(true) on a hard reset */
+	reset: (hard?: boolean) => void;
+	logic: () => void;
+	draw: () => void;
+	onResize: () => void;
+	/* the engine calls these from the building level-up / ascend paths */
+	onLevel: (level: number) => void;
+	onRuinTheFun: () => void;
+	/* the multipliers the engine reads in CalculateGains */
+	effs: Record<string, number>;
+	/* dynamic tooltip surface (init wires getDynamicTooltip string paths;
+	   the eval'd paths pass bare numeric ids/coords) */
+	soilTooltip: (id: number) => () => string;
+	seedTooltip: (id: number) => () => string;
+	toolTooltip: (id: number) => () => string;
+	tileTooltip: (x: number, y: number) => () => string;
+	refillTooltip: () => string;
+
+	/* --- content --- */
+	plants: Record<string, Plant>;
+	plantsById: Plant[];
+	soils: Record<string, Soil>;
+	soilsById: Soil[];
+	tools: Record<string, Tool>;
+	toolsById: Tool[];
+	/* key -> contamination chance (built from the plant contam fields) */
+	plantContam: Record<string, number>;
+	/* [xMin, yMin, xMax, yMax] unlocked plot bounds per farm level */
+	plotLimits: number[][];
+
+	/* --- state --- */
+	plantsN: number;
+	plantsUnlockedN: number;
+	/* plot[y][x] = [plantId+1 (0 = empty), age] */
+	plot: number[][][];
+	/* plotBoost[y][x] = [ageMult, powerMult, weedMult] */
+	plotBoost: number[][][];
+	tileSize: number;
+	/* -1 = none, otherwise the selected seed's id */
+	seedSelected: number;
+	soil: number;
+	nextSoil: number;
+	stepT: number;
+	nextStep: number;
+	harvests: number;
+	harvestsTotal: number;
+	loopsMult: number;
+	toRebuild: boolean;
+	toCompute: boolean;
+	/* 1 = frozen */
+	freeze: number;
+	nextFreeze: number;
+	convertTimes: number;
+	/* 1 = visible, 0 = hidden (the harvest cursor) */
+	cursor: number;
+
+	/* --- DOM handles (init sets them from the HTML it just wrote) --- */
+	cursorL: HTMLElement;
+	lumpRefill: HTMLElement;
+
+	/* --- panel building --- */
+	buildPanel: () => void;
+	buildPlot: () => void;
+
+	/* --- plants & soils --- */
+	getUnlockedN: () => number;
+	dropUpgrade: (upgrade: string, rate: number) => void;
+	computeMatures: () => void;
+	getMuts: (neighs: Record<string, number>, neighsM: Record<string, number>) => [string, number][];
+	computeBoostPlot: () => void;
+	computeEffs: () => void;
+	computeStepT: () => void;
+	getCost: (me: Plant) => number;
+	getPlantDesc: (me: Plant) => string;
+	canPlant: (me: Plant) => boolean;
+	unlockSeed: (me: Plant) => boolean;
+	lockSeed: (me: Plant) => boolean;
+
+	/* --- interaction --- */
+	hideCursor: () => void;
+	showCursor: () => void;
+	clickTile: (x: number, y: number) => void;
+	useTool: (what: number, x: number, y: number) => boolean;
+	getTile: (x: number, y: number) => number[];
+	isTileUnlocked: (x: number, y: number) => boolean;
+	askConvert: () => void;
+	convert: () => void;
+	harvestAll: (type?: Plant | 0, mature?: number, mortal?: number) => void;
+	harvest: (x: number, y: number, _manual?: number) => boolean;
+}
+
 /* CC3: the original relied on implicit globals; declare them for module strict mode. */
 var popup;
 /* CC3 rewrite (phase 5): `popup` is write-only legacy (juicy-queenbeet harvest
@@ -6,14 +187,14 @@ var popup;
  * throw, and the void read keeps noUnusedLocals quiet. Zero runtime effect. */
 void popup;
 
-var M: any ={};
+var M = {} as GardenMinigame;
 M.parent=Game.Objects['Farm'];
 M.parent.minigame=M;
-M.launch=function()
+M.launch=function(this: GardenMinigame)
 {
 	var M=this;
 	M.name=M.parent.minigameName;
-	M.init=function(div: any)
+	M.init=function(div: HTMLElement)
 	{
 		//populate div with html and initialize values
 		
@@ -39,7 +220,7 @@ M.launch=function()
 				children:['bakerWheat','thumbcorn','cronerice','bakeberry','clover','goldenClover','chocoroot','tidygrass'],
 				effsStr:'<div class="green">&bull; +1% CpS</div>',
 				q:'A plentiful crop whose hardy grain is used to make flour for pastries.',
-				onHarvest:function(_x: any, _y: any, age: any)
+				onHarvest:function(this: Plant, _x: number, _y: number, age: number)
 				{
 					if (age>=this.mature) M.dropUpgrade('Wheat slims',0.001);
 				},
@@ -130,7 +311,7 @@ M.launch=function()
 				children:['everdaisy','ichorpuff','shriekbulb'],
 				effsStr:'<div class="green">&bull; +1% wrath cookie gains</div><div class="green">&bull; +1% wrath cookie frequency</div><div class="green">&bull; +1% grandma CpS</div><div class="green">&bull; immortal</div><div class="gray">&bull; surrounding plants (3x3) age 3% faster</div>',
 				q:'A very old, long-forgotten subspecies of edelweiss that emits a strange, heady scent. There is some anecdotal evidence that these do not undergo molecular aging.',
-				onHarvest:function(_x: any, _y: any, age: any)
+				onHarvest:function(this: Plant, _x: number, _y: number, age: number)
 				{
 					if (age>=this.mature) M.dropUpgrade('Elderwort biscuits',0.01);
 				},
@@ -146,7 +327,7 @@ M.launch=function()
 				children:['queenbeet'],
 				effsStr:'<div class="green">&bull; +1% CpS</div><div class="green">&bull; harvest when mature for +30 minutes of CpS (max. 3% of bank)</div>',
 				q:'A favorite among cooks, this large berry has a crunchy brown exterior and a creamy red center. Excellent in pies or chicken stews.',
-				onHarvest:function(_x: any, _y: any, age: any)
+				onHarvest:function(this: Plant, _x: number, _y: number, age: number)
 				{
 					if (age>=this.mature)
 					{
@@ -172,7 +353,7 @@ M.launch=function()
 				children:['whiteChocoroot','drowsyfern','queenbeet'],
 				effsStr:'<div class="green">&bull; +1% CpS</div><div class="green">&bull; harvest when mature for +3 minutes of CpS (max. 3% of bank)</div><div class="green">&bull; predictable growth</div>',
 				q:'A tangly bramble coated in a sticky, sweet substance. Unknown genetic ancestry. Children often pick these from fields as-is as a snack.',
-				onHarvest:function(_x: any, _y: any, age: any)
+				onHarvest:function(this: Plant, _x: number, _y: number, age: number)
 				{
 					if (age>=this.mature)
 					{
@@ -197,7 +378,7 @@ M.launch=function()
 				children:['whiskerbloom','tidygrass'],
 				effsStr:'<div class="green">&bull; +1% golden cookie gains</div><div class="green">&bull; harvest when mature for +3 minutes of CpS (max. 3% of bank)</div><div class="green">&bull; predictable growth</div>',
 				q:'A pale, even sweeter variant of the chocoroot. Often impedes travelers with its twisty branches.',
-				onHarvest:function(_x: any, _y: any, age: any)
+				onHarvest:function(this: Plant, _x: number, _y: number, age: number)
 				{
 					if (age>=this.mature)
 					{
@@ -254,9 +435,9 @@ M.launch=function()
 				children:['meddleweed','brownMold','crumbspore'],
 				effsStr:'<div class="red">&bull; useless</div><div class="red">&bull; may overtake nearby plants</div><div class="gray">&bull; may sometimes drop spores when uprooted</div>',
 				q:'The sign of a neglected farmland, this annoying weed spawns from unused dirt and may sometimes spread to other plants, killing them in the process.',
-				onKill:function(x: any, y: any, age: any)
+				onKill:function(x: number, y: number, age: number)
 				{
-					if (Math.random()<0.2*(age/100)) M.plot[y][x]=[M.plants[choose(['brownMold','crumbspore'])].id+1,0];
+					if (Math.random()<0.2*(age/100)) M.plot[y][x]=[M.plants[choose(['brownMold','crumbspore'])].id!+1,0];
 				},
 			},
 			
@@ -307,7 +488,7 @@ M.launch=function()
 				children:[],
 				effsStr:'<div class="green">&bull; +3% CpS</div><div class="red">&bull; -5% cookies per click</div><div class="red">&bull; -10% golden cookie frequency</div>',
 				q:'Traditionally used to brew a tea that guarantees a good night of sleep.',
-				onHarvest:function(_x: any, _y: any, age: any)
+				onHarvest:function(this: Plant, _x: number, _y: number, age: number)
 				{
 					if (age>=this.mature) M.dropUpgrade('Fern tea',0.01);
 				},
@@ -348,7 +529,7 @@ M.launch=function()
 				children:['duketater','queenbeetLump','shriekbulb'],
 				effsStr:'<div class="green">&bull; +0.3% golden cookie effect duration</div><div class="red">&bull; -2% CpS</div><div class="green">&bull; harvest when mature for +1 hour of CpS (max. 4% of bank)</div>',
 				q:'A delicious taproot used to prepare high-grade white sugar. Entire countries once went to war over these.',
-				onHarvest:function(_x: any, _y: any, age: any)
+				onHarvest:function(this: Plant, _x: number, _y: number, age: number)
 				{
 					if (age>=this.mature)
 					{
@@ -374,7 +555,7 @@ M.launch=function()
 				children:[],
 				effsStr:'<div class="red">&bull; -10% CpS</div><div class="red">&bull; surrounding plants (3x3) are 20% less efficient</div><div class="green">&bull; harvest when mature for a sugar lump</div>',
 				q:'A delicious taproot used to prepare high-grade white sugar. Entire countries once went to war over these.<br>It looks like this one has grown especially sweeter and juicier from growing in close proximity to other queenbeets.',
-				onHarvest:function(_x: any, _y: any, age: any)
+				onHarvest:function(this: Plant, _x: number, _y: number, age: number)
 				{
 					if (age>=this.mature)
 					{
@@ -395,7 +576,7 @@ M.launch=function()
 				children:['shriekbulb'],
 				effsStr:'<div class="green">&bull; harvest when mature for +2 hours of CpS (max. 8% of bank)</div>',
 				q:'A rare, rich-tasting tuber fit for a whole meal, as long as its strict harvesting schedule is respected. Its starch has fascinating baking properties.',
-				onHarvest:function(_x: any, _y: any, age: any)
+				onHarvest:function(this: Plant, _x: number, _y: number, age: number)
 				{
 					if (age>=this.mature)
 					{
@@ -424,7 +605,7 @@ M.launch=function()
 				children:['crumbspore','glovemorel','cheapcap','doughshroom','wrinklegill','ichorpuff'],
 				effsStr:'<div class="green">&bull; explodes into up to 1 minute of CpS at the end of its lifecycle (max. 1% of bank)</div><div class="red">&bull; may overtake nearby plants</div>',
 				q:'An archaic mold that spreads its spores to the surrounding dirt through simple pod explosion.',
-				onDie:function(_x: any, _y: any)
+				onDie:function(_x: number, _y: number)
 				{
 					var moni=Math.min(Game.cookies*0.01,Game.cookiesPs*60)*Math.random();
 					if (moni!=0)
@@ -449,7 +630,7 @@ M.launch=function()
 				children:['crumbspore','doughshroom','foolBolete','shriekbulb'],
 				effsStr:'<div class="green">&bull; explodes into up to 5 minutes of CpS at the end of its lifecycle (max. 3% of bank)</div><div class="red">&bull; may overtake nearby plants</div>',
 				q:'Jammed full of warm spores; some forest walkers often describe the smell as similar to passing by a bakery.',
-				onDie:function(_x: any, _y: any)
+				onDie:function(_x: number, _y: number)
 				{
 					var moni=Math.min(Game.cookies*0.03,Game.cookiesPs*60*5)*Math.random();
 					if (moni!=0)
@@ -523,7 +704,7 @@ M.launch=function()
 				children:['keenmoss','foolBolete'],
 				effsStr:'<div class="green">&bull; +0.5% golden cookie duration</div><div class="green">&bull; +1% golden cookie frequency</div><div class="green">&bull; +1% random drops</div>',
 				q:'This short-lived mold is also known as "emerald pebbles", and is considered by some as a pseudo-gem that symbolizes good fortune.',
-				onHarvest:function(_x: any, _y: any, age: any)
+				onHarvest:function(this: Plant, _x: number, _y: number, age: number)
 				{
 					if (age>=this.mature) M.dropUpgrade('Green yeast digestives',0.005);
 				},
@@ -581,12 +762,12 @@ M.launch=function()
 				children:[],
 				effsStr:'<div class="green">&bull; surrounding plants (3x3) age half as fast</div><div class="red">&bull; surrounding plants (3x3) are half as efficient</div>',
 				q:'This puffball mushroom contains sugary spores, but it never seems to mature to bursting on its own. Surrounding plants under its influence have a very slow metabolism, reducing their effects but lengthening their lifespan.',
-				onHarvest:function(_x: any, _y: any, age: any)
+				onHarvest:function(this: Plant, _x: number, _y: number, age: number)
 				{
 					if (age>=this.mature) M.dropUpgrade('Ichor syrup',0.005);
 				},
 			},
-		};
+		} as Record<string, Plant>;
 		M.plantsById=[];var n=0;
 		for (var i in M.plants)
 		{
@@ -614,7 +795,7 @@ M.launch=function()
 			return M.plantsUnlockedN;
 		}
 		
-		M.dropUpgrade=function(upgrade: any, rate: any)
+		M.dropUpgrade=function(upgrade: string, rate: number)
 		{
 			if (!Game.Has(upgrade) && Math.random()<=rate*Game.dropRateMult()*(Game.HasAchiev('Seedless to nay')?1.05:1))
 			{
@@ -628,21 +809,21 @@ M.launch=function()
 			if (Game.HasAchiev('Seedless to nay')) mult=0.95;
 			for (var i in M.plants)
 			{
-				M.plants[i].mature=M.plants[i].matureBase*mult;
+				M.plants[i].mature=M.plants[i].matureBase!*mult;
 			}
 		}
 		
 		M.plantContam={};
 		for (var i in M.plants)
 		{
-			if (M.plants[i].contam) M.plantContam[M.plants[i].key]=M.plants[i].contam;
+			if (M.plants[i].contam) M.plantContam[M.plants[i].key!]=M.plants[i].contam!;
 		}
 		
-		M.getMuts=function(neighs: any, neighsM: any)
+		M.getMuts=function(neighs: Record<string, number>, neighsM: Record<string, number>)
 		{
 			//get possible mutations given a list of neighbors
 			//note : neighs stands for neighbors, not horsey noises
-			var muts=[];
+			var muts: [string, number][] =[];
 			
 			if (neighsM['bakerWheat']>=2) muts.push(['bakerWheat',0.2],['thumbcorn',0.05],['bakeberry',0.001]);
 			if (neighsM['bakerWheat']>=1 && neighsM['thumbcorn']>=1) muts.push(['cronerice',0.01]);
@@ -711,7 +892,7 @@ M.launch=function()
 				}
 			}
 			
-			var effectOn=function(X: any, Y: any, s: any, mult: any)
+			var effectOn=function(X: number, Y: number, s: number, mult: number[])
 			{
 				for (var y=Math.max(0,Y-s);y<Math.min(6,Y+s+1);y++)
 				{
@@ -930,7 +1111,7 @@ M.launch=function()
 				effsStr:'<div class="gray">&bull; tick every <b>5 minutes</b></div><div class="red">&bull; passive plant effects <b>-75%</b></div><div class="green">&bull; plants spread and mutate <b>3 times more</b></div><div class="green">&bull; weeds appear <b>10 times</b> less</div>',
 				q:'Soil made of bits and pieces of bark and sawdust. Helpful for young sprouts to develop, not so much for mature plants.',
 			},
-		};
+		} as Record<string, Soil>;
 		M.soilsById=[];var n=0;for (var i in M.soils){M.soils[i].id=n;M.soils[i].key=i;M.soilsById[n]=M.soils[i];n++;}
 		
 		
@@ -945,7 +1126,7 @@ M.launch=function()
 					if (M.freeze) str='Your garden is frozen, providing no effects.';
 					else
 					{
-						var effs: any ={
+						var effs: Record<string, { n: string; rev?: boolean }> ={
 							cps:{n:'CpS'},
 							click:{n:'cookies/click'},
 							cursorCps:{n:'cursor CpS'},
@@ -1005,7 +1186,7 @@ M.launch=function()
 				{
 					return 'Cryogenically preserve your garden.<br>Plants no longer grow, spread or die; they provide no benefits.<br>Soil cannot be changed.<div class="line"></div>Using this will effectively pause your garden.<div class="line"></div>';//<span class="red">'+((M.nextFreeze>Date.now())?'You will be able to freeze your garden again in '+Game.sayTime((M.nextFreeze-Date.now())/1000*30+30,-1)+'.':'After unfreezing your garden, you must wait 10 minutes to freeze it again.')+'</span>
 				},
-				func:function(this: any){
+				func:function(this: HTMLElement){
 					//if (!M.freeze && M.nextFreeze>Date.now()) return false;
 					PlaySound('snd/toneTick.mp3');
 					M.freeze=(M.freeze?0:1);
@@ -1098,13 +1279,13 @@ M.launch=function()
 		M.freeze=0;
 		M.nextFreeze=0;//timestamp for when we can freeze again; unused, but still stored
 		
-		M.getCost=function(me: any)
+		M.getCost=function(me: Plant)
 		{
 			if (Game.Has('Turbo-charged soil')) return 0;
 			return Math.max(me.costM,Game.cookiesPs*me.cost*60)*(Game.HasAchiev('Seedless to nay')?0.95:1);
 		}
 		
-		M.getPlantDesc=function(me: any)
+		M.getPlantDesc=function(me: Plant)
 		{
 			var children='';
 			if (me.children.length>0)
@@ -1136,7 +1317,7 @@ M.launch=function()
 						(me.q?('<q>'+me.q+'</q>'):'')+
 					'</div>';
 		}
-		M.canPlant=function(me: any)
+		M.canPlant=function(me: Plant)
 		{
 			if (Game.cookies>=M.getCost(me)) return true; else return false;
 		}
@@ -1151,7 +1332,7 @@ M.launch=function()
 			M.cursor=1;
 		}
 		
-		M.soilTooltip=function(id: any)
+		M.soilTooltip=function(id: number)
 		{
 			return function(){
 				var me=M.soilsById[id];
@@ -1170,7 +1351,7 @@ M.launch=function()
 				return str;
 			};
 		}
-		M.seedTooltip=function(id: any)
+		M.seedTooltip=function(id: number)
 		{
 			return function(){
 				var me=M.plantsById[id];
@@ -1186,7 +1367,7 @@ M.launch=function()
 				return str;
 			};
 		}
-		M.toolTooltip=function(id: any)
+		M.toolTooltip=function(id: number)
 		{
 			return function(){
 				var me=M.toolsById[id];
@@ -1202,19 +1383,19 @@ M.launch=function()
 				return str;
 			};
 		}
-		M.tileTooltip=function(x: any, y: any)
+		M.tileTooltip=function(x: number, y: number)
 		{
 			return function(){
 				if (Game.keys[16]) return '';
 				var tile=M.plot[y][x];
 				if (tile[0]==0)
 				{
-					var me=(M.seedSelected>=0)?M.plantsById[M.seedSelected]:0;
+					var sel: Plant | 0 =(M.seedSelected>=0)?M.plantsById[M.seedSelected]:0;
 					var str='<div style="padding:8px 4px;min-width:350px;text-align:center;">'+
 						'<div class="name">Empty tile</div>'+'<div class="line"></div><div class="description">'+
 							'This tile of soil is empty.<br>Pick a seed and plant something!'+
-							(me?'<div class="line"></div>Click to plant <b>'+me.name+'</b> for <span class="price'+(M.canPlant(me)?'':' disabled')+'">'+Beautify(Math.round(M.getCost(me)))+'</span>.<br><small>(Shift-click to plant multiple.)</small><br><small>(Holding the shift key pressed will also hide tooltips.)</small>':'')+
-							(M.plotBoost[y][x]!=[1,1,1] as any?('<small>'+
+							(sel?'<div class="line"></div>Click to plant <b>'+sel.name+'</b> for <span class="price'+(M.canPlant(sel)?'':' disabled')+'">'+Beautify(Math.round(M.getCost(sel)))+'</span>.<br><small>(Shift-click to plant multiple.)</small><br><small>(Holding the shift key pressed will also hide tooltips.)</small>':'')+
+							((M.plotBoost[y][x][0]!=1||M.plotBoost[y][x][1]!=1||M.plotBoost[y][x][2]!=1)?('<small>'+
 								(M.plotBoost[y][x][0]!=1?'<br>Aging multiplier : '+Beautify(M.plotBoost[y][x][0]*100)+'%':'')+
 								(M.plotBoost[y][x][1]!=1?'<br>Effect multiplier : '+Beautify(M.plotBoost[y][x][1]*100)+'%':'')+
 								(M.plotBoost[y][x][2]!=1?'<br>Weeds/fungus repellent : '+Beautify(100-M.plotBoost[y][x][2]*100)+'%':'')+
@@ -1258,7 +1439,7 @@ M.launch=function()
 								)
 							)+'</small>'+
 							//'<small><br>'+M.plotBoost[y][x]+'</small>'+
-							(M.plotBoost[y][x]!=[1,1,1] as any?('<small>'+
+							((M.plotBoost[y][x][0]!=1||M.plotBoost[y][x][1]!=1||M.plotBoost[y][x][2]!=1)?('<small>'+
 								(M.plotBoost[y][x][0]!=1?'<br>Aging multiplier : '+Beautify(M.plotBoost[y][x][0]*100)+'%':'')+
 								(M.plotBoost[y][x][1]!=1?'<br>Effect multiplier : '+Beautify(M.plotBoost[y][x][1]*100)+'%':'')+
 								(M.plotBoost[y][x][2]!=1?'<br>Weeds/fungus repellent : '+Beautify(100-M.plotBoost[y][x][2]*100)+'%':'')+
@@ -1300,7 +1481,7 @@ M.launch=function()
 			{
 				var me=M.plants[i];
 				me.l=l('gardenSeed-'+me.id);
-				AddEvent(me.l,'click',function(me: any){return function()
+				AddEvent(me.l!,'click',function(me: Plant){return function()
 				{
 					if (/* !M.freeze && */Game.keys[16] && Game.keys[17])//shift & ctrl
 					{
@@ -1310,61 +1491,61 @@ M.launch=function()
 					}
 					if (!me.plantable && !Game.sesame) return false;
 					if (M.seedSelected==me.id){M.seedSelected=-1;}
-					else {M.seedSelected=me.id;PlaySound('snd/toneTick.mp3');}
+					else {M.seedSelected=me.id!;PlaySound('snd/toneTick.mp3');}
 					for (var i in M.plants)
 					{
 						var it=M.plants[i];
-						if (it.id==M.seedSelected){it.l.classList.add('on');}
-						else {it.l.classList.remove('on');}
+						if (it.id==M.seedSelected){it.l!.classList.add('on');}
+						else {it.l!.classList.remove('on');}
 					}
 				}}(me));
-				AddEvent(me.l,'mouseover',M.hideCursor);
-				AddEvent(me.l,'mouseout',M.showCursor);
-				if (me.unlocked) me.l.classList.remove('locked');
+				AddEvent(me.l!,'mouseover',M.hideCursor);
+				AddEvent(me.l!,'mouseout',M.showCursor);
+				if (me.unlocked) me.l!.classList.remove('locked');
 			}
 			
 			var str='';
 			for (var i in M.tools)
 			{
-				var me=M.tools[i];
-				var icon=[me.icon,35];
-				str+='<div id="gardenTool-'+me.id+'" style="margin:8px;" class="gardenSeed'+((me.isOn && me.isOn())?' on':'')+''+((!me.isDisplayed || me.isDisplayed())?'':' locked')+'" '+Game.getDynamicTooltip('Game.ObjectsById['+M.parent.id+'].minigame.toolTooltip('+me.id+')','this')+'>';
-					str+='<div id="gardenToolIcon-'+me.id+'" class="gardenSeedIcon shadowFilter" style="background-position:'+(-icon[0]*48)+'px '+(-icon[1]*48)+'px;"></div>';
+				var tool=M.tools[i];
+				var icon=[tool.icon,35];
+				str+='<div id="gardenTool-'+tool.id+'" style="margin:8px;" class="gardenSeed'+((tool.isOn && tool.isOn())?' on':'')+''+((!tool.isDisplayed || tool.isDisplayed())?'':' locked')+'" '+Game.getDynamicTooltip('Game.ObjectsById['+M.parent.id+'].minigame.toolTooltip('+tool.id+')','this')+'>';
+					str+='<div id="gardenToolIcon-'+tool.id+'" class="gardenSeedIcon shadowFilter" style="background-position:'+(-icon[0]*48)+'px '+(-icon[1]*48)+'px;"></div>';
 				str+='</div>';
 			}
 			l('gardenTools').innerHTML=str;
 			
 			for (var i in M.tools)
 			{
-				var me=M.tools[i];
-				AddEvent(l('gardenTool-'+me.id),'click',me.func);
-				AddEvent(l('gardenTool-'+me.id),'mouseover',M.hideCursor);
-				AddEvent(l('gardenTool-'+me.id),'mouseout',M.showCursor);
+				var tool=M.tools[i];
+				AddEvent(l('gardenTool-'+tool.id),'click',tool.func);
+				AddEvent(l('gardenTool-'+tool.id),'mouseover',M.hideCursor);
+				AddEvent(l('gardenTool-'+tool.id),'mouseout',M.showCursor);
 			}
 
 			var str='';
 			for (var i in M.soils)
 			{
-				var me=M.soils[i];
-				var icon=[me.icon,34];
-				str+='<div id="gardenSoil-'+me.id+'" class="gardenSeed gardenSoil disabled'+(M.soil==me.id?' on':'')+'" '+Game.getDynamicTooltip('Game.ObjectsById['+M.parent.id+'].minigame.soilTooltip('+me.id+')','this')+'>';
-					str+='<div id="gardenSoilIcon-'+me.id+'" class="gardenSeedIcon shadowFilter" style="background-position:'+(-icon[0]*48)+'px '+(-icon[1]*48)+'px;"></div>';
+				var soil=M.soils[i];
+				var icon=[soil.icon,34];
+				str+='<div id="gardenSoil-'+soil.id+'" class="gardenSeed gardenSoil disabled'+(M.soil==soil.id?' on':'')+'" '+Game.getDynamicTooltip('Game.ObjectsById['+M.parent.id+'].minigame.soilTooltip('+soil.id+')','this')+'>';
+					str+='<div id="gardenSoilIcon-'+soil.id+'" class="gardenSeedIcon shadowFilter" style="background-position:'+(-icon[0]*48)+'px '+(-icon[1]*48)+'px;"></div>';
 				str+='</div>';
 			}
 			l('gardenSoils').innerHTML=str;
 			
 			for (var i in M.soils)
 			{
-				var me=M.soils[i];
-				AddEvent(l('gardenSoil-'+me.id),'click',function(me: any){return function(){
-					if (M.freeze || M.soil==me.id || M.nextSoil>Date.now() || M.parent.amount<me.req){return false;}
+				var soil=M.soils[i];
+				AddEvent(l('gardenSoil-'+soil.id),'click',function(soil: Soil){return function(){
+					if (M.freeze || M.soil==soil.id || M.nextSoil>Date.now() || M.parent.amount<soil.req){return false;}
 					PlaySound('snd/toneTick.mp3');
 					M.nextSoil=Date.now()+(Game.Has('Turbo-charged soil')?1:(1000*60*10));
-					M.toCompute=true;M.soil=me.id;M.computeStepT();
+					M.toCompute=true;M.soil=soil.id!;M.computeStepT();
 					for (var i in M.soils){var it=M.soils[i];if (it.id==M.soil){l('gardenSoil-'+it.id).classList.add('on');}else{l('gardenSoil-'+it.id).classList.remove('on');}}
-				}}(me));
-				AddEvent(l('gardenSoil-'+me.id),'mouseover',M.hideCursor);
-				AddEvent(l('gardenSoil-'+me.id),'mouseout',M.showCursor);
+				}}(soil));
+				AddEvent(l('gardenSoil-'+soil.id),'mouseover',M.hideCursor);
+				AddEvent(l('gardenSoil-'+soil.id),'mouseout',M.showCursor);
 			}
 			
 			M.cursorL=l('gardenCursor');
@@ -1391,7 +1572,7 @@ M.launch=function()
 				{
 					for (var x=0;x<6;x++)
 					{
-						AddEvent(l('gardenTile-'+x+'-'+y),'click',function(x: any, y: any){return function()
+						AddEvent(l('gardenTile-'+x+'-'+y),'click',function(x: number, y: number){return function()
 						{
 							M.clickTile(x,y);
 						}}(x,y));
@@ -1406,7 +1587,7 @@ M.launch=function()
 					var tile=M.plot[y][x];
 					var tileL=l('gardenTile-'+x+'-'+y);
 					var iconL=l('gardenTileIcon-'+x+'-'+y);
-					var me: any =0;
+					var me: Plant | 0 =0;
 					if (tile[0]>0)
 					{
 						plants++;
@@ -1431,7 +1612,7 @@ M.launch=function()
 			if (plants>=6*6) Game.Win('In the garden of Eden (baby)');
 		}
 		
-		M.clickTile=function(x: any, y: any)
+		M.clickTile=function(x: number, y: number)
 		{
 			//if (M.freeze) return false;
 			var outcome=M.useTool(M.seedSelected,x,y);
@@ -1449,7 +1630,7 @@ M.launch=function()
 			//PlaySound('snd/tick.mp3');
 		}
 		
-		M.useTool=function(what: any, x: any, y: any)
+		M.useTool=function(what: number, x: number, y: number)
 		{
 			var harvested=M.harvest(x,y,1);
 			if (harvested)
@@ -1472,7 +1653,7 @@ M.launch=function()
 			return false;
 		}
 		
-		M.getTile=function(x: any, y: any)
+		M.getTile=function(x: number, y: number)
 		{
 			if (x<0 || x>5 || y<0 || y>5 || !M.isTileUnlocked(x,y)) return [0,0];
 			return M.plot[y][x];
@@ -1489,7 +1670,7 @@ M.launch=function()
 			[0,1,6,6],
 			[0,0,6,6],
 		];
-		M.isTileUnlocked=function(x: any, y: any)
+		M.isTileUnlocked=function(x: number, y: number)
 		{
 			var level=M.parent.level;
 			level=Math.max(1,Math.min(M.plotLimits.length,level))-1;
@@ -1526,7 +1707,7 @@ M.launch=function()
 			PlaySound('snd/spellFail.mp3',0.75);
 		}
 		
-		M.harvestAll=function(type: any, mature: any, mortal: any)
+		M.harvestAll=function(type?: Plant | 0, mature?: number, mortal?: number)
 		{
 			var harvested=0;
 			for (var i=0;i<2;i++)//we do it twice to take care of whatever spawns on kill
@@ -1553,7 +1734,7 @@ M.launch=function()
 			if (harvested>2) setTimeout(function(){PlaySound('snd/harvest2.mp3',1,0.2);},150);
 			if (harvested>6) setTimeout(function(){PlaySound('snd/harvest3.mp3',1,0.2);},250);
 		}
-		M.harvest=function(x: any, y: any, _manual: any)
+		M.harvest=function(x: number, y: number, _manual?: number)
 		{
 			var tile=M.plot[y][x];
 			if (tile[0]>=1)
@@ -1579,7 +1760,7 @@ M.launch=function()
 			return false;
 		}
 		
-		M.unlockSeed=function(me: any)
+		M.unlockSeed=function(me: Plant)
 		{
 			if (me.unlocked) return false;
 			me.unlocked=1;
@@ -1587,7 +1768,7 @@ M.launch=function()
 			M.getUnlockedN();
 			return true;
 		}
-		M.lockSeed=function(me: any)
+		M.lockSeed=function(me: Plant)
 		{
 			if (me.locked) return false;
 			me.unlocked=0;
@@ -1716,7 +1897,7 @@ M.launch=function()
 		l('gardenField').style.width=fieldW+'px';
 		l('gardenPanel').style.width=panelW+'px';
 	}
-	M.onLevel=function(_level: any)
+	M.onLevel=function(_level: number)
 	{
 		M.buildPlot();
 	}
@@ -1752,7 +1933,7 @@ M.launch=function()
 		}
 		return str;
 	}
-	M.load=function(str: any)
+	M.load=function(str: string)
 	{
 		//interpret str; called after .init
 		//note : not actually called in the Game's load; see "minigameSave" in main.js
@@ -1782,10 +1963,10 @@ M.launch=function()
 		}
 		M.plants['bakerWheat'].unlocked=1;
 		
-		var plot=spl[i++]||0;
+		var plot: string | string[] | number =spl[i++]||0;
 		if (plot)
 		{
-			plot=plot.split(':');
+			plot=(plot as string).split(':');
 			var n=0;
 			for (var y=0;y<6;y++)
 			{
@@ -1806,10 +1987,10 @@ M.launch=function()
 		M.computeBoostPlot();
 		M.toCompute=true;
 	}
-	M.reset=function(hard: any)
+	M.reset=function(hard?: boolean)
 	{
 		M.soil=0;
-		if (M.seedSelected>-1) M.plantsById[M.seedSelected].l.classList.remove('on');
+		if (M.seedSelected>-1) M.plantsById[M.seedSelected].l!.classList.remove('on');
 		M.seedSelected=-1;
 		
 		M.nextStep=Date.now();
@@ -1848,7 +2029,7 @@ M.launch=function()
 		M.computeEffs();
 		M.toCompute=true;
 		
-		setTimeout(function(M: any){return function(){M.onResize();}}(M),10);
+		setTimeout(function(M: GardenMinigame){return function(){M.onResize();}}(M),10);
 	}
 	M.logic=function()
 	{
@@ -1915,16 +2096,16 @@ M.launch=function()
 										if ((!M.plants[contam].weed && !M.plants[contam].fungus) || Math.random()<M.plotBoost[y][x][2])
 										{
 											var any=0;
-											var neighs: any ={};//all surrounding plants
-											var neighsM: any ={};//all surrounding mature plants
+											var neighs: Record<string, number> ={};//all surrounding plants
+											var neighsM: Record<string, number> ={};//all surrounding mature plants
 											for (var i in M.plants){neighs[i]=0;}
 											for (var i in M.plants){neighsM[i]=0;}
-											var neigh=M.getTile(x,y-1);if (neigh[0]>0){var age=neigh[1];neigh=M.plantsById[neigh[0]-1];any++;neighs[neigh.key]++;if (age>=neigh.mature){neighsM[neigh.key]++;}}
-											var neigh=M.getTile(x,y+1);if (neigh[0]>0){var age=neigh[1];neigh=M.plantsById[neigh[0]-1];any++;neighs[neigh.key]++;if (age>=neigh.mature){neighsM[neigh.key]++;}}
-											var neigh=M.getTile(x-1,y);if (neigh[0]>0){var age=neigh[1];neigh=M.plantsById[neigh[0]-1];any++;neighs[neigh.key]++;if (age>=neigh.mature){neighsM[neigh.key]++;}}
-											var neigh=M.getTile(x+1,y);if (neigh[0]>0){var age=neigh[1];neigh=M.plantsById[neigh[0]-1];any++;neighs[neigh.key]++;if (age>=neigh.mature){neighsM[neigh.key]++;}}
+											var neigh=M.getTile(x,y-1);if (neigh[0]>0){var age=neigh[1];var pl=M.plantsById[neigh[0]-1];any++;neighs[pl.key!]++;if (age>=pl.mature){neighsM[pl.key!]++;}}
+											var neigh=M.getTile(x,y+1);if (neigh[0]>0){var age=neigh[1];var pl=M.plantsById[neigh[0]-1];any++;neighs[pl.key!]++;if (age>=pl.mature){neighsM[pl.key!]++;}}
+											var neigh=M.getTile(x-1,y);if (neigh[0]>0){var age=neigh[1];var pl=M.plantsById[neigh[0]-1];any++;neighs[pl.key!]++;if (age>=pl.mature){neighsM[pl.key!]++;}}
+											var neigh=M.getTile(x+1,y);if (neigh[0]>0){var age=neigh[1];var pl=M.plantsById[neigh[0]-1];any++;neighs[pl.key!]++;if (age>=pl.mature){neighsM[pl.key!]++;}}
 											
-											if (neighsM[contam]>=1) M.plot[y][x]=[M.plants[contam].id+1,0];
+											if (neighsM[contam]>=1) M.plot[y][x]=[M.plants[contam].id!+1,0];
 										}
 									}
 								}
@@ -1936,18 +2117,18 @@ M.launch=function()
 								for (var loop=0;loop<loops;loop++)
 								{
 									var any=0;
-									var neighs: any ={};//all surrounding plants
-									var neighsM: any ={};//all surrounding mature plants
+									var neighs: Record<string, number> ={};//all surrounding plants
+									var neighsM: Record<string, number> ={};//all surrounding mature plants
 									for (var i in M.plants){neighs[i]=0;}
 									for (var i in M.plants){neighsM[i]=0;}
-									var neigh=M.getTile(x,y-1);if (neigh[0]>0){var age=neigh[1];neigh=M.plantsById[neigh[0]-1];any++;neighs[neigh.key]++;if (age>=neigh.mature){neighsM[neigh.key]++;}}
-									var neigh=M.getTile(x,y+1);if (neigh[0]>0){var age=neigh[1];neigh=M.plantsById[neigh[0]-1];any++;neighs[neigh.key]++;if (age>=neigh.mature){neighsM[neigh.key]++;}}
-									var neigh=M.getTile(x-1,y);if (neigh[0]>0){var age=neigh[1];neigh=M.plantsById[neigh[0]-1];any++;neighs[neigh.key]++;if (age>=neigh.mature){neighsM[neigh.key]++;}}
-									var neigh=M.getTile(x+1,y);if (neigh[0]>0){var age=neigh[1];neigh=M.plantsById[neigh[0]-1];any++;neighs[neigh.key]++;if (age>=neigh.mature){neighsM[neigh.key]++;}}
-									var neigh=M.getTile(x-1,y-1);if (neigh[0]>0){var age=neigh[1];neigh=M.plantsById[neigh[0]-1];any++;neighs[neigh.key]++;if (age>=neigh.mature){neighsM[neigh.key]++;}}
-									var neigh=M.getTile(x-1,y+1);if (neigh[0]>0){var age=neigh[1];neigh=M.plantsById[neigh[0]-1];any++;neighs[neigh.key]++;if (age>=neigh.mature){neighsM[neigh.key]++;}}
-									var neigh=M.getTile(x+1,y-1);if (neigh[0]>0){var age=neigh[1];neigh=M.plantsById[neigh[0]-1];any++;neighs[neigh.key]++;if (age>=neigh.mature){neighsM[neigh.key]++;}}
-									var neigh=M.getTile(x+1,y+1);if (neigh[0]>0){var age=neigh[1];neigh=M.plantsById[neigh[0]-1];any++;neighs[neigh.key]++;if (age>=neigh.mature){neighsM[neigh.key]++;}}
+									var neigh=M.getTile(x,y-1);if (neigh[0]>0){var age=neigh[1];var pl=M.plantsById[neigh[0]-1];any++;neighs[pl.key!]++;if (age>=pl.mature){neighsM[pl.key!]++;}}
+									var neigh=M.getTile(x,y+1);if (neigh[0]>0){var age=neigh[1];var pl=M.plantsById[neigh[0]-1];any++;neighs[pl.key!]++;if (age>=pl.mature){neighsM[pl.key!]++;}}
+									var neigh=M.getTile(x-1,y);if (neigh[0]>0){var age=neigh[1];var pl=M.plantsById[neigh[0]-1];any++;neighs[pl.key!]++;if (age>=pl.mature){neighsM[pl.key!]++;}}
+									var neigh=M.getTile(x+1,y);if (neigh[0]>0){var age=neigh[1];var pl=M.plantsById[neigh[0]-1];any++;neighs[pl.key!]++;if (age>=pl.mature){neighsM[pl.key!]++;}}
+									var neigh=M.getTile(x-1,y-1);if (neigh[0]>0){var age=neigh[1];var pl=M.plantsById[neigh[0]-1];any++;neighs[pl.key!]++;if (age>=pl.mature){neighsM[pl.key!]++;}}
+									var neigh=M.getTile(x-1,y+1);if (neigh[0]>0){var age=neigh[1];var pl=M.plantsById[neigh[0]-1];any++;neighs[pl.key!]++;if (age>=pl.mature){neighsM[pl.key!]++;}}
+									var neigh=M.getTile(x+1,y-1);if (neigh[0]>0){var age=neigh[1];var pl=M.plantsById[neigh[0]-1];any++;neighs[pl.key!]++;if (age>=pl.mature){neighsM[pl.key!]++;}}
+									var neigh=M.getTile(x+1,y+1);if (neigh[0]>0){var age=neigh[1];var pl=M.plantsById[neigh[0]-1];any++;neighs[pl.key!]++;if (age>=pl.mature){neighsM[pl.key!]++;}}
 									if (any>0)
 									{
 										var muts=M.getMuts(neighs,neighsM);
@@ -1957,13 +2138,13 @@ M.launch=function()
 										{
 											if (Math.random()<muts[ii][1] && (!M.plants[muts[ii][0]].weed || Math.random()<weedMult) && ((!M.plants[muts[ii][0]].weed && !M.plants[muts[ii][0]].fungus) || Math.random()<M.plotBoost[y][x][2])) list.push(muts[ii][0]);
 										}
-										if (list.length>0) M.plot[y][x]=[M.plants[choose(list)].id+1,0];
+										if (list.length>0) M.plot[y][x]=[M.plants[choose(list)].id!+1,0];
 									}
 									else if (loop==0)
 									{
 										//weeds in empty tiles (no other plants must be nearby)
 										var chance=0.002*weedMult*M.plotBoost[y][x][2];
-										if (Math.random()<chance) M.plot[y][x]=[M.plants['meddleweed'].id+1,0];
+										if (Math.random()<chance) M.plot[y][x]=[M.plants['meddleweed'].id!+1,0];
 									}
 								}
 							}
@@ -1979,7 +2160,7 @@ M.launch=function()
 		
 		if (Game.keys[27])//esc
 		{
-			if (M.seedSelected>-1) M.plantsById[M.seedSelected].l.classList.remove('on');
+			if (M.seedSelected>-1) M.plantsById[M.seedSelected].l!.classList.remove('on');
 			M.seedSelected=-1;
 		}
 	}

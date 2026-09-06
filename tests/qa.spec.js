@@ -57,6 +57,32 @@ test('bare ?qa: seeds the minigame buildings and opens the Garden', async ({ pag
 	await assertNoUncaughtErrors(page);
 });
 
+test('?qa: planting a seed grows a crop on a forced step (Garden tick loop)', async ({ page }) => {
+	await boot(page, '&qa');
+	await page.waitForFunction(
+		() => window.Game && window.Game.Objects && window.Game.Objects['Farm'] && window.Game.Objects['Farm'].onMinigame,
+		null,
+		{ timeout: 30_000 },
+	);
+	const tile = await page.evaluate(() => {
+		const M = Game.Objects['Farm'].minigame;
+		Game.cookies = 1e9;
+		let t = null;
+		for (let y = 0; y < 6 && !t; y++)
+			for (let x = 0; x < 6; x++)
+				if (M.isTileUnlocked(x, y)) { t = { x, y }; break; }
+		M.seedSelected = 0;
+		M.clickTile(t.x, t.y);
+		M.nextStep = 0;
+		M.logic(); // base-soil steps are minutes apart; force one growth step
+		return t;
+	});
+	await expect
+		.poll(() => page.evaluate((t) => Game.Objects['Farm'].minigame.plot[t.y][t.x][1], tile))
+		.toBeGreaterThan(0);
+	await assertNoUncaughtErrors(page);
+});
+
 test('?qa=cookies: seeds cookies for light store-buy testing', async ({ page }) => {
 	await boot(page, '&qa=cookies');
 	await page.waitForFunction(() => window.Game.cookies >= 1e6, null, BOOT);
