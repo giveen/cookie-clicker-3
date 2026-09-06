@@ -495,13 +495,13 @@ var saveAs: any=saveAs||function(view: any){"use strict";if(typeof navigator!=="
 //seeded random function, courtesy of http://davidbau.com/archives/2010/01/30/random_seeds_coded_hints_and_quintillions.html
 (function(a: any,b: any,c: any,d: any,e: any,f: any){function k(this: any,a: any): any{var b,c=a.length,e=this,f=0,g=e.i=e.j=0,h: any=e.S=[];for(c||(a=[c++]);d>f;)h[f]=f++;for(f=0;d>f;f++)h[f]=h[g=j&g+a[f%c]+(b=h[f])],h[g]=b;(e.g=function(a: any){for(var b,c=0,f=e.i,g=e.j,h=e.S;a--;)b=h[f=j&f+1],c=c*d+h[j&(h[f]=h[g=j&g+b])+(h[g]=b)];return e.i=f,e.j=g,c})(d)}function l(a: any,b: any): any{var e,c=[],d=(typeof a)[0];if(b&&"o"==d)for(e in a)try{c.push(l(a[e],b-1))}catch(f){}return c.length?c:"s"==d?a:a+"\0"}function m(a: any,b: any){for(var d: any,c=a+"",e=0;c.length>e;)b[j&e]=j&(d^=19*b[j&e])+c.charCodeAt(e++);return o(b)}function n(c?: any){try{return a.crypto.getRandomValues(c=new Uint8Array(d)),o(c)}catch(e){return[+new Date,a,a.navigator.plugins,a.screen,o(b)]}}function o(a: any){return String.fromCharCode.apply(0,a)}var g: any=c.pow(d,e),h: any=c.pow(2,f),i: any=2*h,j: any=d-1;c.seedrandom=function(a: any,f: any){var j: any[]=[],p=m(l(f?[a,o(b)]:0 in arguments?a:n(),3),j),q=new (k as any)(j);return m(o(q.S),b),c.random=function(){for(var a=q.g(e),b=g,c=0;h>a;)a=(a+c)*d,b*=d,c=q.g(1);for(;a>=i;)a/=2,b/=2,c>>>=1;return(a+c)/b},p},m(c.random(),b)})(window,[],Math,256,6,52);
 
-function bind(scope: any,fn: any)
+function bind(scope: unknown,fn: Function)
 {
 	//use : bind(this,function(){this.x++;}) - returns a function where "this" refers to the scoped this
 	return function() {fn.apply(scope,arguments);};
 }
 
-var grabProps=function(arr: any,prop: any)
+var grabProps=function(arr: Record<string, unknown>[] | null | undefined,prop: string)
 {
 	if (!arr) return [];
 	var arr2=[];
@@ -529,7 +529,7 @@ var CanvasPrototype: any=CanvasRenderingContext2D.prototype;//CC3: tsgo can't in
 //     latent artifact of the per-tile march — is smoothed over).
 // While the image is still loading, the original tile loop is kept as the
 // fallback (its drawImage calls no-op per spec, same as before).
-CanvasPrototype.fillPattern=function(img: any,X: any,Y: any,W: any,H: any,iW: any,iH: any,offX: any,offY: any)
+CanvasPrototype.fillPattern=function(img: HTMLImageElement,X: number,Y: number,W: number,H: number,iW: number,iH: number,offX: number,offY: number)
 {
 	//for when built-in patterns aren't enough
 	if (isBlankImg(img)) return;
@@ -547,7 +547,7 @@ CanvasPrototype.fillPattern=function(img: any,X: any,Y: any,W: any,H: any,iW: an
 		var m=new DOMMatrix();
 		m.translateSelf(X+offX,Y+offY);
 		if (natW!=iW||natH!=iH) m.scaleSelf(iW/natW,iH/natH);
-		(pat as any).setTransform(m);
+		(pat as CanvasPattern).setTransform(m);
 		var oldStyle=this.fillStyle;
 		this.fillStyle=pat;
 		//the old tile loop over-filled vertically to the next tile boundary
@@ -568,7 +568,7 @@ CanvasPrototype.fillPattern=function(img: any,X: any,Y: any,W: any,H: any,iW: an
 //Building.draw() sprite loop. Every other drawImage call now goes straight
 //to the native method.
 var blankAlt='blank';
-var isBlankImg=function(img: any)
+var isBlankImg=function(img: HTMLImageElement | HTMLCanvasElement)
 {
 	return img && (img as any).alt==blankAlt;
 }
@@ -651,7 +651,7 @@ var Loader: any=function(this: any)//asset-loading system
 	}
 }
 
-var Pic=function(what: any)
+var Pic=function(what: string)
 {
 	//CC3 perf: assetsLoaded is a Set — O(1) hit test instead of an indexOf
 	//scan over every known asset (once per sprite, every frame).
@@ -660,25 +660,25 @@ var Pic=function(what: any)
 	return Game.Loader.blank;
 }
 
-var Sounds: any[]=[];
-var OldPlaySound=function(url: any,vol?: any)
+var Sounds: Record<string, HTMLAudioElement> = [] as unknown as Record<string, HTMLAudioElement>;//2.048 dictionary-as-array: a string-keyed sound cache
+var OldPlaySound=function(url: string,vol?: number)
 {
 	var volume=1;
 	if (vol!==undefined) volume=vol;
 	if (!Game.volume || volume==0) return 0;
-	if (!Sounds[url]) {Sounds[url]=new Audio(url);Sounds[url].onloadeddata=function(e: any){e.target.volume=Math.pow(volume*Game.volume/100,2);}}
+	if (!Sounds[url]) {Sounds[url]=new Audio(url);Sounds[url].onloadeddata=function(e: Event){(e.target as HTMLAudioElement).volume=Math.pow(volume*Game.volume/100,2);}}
 	else if (Sounds[url].readyState>=2) {Sounds[url].currentTime=0;Sounds[url].volume=Math.pow(volume*Game.volume/100,2);}
 	Sounds[url].play();
 	return;
 }
-var SoundInsts: any[]=[];
+var SoundInsts: HTMLAudioElement[]=[];
 var SoundI=0;
 for (var i=0;i<12;i++){SoundInsts[i]=new Audio();}
 var pitchSupport=false;
 //note : Chrome turns out to not support webkitPreservesPitch despite the specifications claiming otherwise, and Firefox clips some short sounds when changing playbackRate, so i'm turning the feature off completely until browsers get it together
 //if (SoundInsts[0].preservesPitch || SoundInsts[0].mozPreservesPitch || SoundInsts[0].webkitPreservesPitch) pitchSupport=true;
 
-var PlaySound=function(url: any,vol?: any,pitchVar?: any)
+var PlaySound=function(url: string,vol?: number,pitchVar?: number)
 {
 	//url : the url of the sound to play (will be cached so it only loads once)
 	//vol : volume between 0 and 1 (multiplied by game volume setting); defaults to 1 (full volume)
@@ -692,7 +692,7 @@ var PlaySound=function(url: any,vol?: any,pitchVar?: any)
 	{
 		//sound isn't loaded, cache it
 		Sounds[url]=new Audio(url);
-		Sounds[url].onloadeddata=function(_e: any){PlaySound(url,vol,pitchVar);}
+		Sounds[url].onloadeddata=function(_e: Event){PlaySound(url,vol,pitchVar);}
 		//Sounds[url].load();
 	}
 	else if (Sounds[url].readyState>=2 && SoundInsts[SoundI].paused)
@@ -705,11 +705,12 @@ var PlaySound=function(url: any,vol?: any,pitchVar?: any)
 		sound.volume=Math.pow(volume*volumeSetting/100,2);
 		if (pitchSupport)
 		{
-			var pitchVar=(typeof pitchVar==='undefined')?0.05:pitchVar;
+			var pitchVar: number | undefined=(typeof pitchVar==='undefined')?0.05:pitchVar;
 			var rate=1+(Math.random()*2-1)*pitchVar;
 			sound.preservesPitch=false;
-			sound.mozPreservesPitch=false;
-			sound.webkitPreservesPitch=false;
+			var legacy=sound as {mozPreservesPitch?: boolean, webkitPreservesPitch?: boolean};
+			legacy.mozPreservesPitch=false;//non-standard props, dead pitchSupport branch
+			legacy.webkitPreservesPitch=false;
 			sound.playbackRate=rate;
 		}
 		try{sound.play();}catch(e){}
@@ -721,21 +722,21 @@ var PlaySound=function(url: any,vol?: any,pitchVar?: any)
 	}
 	return;
 }
-var PlayMusicSound=function(url: any,vol: any,pitchVar: any)
+var PlayMusicSound=function(url: string,vol: number,pitchVar: number)
 {
 	//like PlaySound but, if music is enabled, play with music volume
 	PlaySound(url,(vol||1)-(Music?10:0),pitchVar);
 }
 
 Music=false;
-PlayCue=function(cue: any,arg: any)
+PlayCue=function(cue: string,arg?: string | number)
 {
 	if (Music && Game.jukebox.trackAuto) Music.cue(cue,arg);
 }
 
 if (!Date.now){Date.now=function now() {return new Date().getTime();};}
 
-var triggerAnim=function(element: any,anim: any)
+var triggerAnim=function(element: HTMLElement | null,anim: string)
 {
 	if (!element) return;
 	element.classList.remove(anim);
@@ -745,16 +746,17 @@ var triggerAnim=function(element: any,anim: any)
 
 
 
-var Timer: any={};
+type TimerShape = {t: number, labels: Record<string, string>, smoothed: Record<string, number>, reset: () => void, track: (label: string) => void, clean: () => void, say: (label: string) => void};
+var Timer: TimerShape = {} as TimerShape;
 Timer.t=Date.now();
-Timer.labels=[];
-Timer.smoothed=[];
+Timer.labels=[] as unknown as Record<string, string>;//2.048 dictionary-as-array initializers
+Timer.smoothed=[] as unknown as Record<string, number>;
 Timer.reset=function()
 {
-	Timer.labels=[];
+	Timer.labels=[] as unknown as Record<string, string>;
 	Timer.t=Date.now();
 }
-Timer.track=function(label: any)
+Timer.track=function(label: string)
 {
 	if (!Game.sesame) return;
 	var now=Date.now();
@@ -769,7 +771,7 @@ Timer.clean=function()
 	var now=Date.now();
 	Timer.t=now;
 }
-Timer.say=function(label: any)
+Timer.say=function(label: string)
 {
 	if (!Game.sesame) return;
 	Timer.labels[label]='<div style="border-top:1px solid #ccc;">'+label+'</div>';

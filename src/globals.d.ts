@@ -361,4 +361,10 @@ declare global {
 			advance: () => void;
 		};
 	}
+
+	/* CC3: fillPattern (engine/main.ts) caches the CanvasPattern it creates
+	 * on the image object it tiles; the polyfill reads/writes that slot. */
+	interface HTMLImageElement {
+		__pattern?: CanvasPattern | null | undefined;
+	}
 }
