@@ -110,10 +110,10 @@ declare global {
 	 * notation — always a number. */
 	const shortenNumber: (val: number) => number;
 	const getUpgradeName: (name: string) => string;
-	const tinyIcon: (icon: number | number[], css?: string) => string;
+	const tinyIcon: (icon: number | (string | number)[], css?: string) => string;
 	/* Icon CSS generator (engine function declaration, published on window):
 	 * [x,y] (or [x,y,url]) → background-image/position CSS string. */
-	const writeIcon: (icon: number | number[]) => string;
+	const writeIcon: (icon: number | (string | number)[]) => string;
 	/* Asset accessor (engine var, published on window): the loaded Image for
 	 * `what`, loaded-on-demand if unknown, else the blank placeholder
 	 * canvas — `any` for both the mixed return and the occasional

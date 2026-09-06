@@ -39,9 +39,9 @@ export class Upgrade {
 	 * getPrice/priceFunc); kept for contract parity with the old interface. */
 	declare price: number;
 	declare priceLumps: number;
-	declare icon: number | number[];
+	declare icon: number | (string | number)[];
 	declare iconFunction: number | (() => number[]);
-	declare buyFunction?: (() => void) | 0;
+	declare buyFunction?: (() => void) | 0 | undefined;
 	declare unlockFunction?: (() => boolean) | 0;
 	declare unlocked: number;
 	declare bought: number;
@@ -71,7 +71,7 @@ export class Upgrade {
 	declare type: string;
 
 	/* The original `Game.Upgrade=function(…) { … }` body, verbatim. */
-	constructor(name: any, desc: any, price: any, icon: any, buyFunction?: any) {
+	constructor(name: string, desc: string, price: number, icon: number | (string | number)[], buyFunction?: (() => void) | 0) {
 			this.id=Game.UpgradesN;
 			this.name=name;
 			this.dname=this.name;
@@ -146,7 +146,7 @@ export class Upgrade {
 	unvault() {
 			if (this.isVaulted()) Game.vault.splice(Game.vault.indexOf(this.id),1);
 	}
-	click(e: any) {
+	click(e: MouseEvent) {
 			if ((e && e.shiftKey) || Game.keys[16])
 			{
 				if (this.pool=='toggle' || this.pool=='tech') {}
@@ -160,9 +160,9 @@ export class Upgrade {
 			}
 			else this.buy();
 	}
-	buy(bypass?: any) {
+	buy(bypass?: number) {
 			var success=0;
-			var cancelPurchase: any=0;//the original reassigns a boolean into this 0-sentinel
+			var cancelPurchase: 0 | boolean=0;//the original reassigns a boolean into this 0-sentinel
 			//CC3: Spender challenge — no upgrades may be purchased this run,
 			//including toggles and season switchers (buildings only). Heavenly
 			//upgrades are bought in the ascend tree, never during a run.
@@ -197,7 +197,7 @@ export class Upgrade {
 						}
 						else if (choices.length>0)
 						{
-							var selected: any=0;//the for-in assigns the (string) index into this 0-sentinel
+							var selected: string | 0=0;//the for-in assigns the (string) index into this 0-sentinel
 							for (var i in choices) {if (choices[i].selected) selected=i;}
 							Game.choiceSelectorChoices=choices;//this is a really dumb way of doing this i am so sorry
 							Game.choiceSelectorSelected=selected;
@@ -210,7 +210,7 @@ export class Upgrade {
 								choices[i].order=choices[i].order||0;
 							}
 							
-							var sortMap=function(a: any,b: any)
+							var sortMap=function(a: {order: number},b: {order: number})
 							{
 								if (a.order>b.order) return 1;
 								else if (a.order<b.order) return -1;
@@ -333,14 +333,14 @@ export class Upgrade {
  * The non-capturing tiered-upgrade factory (original engine line 8,369).
  * Verbatim body; `new Game.Upgrade` now targets the real class.
  */
-export function TieredUpgrade(name: any, desc: any, building: any, tier: any): Upgrade {
+export function TieredUpgrade(name: string, desc: string, building: string, tier: number | string): Upgrade {
 			if (tier=='fortune' && building) desc=loc("%1 are <b>%2%</b> more efficient and <b>%3%</b> cheaper.",[cap(Game.Objects[building].plural),7,7])+desc;
 			else desc=loc("%1 are <b>twice</b> as efficient.",cap(Game.Objects[building].plural))+desc;
 			var upgrade=new Game.Upgrade(name,desc,Game.Objects[building].basePrice*Game.Tiers[tier].price,Game.GetIcon(building,tier));
 			if (tier!='fortune')
 			{
 				upgrade.descFunc=function(){
-					return ((Game.ascensionMode!=1 && Game.Has(this.buildingTie1!.unshackleUpgrade!) && Game.Has(Game.Tiers[this.tier!].unshackleUpgrade!))?('<div style="text-align:center;">'+loc("Unshackled! <b>+%1%</b> extra production.",Math.round(((this.buildingTie as any).id==1?0.5:(20-(this.buildingTie as any).id)*0.1)*100))+'</div><div class="line"></div>'):'')+this.ddesc as any;//ddesc is optional-typed; the original string-concats it unguarded
+				return ((Game.ascensionMode!=1 && Game.Has(this.buildingTie1!.unshackleUpgrade!) && Game.Has(Game.Tiers[this.tier!].unshackleUpgrade!))?('<div style="text-align:center;">'+loc("Unshackled! <b>+%1%</b> extra production.",Math.round(((this.buildingTie as Building | Upgrade).id==1?0.5:(20-(this.buildingTie as Building | Upgrade).id)*0.1)*100))+'</div><div class="line"></div>'):'')+this.ddesc as string;//ddesc is optional-typed; the original string-concats it unguarded
 				};
 			}
 			
@@ -351,7 +351,7 @@ export function TieredUpgrade(name: any, desc: any, building: any, tier: any): U
 }
 
 /** The non-capturing synergy-upgrade factory (original engine line 8,386). */
-export function SynergyUpgrade(name: any, desc: any, building1: any, building2: any, tier: any): Upgrade {
+export function SynergyUpgrade(name: string, desc: string, building1: string, building2: string, tier: number | string): Upgrade {
 			/*
 				creates a new upgrade that :
 				-unlocks when you have tier.unlock of building1 and building2

@@ -67,7 +67,7 @@ export class Building {
 	declare iconColumn: number;
 	declare art: Art;
 	declare iconFunc?: () => [number, number];
-	declare buyFunction?: ((this: Building) => void) | 0;
+	declare buyFunction?: ((this: Building) => void) | 0 | undefined;
 	/* The engine assigns the canvas + context later (and the context carries
 	 * the engine's own `fillPattern` polyfill method, which the standard
 	 * CanvasRenderingContext2D type does not have), so both are left untyped
@@ -116,18 +116,19 @@ export class Building {
 	declare getBounds: () => { left: number; top: number; width: number; height: number };
 
 	/* The original `Game.Object=function(…) { … }` body, verbatim. */
-	constructor(name: any, commonName: any, desc: any, icon: any, iconColumn: any, art: any, price: any, cps: any, buyFunction?: any) {
+	constructor(name: string, commonName: string, desc: string, icon: number, iconColumn: number, art: Art, price: number, cps: number | ((me: Building) => number), buyFunction?: ((this: Building) => void) | 0) {
 			this.id=Game.ObjectsN;
 			this.name=name;
 			this.dname=name;
 			this.displayName=this.name;
-			commonName=commonName.split('|');
-			this.single=commonName[0];
-			this.plural=commonName[1];
+			// names: the original reassigned the commonName param (string -> string[]); the typed param keeps its declared type, so the split goes to a local
+			var names=commonName.split('|');
+			this.single=names[0];
+			this.plural=names[1];
 			this.bsingle=this.single;this.bplural=this.plural;//store untranslated as we use those too
-			this.actionName=commonName[2];
-			this.extraName=commonName[3];
-			this.extraPlural=commonName[4];
+			this.actionName=names[2];
+			this.extraName=names[3];
+			this.extraPlural=names[4];
 			this.desc=desc;
 			if (true)//if (EN)
 			{
@@ -140,7 +141,7 @@ export class Building {
 			this.price=this.basePrice;
 			this.bulkPrice=this.price;
 			this.cps=cps;
-			this.baseCps=this.cps as any; // the original mirrors cps 1:1 (a function for dynamic n=0 buildings like Cursor); baseCps's declared type stays the documented contract
+			this.baseCps=this.cps as number; // the original mirrors cps 1:1 (a function for dynamic n=0 buildings like Cursor); baseCps's declared type stays the documented contract
 			this.mouseOn=false;
 			this.mousePos=[-100,-100];
 			this.productionAchievs=[];
@@ -220,15 +221,15 @@ export class Building {
 			 * to leave the row frozen at an intermediate height. So every animation
 			 * carries a watchdog timer that finish-jumps it if the chain stalls, and
 			 * a throwing frame finishes instead of dying. */
-			this.animateMinigameToggle=function(row: any, scroller: any, open: any)
+			this.animateMinigameToggle=function(row: HTMLElement, scroller?: HTMLElement, open?: number)
 			{
 				var self=this;
 				// Supersede a still-running animation (rapid double-click): finish it
 				// synchronously — exactly what its own finish() would have done — so
 				// no half-applied inline styles leak into the new animation.
 				if (self.__minigameAnim) { cancelAnimationFrame(self.__minigameAnim.raf); clearTimeout(self.__minigameAnim.watchdog); self.__minigameAnim.finish(); }
-				var canvas=row.querySelector('.rowCanvas');
-				var panel=row.querySelector('.rowSpecial');
+				var canvas=row.querySelector('.rowCanvas') as HTMLElement;
+				var panel=row.querySelector('.rowSpecial') as HTMLElement;
 				if (!canvas || !panel) return false;
 				var dur=180;
 				var canvasH=canvas.style.height, canvasOv=canvas.style.overflow, canvasDisp=canvas.style.display;
@@ -311,7 +312,7 @@ export class Building {
 				};
 				state.finish=finish;
 				self.__minigameAnim=state;
-				var step=function(ts: any)
+				var step=function(ts: number)
 				{
 					if (self.__minigameAnim!==state) return; //superseded or finished
 					try
@@ -344,11 +345,11 @@ export class Building {
 				return true;
 			};
 			
-			this.switchMinigame=function(on: any, animated: any)//change whether we're on the building's minigame; [animated] is only set by real user clicks — save restores and QA harnesses toggle instantly
+			this.switchMinigame=function(on: number | boolean, animated?: boolean)//change whether we're on the building's minigame; [animated] is only set by real user clicks — save restores and QA harnesses toggle instantly
 			{
 				if (!Game.isMinigameReady(this)) on=false;
 				if (on==-1) on=!this.onMinigame;
-				this.onMinigame=on;
+				this.onMinigame=on as boolean;//on is a real boolean here (both assignments above are boolean); the number|boolean param type can't see it
 				if (this.id!=0)
 				{
 					var row=l('row'+this.id);
@@ -386,13 +387,13 @@ export class Building {
 				this.refresh();
 			}
 			
-			this.getPrice=function(_n: any)
+			this.getPrice=function(_n?: number)
 			{
 				var price=this.basePrice*Math.pow(Game.priceIncrease,Math.max(0,this.amount-this.free));
 				price=Game.modifyBuildingPrice(this,price);
 				return Math.ceil(price);
 			}
-			this.getSumPrice=function(amount: any)//return how much it would cost to buy [amount] more of this building
+			this.getSumPrice=function(amount: number)//return how much it would cost to buy [amount] more of this building
 			{
 				var price=0;
 				for (var i=Math.max(0,this.amount);i<Math.max(0,(this.amount)+amount);i++)
@@ -402,7 +403,7 @@ export class Building {
 				price=Game.modifyBuildingPrice(this,price);
 				return Math.ceil(price);
 			}
-			this.getReverseSumPrice=function(amount: any)//return how much you'd get from selling [amount] of this building
+			this.getReverseSumPrice=function(amount: number)//return how much you'd get from selling [amount] of this building
 			{
 				var price=0;
 				for (var i=Math.max(0,(this.amount)-amount);i<Math.max(0,this.amount);i++)
@@ -421,7 +422,7 @@ export class Building {
 				return giveBack;
 			}
 			
-			this.buy=function(amount: any)
+			this.buy=function(amount?: number)
 			{
 				if (Game.buyMode==-1) {this.sell(Game.buyBulk,1);return 0;}
 				//CC3: Monoculture challenge — only the locked building type may be bought
@@ -463,7 +464,7 @@ export class Building {
 				//if (moni>0 && amount>1) Game.Notify(this.name,'Bought <b>'+bought+'</b> for '+Beautify(moni)+' cookies','',2);
 				return;
 			}
-			this.sell=function(amount: any,_bypass: any)
+			this.sell=function(amount?: number,_bypass?: number)
 			{
 				var success=0;
 				var moni=0;
@@ -510,7 +511,7 @@ export class Building {
 				}
 				if (success && Game.shimmerTypes['golden'].n<=0 && Game.auraMult('Dragon Orbs')>0)
 				{
-					var highestBuilding: any=0;//the loop stores a building in it (the 0 is the "none" sentinel)
+					var highestBuilding: Building | 0=0;//the loop stores a building in it (the 0 is the "none" sentinel)
 					for (var i2 in Game.Objects) {if (Game.Objects[i2].amount>0) highestBuilding=Game.Objects[i2];}//i2: original `i` — tsgo TS2403 vs the sell loop's numeric `var i`
 					if (highestBuilding==this && Math.random()<Game.auraMult('Dragon Orbs')*0.1)
 					{
@@ -526,7 +527,7 @@ export class Building {
 				if (success) {PlaySound('snd/sell'+choose([1,2,3,4])+'.mp3',0.75);this.refresh();}
 				//if (moni>0) Game.Notify(this.name,'Sold <b>'+sold+'</b> for '+Beautify(moni)+' cookies','',2);
 			}
-			this.sacrifice=function(amount: any)//sell without getting back any money
+			this.sacrifice=function(amount: number)//sell without getting back any money
 			{
 				var success=0;
 				//var moni=0;
@@ -556,7 +557,7 @@ export class Building {
 				if (success) {this.refresh();}
 				//if (moni>0) Game.Notify(this.name,'Sold <b>'+sold+'</b> for '+Beautify(moni)+' cookies','',2);
 			}
-			this.buyFree=function(amount: any)//unlike getFree, this still increases the price
+			this.buyFree=function(amount: number)//unlike getFree, this still increases the price
 			{
 				for (var i=0;i<amount;i++)
 				{
@@ -573,7 +574,7 @@ export class Building {
 				}
 				this.refresh();
 			}
-			this.getFree=function(amount: any)//get X of this building for free, with the price behaving as if you still didn't have them
+			this.getFree=function(amount: number)//get X of this building for free, with the price behaving as if you still didn't have them
 			{
 				this.amount+=amount;
 				this.bought+=amount;
@@ -583,7 +584,7 @@ export class Building {
 				this.highest=Math.max(this.highest,this.amount);
 				this.refresh();
 			}
-			this.getFreeRanks=function(amount: any)//this building's price behaves as if you had X less of it
+			this.getFreeRanks=function(amount: number)//this building's price behaves as if you had X less of it
 			{
 				this.free+=amount;
 				this.refresh();
@@ -625,7 +626,7 @@ export class Building {
 				//note : might not be entirely accurate, math may need checking
 				if (me.amount>0)
 				{
-					var synergiesWith: any={};//string-keyed accumulation map
+					var synergiesWith: Record<string, number>={};//string-keyed accumulation map
 					var synergyBoost=0;
 					
 					if (me.name=='Grandma')
@@ -634,7 +635,7 @@ export class Building {
 						{
 							if (Game.Has(Game.GrandmaSynergies[i]))
 							{
-								var other: any=Game.Upgrades[Game.GrandmaSynergies[i]].buildingTie;//buildingTie is optional-typed; the original derefs it unguarded
+								var other: Building=Game.Upgrades[Game.GrandmaSynergies[i]].buildingTie as Building;//buildingTie is the Building|Upgrade|0 union; synergy ties are Buildings — the original derefs unguarded
 								var mult=me.amount*0.01*(1/(other.id-1));
 								var boost=(other.storedTotalCps*Game.globalCpsMult)-(other.storedTotalCps*Game.globalCpsMult)/(1+mult);
 								synergyBoost+=boost;
@@ -649,7 +650,7 @@ export class Building {
 						{
 							if (Game.Has(Game.CatSynergies[i]))
 							{
-								var other: any=Game.Upgrades[Game.CatSynergies[i]].buildingTie;//same pattern as the Grandma branch above
+								var other: Building=Game.Upgrades[Game.CatSynergies[i]].buildingTie as Building;//same pattern as the Grandma branch above
 								// Math.max(1,...): unlike GrandmaSynergies, CatSynergies includes
 								// 'Kitten grandmas' tied to Grandma itself (id 1), where the plain
 								// (id-1) divisor above would be 0 -> Infinity/NaN.
@@ -663,7 +664,7 @@ export class Building {
 					}
 					else if (me.name=='Portal' && Game.Has('Elder Pact'))
 					{
-						var other: any=Game.Objects['Grandma'];//same-scope redeclaration of the any-typed `other` above (tsgo TS2403 keeps them uniform)
+						var other: Building=Game.Objects['Grandma'];//same-scope redeclaration of the `other` above (tsgo TS2403 keeps them uniform)
 						var boost=(me.amount*0.05*other.amount)*Game.globalCpsMult;
 						synergyBoost+=boost;
 						if (!synergiesWith[other.plural]) synergiesWith[other.plural]=0;
@@ -676,8 +677,8 @@ export class Building {
 						if (Game.Has(it.name))
 						{
 							var weight=0.05;
-							var other: any=it.buildingTie1;//buildingTie1/2 are optional-typed; the original derefs them unguarded
-							if (me==it.buildingTie1) {weight=0.001;other=it.buildingTie2;}
+							var other: Building=it.buildingTie1 as Building;//buildingTie1/2 are optional-typed; the original derefs them unguarded
+							if (me==it.buildingTie1) {weight=0.001;other=it.buildingTie2 as Building;}
 							var boost=(other.storedTotalCps*Game.globalCpsMult)-(other.storedTotalCps*Game.globalCpsMult)/(1+me.amount*weight);
 							synergyBoost+=boost;
 							if (!synergiesWith[other.plural]) synergiesWith[other.plural]=0;
@@ -728,8 +729,8 @@ export class Building {
 				var me=this;
 				return '<div style="width:280px;padding:8px;" id="tooltipLevel"><b>'+loc("Level %1 %2",[Beautify(me.level),me.plural])+'</b><div class="line"></div>'+(EN?((me.level==1?me.extraName!:me.extraPlural!).replace('[X]',Beautify(me.level))+' granting <b>+'+Beautify(me.level)+'% '+me.dname+' CpS</b>.'):loc("Granting <b>+%1% %2 CpS</b>.",[Beautify(me.level),me.single]))+'<div class="line"></div>'+loc("Click to level up for %1.",'<span class="price lump'+(Game.lumps>=me.level+1?'':' disabled')+'">'+loc("%1 sugar lump",LBeautify(me.level+1))+'</span>')+((me.level==0 && me.minigameUrl)?'<div class="line"></div><b>'+loc("Levelling up this building unlocks a minigame.")+'</b>':'')+'</div>';
 			}
-			this.levelUp=function(me: any){
-				return function(free: any){Game.spendLump(me.level+1,loc("level up your %1",me.plural),function()
+			this.levelUp=function(me: Building){
+				return function(free: number | boolean){Game.spendLump(me.level+1,loc("level up your %1",me.plural),function()
 				{
 					me.level+=1;
 					if (me.level>=10 && me.levelAchiev10) Game.Win(me.levelAchiev10.name);
@@ -877,7 +878,7 @@ export class Building {
 				if (cache.dragonBoostShow!==dragonBoostShow) {cache.dragonBoostShow=dragonBoostShow;l('productDragonBoost'+me.id).style.display=dragonBoostShow;}
 			}
 			this.muted=false;
-			this.mute=function(val: any)
+			this.mute=function(val: number)
 			{
 				if (this.id==0) return false;
 				this.muted=val;

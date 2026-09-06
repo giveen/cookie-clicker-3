@@ -41,7 +41,7 @@ export class Achievement {
 	declare desc: string;
 	declare baseDesc: string;
 	declare ddesc?: string;
-	declare icon: number | number[];
+	declare icon: number | (string | number)[];
 	declare won: number;
 	declare order: number;
 	declare pool: string;
@@ -58,7 +58,7 @@ export class Achievement {
 	 * (The Phase-2 `this: any` param annotation is dropped — it existed
 	 * because tsgo inferred a container `this` for the assigned function
 	 * expression; a real ctor's `this` is the class instance.) */
-	constructor(name: any, desc: any, icon: any) {
+	constructor(name: string, desc: string, icon: number | (string | number)[]) {
 			this.id=Game.AchievementsN;
 			this.name=name;
 			this.dname=this.name;
@@ -102,14 +102,14 @@ export class Achievement {
  * The non-capturing tiered-achievement factory (content-file line 129).
  * Verbatim body; the Phase-2 `achievUnlock!` assertion is kept.
  */
-export function TieredAchievement(name: any, desc: any, building: any, tier: any): Achievement {
+export function TieredAchievement(name: string, desc: string, building: string, tier: number): Achievement {
 			var achiev=new Game.Achievement(name,loc("Have <b>%1</b>.",loc("%1 "+Game.Objects[building].bsingle,LBeautify(Game.Tiers[tier].achievUnlock!)))+desc,Game.GetIcon(building,tier));
 			Game.SetTier(building,tier);
 			return achiev;
 }
 
 /** The non-capturing production-achievement factory (content-file line 136). */
-export function ProductionAchievement(name: any, building: any, tier: any, q?: any, mult?: any): Achievement {
+export function ProductionAchievement(name: string, building: string, tier: number, q?: string | number, mult?: number): Achievement {
 			var obj=Game.Objects[building];
 			var icon=[obj.iconColumn,22];
 			var n=12+obj.n+(mult||0);
@@ -122,7 +122,7 @@ export function ProductionAchievement(name: any, building: any, tier: any, q?: a
 }
 
 /** The non-capturing bank-achievement factory (content-file line 151). */
-export function BankAchievement(name: any, q?: any): Achievement {
+export function BankAchievement(name: string, q?: string | number): Achievement {
 			var threshold=Math.pow(10,Math.floor(Game.BankAchievements.length*1.5+2));
 			if (Game.BankAchievements.length==0) threshold=1;
 			var achiev=new Game.Achievement(name,loc("Bake <b>%1</b> in one ascension.",loc("%1 cookie",{n:threshold,b:toFixed(threshold)}))+(q?('<q>'+q+'</q>'):''),[Game.thresholdIcons[Game.BankAchievements.length],(Game.BankAchievements.length>43?2:Game.BankAchievements.length>32?1:Game.BankAchievements.length>23?2:5)]);
@@ -133,7 +133,7 @@ export function BankAchievement(name: any, q?: any): Achievement {
 }
 
 /** The non-capturing cps-achievement factory (content-file line 162). */
-export function CpsAchievement(name: any, q?: any): Achievement {
+export function CpsAchievement(name: string, q?: string | number): Achievement {
 			var threshold=Math.pow(10,Math.floor(Game.CpsAchievements.length*1.2));
 			//if (Game.CpsAchievements.length==0) threshold=1;
 			var achiev=new Game.Achievement(name,loc("Bake <b>%1</b> per second.",loc("%1 cookie",{n:threshold,b:toFixed(threshold)}))+(q?('<q>'+q+'</q>'):''),[Game.thresholdIcons[Game.CpsAchievements.length],(Game.CpsAchievements.length>43?2:Game.CpsAchievements.length>32?1:Game.CpsAchievements.length>23?2:5)]);

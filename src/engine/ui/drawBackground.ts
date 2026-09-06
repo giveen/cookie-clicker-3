@@ -369,8 +369,9 @@ export function DrawBackground()
 					if (cursorUpgrade && Game.Has(cursorUpgradeNames[cursorUpgradeIndex]) && Array.isArray(cursorUpgrade.icon) && cursorUpgrade.icon.length>=2)
 					{
 						cursorIcon=Pic('icons.webp');
-						cursorIconX=cursorUpgrade.icon[0]*48;
-						cursorIconY=cursorUpgrade.icon[1]*48;
+						// the cursor upgrades' icon pairs are numeric [col,row] — the icon type is a string|number array union, so assert the number
+						cursorIconX=(cursorUpgrade.icon[0] as number)*48;
+						cursorIconY=(cursorUpgrade.icon[1] as number)*48;
 					}
 				}
 				var fancy=Game.prefs.fancy;

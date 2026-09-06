@@ -554,7 +554,7 @@ export interface Game {
 	ClickCookie(e: MouseEvent | null, amount?: number): void;
 	/* pic accepts an [iconColumn, iconRow] pair, a bare icon column/row, or a
 	 * sound name — the engine handles all of these at runtime. */
-	Notify(title: string, desc: string, pic?: [number, number] | number | number[] | string, quick?: number, noLog?: number | boolean): void;
+	Notify(title: string, desc: string, pic?: number | (string | number)[] | string, quick?: number, noLog?: number | boolean): void;
 	Ascend(force?: number): void;
 	AscendBrowseView(): void;
 	AscendBrowseClose(): void;

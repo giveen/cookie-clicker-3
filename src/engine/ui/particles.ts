@@ -99,7 +99,7 @@ export function particleAdd(x: any,y: any,xd: any,yd: any,size: any,dur: any,z: 
 					if (Game.season=='fools') pic='smallDollars.webp';
 					else
 					{
-						var cookies: Array<number | number[]> = [[10,0]];
+						var cookies: Array<number | (string | number)[]> = [[10,0]];
 						for (var ii in Game.Upgrades)
 						{
 							var cookie=Game.Upgrades[ii];
