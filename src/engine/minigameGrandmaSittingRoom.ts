@@ -28,13 +28,91 @@
  * draws), the activity icons are grandma-variant 64x64 webp icons (already
  * shipped), and every sound is one already in public/snd/.
  */
-var M: any = {};
+/* CC3 rewrite (phase 6): M is typed (was `any`), same approach as the
+ * Pantheon/Grimoire/CatColony — the engine only reads the guarded contract
+ * on `building.minigame` (launch/save/load/reset/logic/draw/effs), so the
+ * interface covers that contract plus this file's own surface. Body edits
+ * are type-only: param/variable annotations (incl. the old `var effs: any`
+ * now a Record<string, number>), a `this` on launch, `!` asserts at l()
+ * sites guarded by an earlier l() call the compiler can't narrow across.
+ * Zero runtime change. */
+import type { Building } from './types';
+
+/** A sitting-room activity (the M.activities list). */
+interface SittingRoomActivity {
+	id: string;
+	name: string;
+	desc: string;
+	yarnRate: number;
+	comfort: number;
+	icon: string;
+	unlock: number;
+}
+
+interface SittingRoomMinigame {
+	/* --- engine contract (building.minigame.*) --- */
+	name: string | 0;
+	parent: Building;
+	launch: () => void;
+	init: (div: HTMLElement) => void;
+	save: () => string;
+	load: (str: string) => boolean | undefined;
+	/* the engine calls reset(true) on a hard reset; the flag is ignored */
+	reset: (hard?: boolean) => void;
+	logic: () => void;
+	draw: () => void;
+	/* multipliers the engine multiplies into CalculateGains (minigame.effs) */
+	effs: Record<string, number>;
+
+	/* --- content --- */
+	activities: SittingRoomActivity[];
+	activitiesById: Record<string, SittingRoomActivity>;
+	/* parallel to the sitting-room upgrades declared in content/upgrades.ts */
+	upgradeNames: string[];
+
+	/* --- state --- */
+	yarn: number;
+	yarnEarned: number;
+	/* 6 slots: an activity index (0-5) or -1 (empty) */
+	seats: number[];
+	/* grandmas needed to unlock seat i */
+	seatUnlocks: number[];
+	/* parallel to upgradeNames: stacks bought per upgrade */
+	upgradeStacks: number[];
+	/* fractional yarn accumulator (not persisted) */
+	yarnTrickle: number;
+	/* clicked seat (0-5) or -1 for none */
+	selectedSeat: number;
+	tutorialOpen: boolean;
+
+	/* --- derived values / actions --- */
+	effectiveStacks: (name: string) => number;
+	unlockedSeats: () => number;
+	currentComfort: () => number;
+	yarnPerSecond: () => number;
+	computeEffs: () => void;
+	assignSeat: (seatIdx: number, activityIdx: number) => boolean;
+	buyUpgrade: (name: string) => boolean;
+	checkAchievements: () => void;
+
+	/* --- rendering --- */
+	renderHeader: () => string;
+	renderTutorial: () => string;
+	toggleTutorial: () => void;
+	selectSeat: (seatIdx: number) => void;
+	renderSeats: () => string;
+	renderShelf: () => string;
+	renderShop: () => string;
+	refresh: () => void;
+}
+
+var M = {} as SittingRoomMinigame;
 M.parent = Game.Objects['Grandma'];
 M.parent.minigame = M;
-M.launch = function () {
+M.launch = function (this: SittingRoomMinigame) {
 	var M = this;
 	M.name = M.parent.minigameName;
-	M.init = function (div: any) {
+	M.init = function (div: HTMLElement) {
 		// Activities — each has a comfort contribution and yarn rate.
 		// Eldritch activities (chant, choir) require elderWrath > 0 to assign.
 		M.activities = [
@@ -66,7 +144,7 @@ M.launch = function () {
 		// CC3: which seat the player has clicked to select (0-5, or -1 for none)
 		M.selectedSeat = -1;
 
-		M.effectiveStacks = function (name: any) {
+		M.effectiveStacks = function (name: string) {
 			var i = M.upgradeNames.indexOf(name);
 			var n = i >= 0 ? (M.upgradeStacks[i] || 0) : 0;
 			var up = Game.Upgrades[name];
@@ -98,7 +176,7 @@ M.launch = function () {
 		// picks them up in CalculateGains (the engine iterates M.effs keys).
 		M.computeEffs = function () {
 			var comfort = M.currentComfort();
-			var effs: any = { grandmaCps: 1, wrathCookieGain: 1, wrathCookieFreq: 1, wrathCookieDur: 1, wrinklerSpawn: 1, wrinklerEat: 1 };
+			var effs: Record<string, number> = { grandmaCps: 1, wrathCookieGain: 1, wrathCookieFreq: 1, wrathCookieDur: 1, wrinklerSpawn: 1, wrinklerEat: 1 };
 			if (comfort >= 0) {
 				effs.grandmaCps = 1 + 0.02 * comfort;           // up to +12% at +6
 				effs.wrathCookieFreq = 1 + 0.01 * comfort;       // fewer wrath cookies when cozy
@@ -114,7 +192,7 @@ M.launch = function () {
 		};
 		M.computeEffs();
 
-		M.assignSeat = function (seatIdx: any, activityIdx: any) {
+		M.assignSeat = function (seatIdx: number, activityIdx: number) {
 			if (seatIdx < 0 || seatIdx >= M.seats.length) return false;
 			if (activityIdx >= 0 && activityIdx < M.activities.length) {
 				// Check seat unlocked
@@ -135,7 +213,7 @@ M.launch = function () {
 			return true;
 		};
 
-		M.buyUpgrade = function (name: any) {
+		M.buyUpgrade = function (name: string) {
 			var up = Game.Upgrades[name];
 			var i = M.upgradeNames.indexOf(name);
 			if (!up || i < 0) return false;
@@ -304,7 +382,7 @@ M.launch = function () {
 		}
 	};
 
-	M.selectSeat = function (seatIdx: any) {
+	M.selectSeat = function (seatIdx: number) {
 		if (seatIdx >= 0 && seatIdx < M.seats.length && M.parent.amount >= M.seatUnlocks[seatIdx]) {
 			M.selectedSeat = (M.selectedSeat === seatIdx) ? -1 : seatIdx;
 		}
@@ -401,27 +479,27 @@ M.launch = function () {
 
 	M.refresh = function () {
 		if (!l('roomHeader')) return;
-		l('roomHeader').innerHTML = M.renderHeader();
-		l('roomSeats').innerHTML = M.renderSeats();
-		l('roomShelf').innerHTML = M.renderShelf();
-		l('roomShop').innerHTML = M.renderShop();
+		l('roomHeader')!.innerHTML = M.renderHeader();
+		l('roomSeats')!.innerHTML = M.renderSeats();
+		l('roomShelf')!.innerHTML = M.renderShelf();
+		l('roomShop')!.innerHTML = M.renderShop();
 		// Bind the How-to-play button (the header re-renders every refresh).
 		var helpBtn = l('roomHelpBtn');
 		if (helpBtn) AddEvent(helpBtn, 'click', function () { M.toggleTutorial(); });
 		// Bind seat card clicks
 		for (var s = 0; s < M.seats.length; s++) {
 			var card = l('roomSeatCard' + s);
-			if (card) AddEvent(card, 'click', function (si: any) { return function () { M.selectSeat(si); }; }(s));
+			if (card) AddEvent(card, 'click', function (si: number) { return function () { M.selectSeat(si); }; }(s));
 			var clearBtn = l('roomSeatClear' + s);
 			if (clearBtn) {
-				AddEvent(clearBtn, 'click', function (si: any) { return function (e: any) { e.stopPropagation(); M.assignSeat(si, -1); }; }(s));
+				AddEvent(clearBtn, 'click', function (si: number) { return function (e: Event) { e.stopPropagation(); M.assignSeat(si, -1); }; }(s));
 			}
 		}
 		// Bind activity shelf buttons — assign to selected seat or first empty unlocked seat
 		for (var a = 0; a < M.activities.length; a++) {
 			var btn = l('roomShelfAct' + a);
 			if (btn) {
-				AddEvent(btn, 'click', function (ai: any) { return function () {
+				AddEvent(btn, 'click', function (ai: number) { return function () {
 					var act = M.activities[ai];
 					if (M.parent.amount < act.unlock) return;
 					if (act.comfort < 0 && Game.elderWrath <= 0) { PlaySound('snd/error1.mp3',0.5); return; }
@@ -442,7 +520,7 @@ M.launch = function () {
 		for (var j = 0; j < M.upgradeNames.length; j++) {
 			var btn2 = l('roomBuy' + j);
 			if (btn2) {
-				AddEvent(btn2, 'click', function (name: any) { return function () { if (M.yarn >= (Game.Upgrades[name] ? Game.Upgrades[name].yarnPrice : 0)) M.buyUpgrade(name); }; }(M.upgradeNames[j]));
+				AddEvent(btn2, 'click', function (name: string) { return function () { if (M.yarn >= (Game.Upgrades[name] ? Game.Upgrades[name].yarnPrice : 0)) M.buyUpgrade(name); }; }(M.upgradeNames[j]));
 			}
 		}
 		M.computeEffs();
@@ -455,7 +533,7 @@ M.launch = function () {
 		return parseFloat(M.yarn) + ' ' + parseFloat(M.yarnEarned) + ' ' + seatsStr + ' ' + stacksStr;
 	};
 
-	M.load = function (str: any) {
+	M.load = function (str: string) {
 		if (!str) return false;
 		var spl = str.split(' ');
 		if (spl.length < 4) return false;
@@ -483,7 +561,7 @@ M.launch = function () {
 		M.refresh();
 	};
 
-	M.reset = function (_hard: any) {
+	M.reset = function (_hard?: boolean) {
 		M.yarn = 0;
 		M.yarnEarned = 0;
 		M.seats = [-1, -1, -1, -1, -1, -1];
@@ -528,7 +606,7 @@ M.launch = function () {
 			var comfort = M.currentComfort();
 			var pct = 50 + (comfort / 6) * 50;
 			pct = Math.max(0, Math.min(100, pct));
-			var fill = l('roomHeader').querySelector('.roomComfortFill');
+			var fill = l('roomHeader')!.querySelector('.roomComfortFill');
 			if (fill) {
 				(fill as HTMLElement).style.width = pct + '%';
 				(fill as HTMLElement).style.background = comfort >= 0 ? 'rgba(100,200,100,0.8)' : 'rgba(200,100,100,0.8)';
@@ -536,7 +614,7 @@ M.launch = function () {
 		}
 	};
 
-	M.init(l('rowSpecial' + M.parent.id));
+	M.init(l('rowSpecial' + M.parent.id)!);
 };
 /* CC3: explicit module marker — at runtime these files are always ESM modules
  * (Vite bundles them as such), and this keeps their top-level var/function
