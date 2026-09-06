@@ -24,13 +24,114 @@
  * styles/main.css already uses for the muted-Cats sleeping store icon), and
  * every sound is one already shipped in public/snd/.
  */
-var M: any = {};
+/* CC3 rewrite (phase 6): M is typed (was `any`), same approach as the
+ * Pantheon/Grimoire — the engine only reads the guarded contract on
+ * `building.minigame` (launch/save/load/reset/logic/draw), so the interface
+ * covers that contract plus this file's own surface. Body edits are
+ * type-only: param/variable annotations, a `this` on launch, `!` asserts
+ * at l() sites that are guarded by an earlier l() call the compiler can't
+ * narrow across (the element exists — the guard just above checked it).
+ * Zero runtime change. */
+import type { Building } from './types';
+
+/** An expedition definition (the M.missions list). */
+interface ColonyMission {
+	id: string;
+	name: string;
+	desc: string;
+	catCost: number;
+	duration: number;
+	hurtChance: number;
+	treatsMin: number;
+	treatsMax: number;
+	unlock: number;
+}
+
+/** A group of cats currently out on an expedition. */
+interface AwayEntry {
+	uid: number;
+	id: string;
+	count: number;
+	returnAt: number;
+}
+
+/** A group of cats resting after a scuffle. */
+interface RestingEntry {
+	uid: number;
+	count: number;
+	returnAt: number;
+}
+
+/** One mission card's static sprite (sheet + frame crop). */
+interface MissionArt {
+	sheet: string;
+	size: string;
+	pos: string;
+}
+
+interface CatColonyMinigame {
+	/* --- engine contract (building.minigame.*) --- */
+	name: string | 0;
+	parent: Building;
+	launch: () => void;
+	init: (div: HTMLElement) => void;
+	save: () => string;
+	load: (str: string) => boolean | undefined;
+	/* the engine calls reset(true) on a hard reset; the flag is ignored */
+	reset: (hard?: boolean) => void;
+	logic: () => void;
+	draw: () => void;
+
+	/* --- content --- */
+	missions: ColonyMission[];
+	missionsById: Record<string, ColonyMission>;
+	/* parallel to the colony upgrades declared in content/upgrades.ts */
+	upgradeNames: string[];
+	missionArt: MissionArt[];
+
+	/* --- state --- */
+	treats: number;
+	missionsCompleted: number;
+	treatsEarnedTotal: number;
+	away: AwayEntry[];
+	resting: RestingEntry[];
+	uidN: number;
+	/* fractional treat accumulator for 'Bottomless treat jar' (not saved) */
+	treatTrickle: number;
+	/* parallel to upgradeNames: stacks bought per colony upgrade */
+	upgradeStacks: number[];
+	/* parent's cat count at the last refresh (draw() re-renders on change) */
+	lastAmount: number;
+	tutorialOpen: boolean;
+
+	/* --- derived values / actions --- */
+	effectiveStacks: (name: string) => number;
+	awayCount: () => number;
+	restingCount: () => number;
+	idleCats: () => number;
+	hurtChanceFor: (mission: ColonyMission) => number;
+	durationFor: (mission: ColonyMission) => number;
+	dispatch: (id: string) => boolean;
+	resolveExpeditions: () => void;
+	checkExpeditionAchievements: () => void;
+	buyUpgrade: (name: string) => boolean;
+
+	/* --- rendering --- */
+	renderRoster: () => string;
+	renderTutorial: () => string;
+	toggleTutorial: () => void;
+	renderMissions: () => string;
+	renderShop: () => string;
+	refresh: () => void;
+}
+
+var M = {} as CatColonyMinigame;
 M.parent = Game.Objects['Cats'];
 M.parent.minigame = M;
-M.launch = function () {
+M.launch = function (this: CatColonyMinigame) {
 	var M = this;
 	M.name = M.parent.minigameName;
-	M.init = function (div: any) {
+	M.init = function (div: HTMLElement) {
 		//populate div with html and initialize values
 
 		// Long-grind tuning: durations are ~4x the launch values and rewards
@@ -80,7 +181,7 @@ M.launch = function () {
 		// restored (buildings load ahead of upgrades in Game.Load), so a
 		// one-time-bought upgrade with 0 stacks self-migrates to 1 the first
 		// time anything asks. After that the stacks array and the flag agree.
-		M.effectiveStacks = function (name: any) {
+		M.effectiveStacks = function (name: string) {
 			var i = M.upgradeNames.indexOf(name);
 			var n = i >= 0 ? (M.upgradeStacks[i] || 0) : 0;
 			var up = Game.Upgrades[name];
@@ -94,10 +195,10 @@ M.launch = function () {
 
 		// Each Nine-lives insurance stack multiplies risk by 0.7 (0.7^n —
 		// it approaches zero but never hits it, so no floor needed).
-		M.hurtChanceFor = function (mission: any) { return mission.hurtChance * Math.pow(0.7, M.effectiveStacks('Nine-lives insurance')) * (Game.Has('Nap discipline') ? 0.8 : 1); };
-		M.durationFor = function (mission: any) { return Game.Has('Efficient patrols') ? Math.ceil(mission.duration * 0.85) : mission.duration; };
+		M.hurtChanceFor = function (mission: ColonyMission) { return mission.hurtChance * Math.pow(0.7, M.effectiveStacks('Nine-lives insurance')) * (Game.Has('Nap discipline') ? 0.8 : 1); };
+		M.durationFor = function (mission: ColonyMission) { return Game.Has('Efficient patrols') ? Math.ceil(mission.duration * 0.85) : mission.duration; };
 
-		M.dispatch = function (id: any) {
+		M.dispatch = function (id: string) {
 			var mission = M.missionsById[id];
 			if (!mission) return false;
 			if (M.parent.amount < mission.unlock) return false;
@@ -153,7 +254,7 @@ M.launch = function () {
 		// bought flag (via earn) is only set on the first stack — it exists
 		// for save continuity (the pre-stacking effect code path reads it),
 		// not as a purchase cap.
-		M.buyUpgrade = function (name: any) {
+		M.buyUpgrade = function (name: string) {
 			var up = Game.Upgrades[name];
 			var i = M.upgradeNames.indexOf(name);
 			if (!up || i < 0) return false;
@@ -369,20 +470,20 @@ M.launch = function () {
 
 	M.refresh = function () {
 		if (!l('colonyRoster')) return; //not on this view yet
-		l('colonyRoster').innerHTML = M.renderRoster();
-		l('colonyMissions').innerHTML = M.renderMissions();
-		l('colonyShop').innerHTML = M.renderShop();
+		l('colonyRoster')!.innerHTML = M.renderRoster();
+		l('colonyMissions')!.innerHTML = M.renderMissions();
+		l('colonyShop')!.innerHTML = M.renderShop();
 		// Bind the How-to-play button (the roster re-renders every refresh).
 		var helpBtn = l('colonyHelpBtn');
 		if (helpBtn) AddEvent(helpBtn, 'click', function () { M.toggleTutorial(); });
 		for (var i = 0; i < M.missions.length; i++) {
 			var mission = M.missions[i];
 			var btn = l('colonyDispatch' + mission.id);
-			if (btn) { AddEvent(btn, 'click', function (id: any) { return function () { M.dispatch(id); }; }(mission.id)); }
+			if (btn) { AddEvent(btn, 'click', function (id: string) { return function () { M.dispatch(id); }; }(mission.id)); }
 		}
 		for (var j = 0; j < M.upgradeNames.length; j++) {
 			var btn2 = l('colonyBuy' + j);
-			if (btn2) { AddEvent(btn2, 'click', function (name: any) { return function () { M.buyUpgrade(name); }; }(M.upgradeNames[j])); }
+			if (btn2) { AddEvent(btn2, 'click', function (name: string) { return function () { M.buyUpgrade(name); }; }(M.upgradeNames[j])); }
 		}
 		M.lastAmount = M.parent.amount;
 	};
@@ -405,7 +506,7 @@ M.launch = function () {
 		// save strings (5 fields) still parse with spl[5] undefined.
 		return parseFloat(M.treats) + ' ' + parseFloat(M.missionsCompleted) + ' ' + parseFloat(M.treatsEarnedTotal) + ' ' + awayStr + ' ' + restStr + ' ' + M.upgradeStacks.join(':');
 	};
-	M.load = function (str: any) {
+	M.load = function (str: string) {
 		//interpret str; called after .init
 		if (!str) return false;
 		var spl = str.split(' ');
@@ -446,7 +547,7 @@ M.launch = function () {
 		}
 		M.refresh();
 	};
-	M.reset = function (_hard: any) {
+	M.reset = function (_hard?: boolean) {
 		M.treats = 0;
 		M.missionsCompleted = 0;
 		M.treatsEarnedTotal = 0;
@@ -489,10 +590,10 @@ M.launch = function () {
 			var soonest = M.away[0].returnAt;
 			for (var i = 1; i < M.away.length; i++) { if (M.away[i].returnAt < soonest) soonest = M.away[i].returnAt; }
 			var remain = Math.max(0, soonest - Date.now());
-			l('colonyTimers').textContent = 'Next return in ' + Game.sayTime(Math.ceil(remain / 1000) * Game.fps, -1) + '.';
+			l('colonyTimers')!.textContent = 'Next return in ' + Game.sayTime(Math.ceil(remain / 1000) * Game.fps, -1) + '.';
 		}
 	};
-	M.init(l('rowSpecial' + M.parent.id));
+	M.init(l('rowSpecial' + M.parent.id)!);
 };
 /* CC3: explicit module marker — at runtime these files are always ESM modules
  * (Vite bundles them as such), and this keeps their top-level var/function
