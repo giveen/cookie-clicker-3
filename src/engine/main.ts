@@ -579,13 +579,31 @@ var OldCanvasDrawImage=CanvasRenderingContext2D.prototype.drawImage;
 
 if (!document.hasFocus) document.hasFocus=function(){return document.hidden;};//for Opera
 
-var Loader: any=function(this: any)//asset-loading system
+interface Loader {
+	loadingN: number;
+	assetsN: number;
+	assets: Record<string, HTMLImageElement>;
+	assetsLoading: Set<string>;
+	assetsLoaded: Set<string>;
+	domain: string;
+	/* 0 until Game.Load assigns the real callback (the 2.048 sentinel). */
+	loaded: (() => void) | 0;
+	doneLoading: number;
+	blank: HTMLCanvasElement & {alt?: string};//2.048 sets .alt on the blank canvas; isBlankImg reads it back
+	Load: (this: Loader, assets: Record<string, string>) => void;
+	Replace: (this: Loader, old: string, newer: string) => void;
+	onLoadReplace: (this: Loader) => void;
+	onLoad: (this: Loader, e: Event) => void;
+	getProgress: (this: Loader) => number;
+}
+/* Classic-script ctor: `new Loader()` needs a construct signature the `function(this: T)` pattern doesn't expose. */
+var Loader: {new(): Loader}=function(this: Loader)//asset-loading system
 {
 	this.loadingN=0;
 	this.assetsN=0;
-	this.assets=[];
-	this.assetsLoading=[];
-	this.assetsLoaded=[];
+	this.assets={};
+	this.assetsLoading=new Set<string>();
+	this.assetsLoaded=new Set<string>();
 	this.domain='';
 	this.loaded=0;//callback
 	this.doneLoading=0;
@@ -603,7 +621,7 @@ var Loader: any=function(this: any)//asset-loading system
 	this.assetsLoading=new Set<string>();
 	this.assetsLoaded=new Set<string>();
 	
-	this.Load=function(this: any, assets: any)
+	this.Load=function(this: Loader, assets: Record<string, string>)
 	{
 		for (var i in assets)
 		{
@@ -621,9 +639,9 @@ var Loader: any=function(this: any)//asset-loading system
 			}
 		}
 	}
-	this.Replace=function(this: any, old: any,newer: any)
+	this.Replace=function(this: Loader, old: string,newer: string)
 	{
-		if (!this.assets[old]) this.Load([old]);
+		if (!this.assets[old]) this.Load({[old]:old});//2.048 passed [old]; Load's for-in reads values only
 		var img=new Image();
 		if (newer.indexOf('/')!=-1)/*newer.indexOf('http')!=-1 || newer.indexOf('https')!=-1)*/ img.src=newer;
 		else img.src=this.domain+newer;
@@ -631,13 +649,14 @@ var Loader: any=function(this: any)//asset-loading system
 		img.onload=bind(this,this.onLoad);
 		this.assets[old]=img;
 	}
-	this.onLoadReplace=function(this: any)
+	this.onLoadReplace=function(this: Loader)
 	{
 	}
-	this.onLoad=function(this: any, e: any)
+	this.onLoad=function(this: Loader, e: Event)
 	{
-		this.assetsLoaded.add(e.target.alt);
-		this.assetsLoading.delete(e.target.alt);
+		var img=e.target as HTMLImageElement;//the <img> whose load event fired
+		this.assetsLoaded.add(img.alt);
+		this.assetsLoading.delete(img.alt);
 		this.loadingN--;
 		if (this.doneLoading==0 && this.loadingN<=0 && this.loaded!=0)
 		{
@@ -645,11 +664,11 @@ var Loader: any=function(this: any)//asset-loading system
 			this.loaded();
 		}
 	}
-	this.getProgress=function(this: any)
+	this.getProgress=function(this: Loader)
 	{
 		return (1-this.loadingN/this.assetsN);
 	}
-}
+} as unknown as {new(): Loader}
 
 var Pic=function(what: string)
 {
@@ -1361,7 +1380,7 @@ Game.Launch=function()
 		
 		
 		Game.onCrate=0;
-		Game.setOnCrate=function(what: any)
+		Game.setOnCrate=function(what: string)
 		{
 			Game.onCrate=what;
 		}
@@ -2312,7 +2331,7 @@ Game.Launch=function()
 		});
 		
 		Game.Log=[];
-		Game.AddToLog=function(what: any)
+		Game.AddToLog=function(what: string)
 		{
 			Game.Log.unshift(what);
 			if (Game.Log.length>100) Game.Log.pop();
@@ -2350,13 +2369,13 @@ Game.Launch=function()
 			}
 		}
 		
-		Game.sortSprites=function(a: any,b: any)
+		Game.sortSprites=function(a: {z: number},b: {z: number})
 		{
 			if (a.z>b.z) return 1;
 			else if (a.z<b.z) return -1;
 			else return 0;
 		}
-		Game.sortSpritesById=function(a: any,b: any)
+		Game.sortSpritesById=function(a: {id: number},b: {id: number})
 		{
 			if (a.id>b.id) return 1;
 			else if (a.id<b.id) return -1;
@@ -2372,7 +2391,7 @@ Game.Launch=function()
 		
 		Game.ComputeCps=ComputeCps;//CC3 rewrite (phase 4, slice 1): moved verbatim to systems/economy.ts; same Game slot, same Init position.
 		
-		Game.isMinigameReady=function(me: any)
+		Game.isMinigameReady=function(me: Building)
 		{return (me.minigameUrl && me.minigameLoaded && me.level>0);}
 		Game.scriptBindings=[];
 		Game.showedScriptLoadError=false;
@@ -2401,7 +2420,7 @@ window.loadMinigameModule!(me.minigameUrl).then(function(){
 				}
 			}
 		}
-		Game.scriptLoaded=function(who: any,_script: any)
+		Game.scriptLoaded=function(who: Building,_script: unknown)
 		{
 			who.minigameLoading=false;
 			who.minigameLoaded=true;
@@ -2410,7 +2429,7 @@ window.loadMinigameModule!(me.minigameUrl).then(function(){
 			if (who.minigameSave) {who.minigame.reset(true);who.minigame.load(who.minigameSave);who.minigameSave=0;}
 		}
 		
-		Game.magicCpS=function(_what: any)
+		Game.magicCpS=function(_what: string)
 		{
 			/*
 			if (Game.Objects[what].amount>=250)
@@ -2466,12 +2485,12 @@ window.loadMinigameModule!(me.minigameUrl).then(function(){
 				muteStr+='<div class="tinyProductIcon'+catCls+'" id="mutedProduct'+me.id+'" style="display:none;'+catPos+'" '+Game.clickStr+'="Game.ObjectsById['+me.id+'].mute(0);PlaySound(Game.ObjectsById['+me.id+'].muted?\'snd/clickOff2.mp3\':\'snd/clickOn2.mp3\');" '+Game.getDynamicTooltip('Game.mutedBuildingTooltip('+me.id+')','this')+'></div>';
 				//muteStr+='<div class="tinyProductIcon" id="mutedProduct'+me.id+'" style="display:none;background-position:-'+icon[0]+'px -'+icon[1]+'px;" '+Game.clickStr+'="Game.ObjectsById['+me.id+'].mute(0);PlaySound(Game.ObjectsById['+me.id+'].muted?\'snd/clickOff2.mp3\':\'snd/clickOn2.mp3\');" '+Game.getTooltip('<div style="width:150px;text-align:center;font-size:11px;"><b>Unmute '+me.plural+'</b><br>(Display this building)</div>')+'></div>';
 				
-				AddEvent(me.canvas,'mouseover',function(me: any){return function(){me.mouseOn=true;}}(me));
-				AddEvent(me.canvas,'mouseout',function(me: any){return function(){me.mouseOn=false;}}(me));
-				AddEvent(me.canvas,'mousemove',function(me: any){return function(this: any, e: any){var box=this.getBounds();me.mousePos[0]=e.pageX-box.left;me.mousePos[1]=e.pageY-box.top;}}(me));
+				AddEvent(me.canvas,'mouseover',function(me: Building){return function(){me.mouseOn=true;}}(me));
+				AddEvent(me.canvas,'mouseout',function(me: Building){return function(){me.mouseOn=false;}}(me));
+				AddEvent(me.canvas,'mousemove',function(me: Building){return function(this: Element, e: MouseEvent){var box=this.getBounds();me.mousePos[0]=e.pageX-box.left;me.mousePos[1]=e.pageY-box.top;}}(me));
 			}
 		}
-		Game.mutedBuildingTooltip=function(id: any)
+		Game.mutedBuildingTooltip=function(id: number)
 		{
 			return function(){
 				var me=Game.ObjectsById[id];
@@ -2503,7 +2522,7 @@ window.loadMinigameModule!(me.minigameUrl).then(function(){
 		
 		Game.vault=[];
 		
-		Game.CountsAsUpgradeOwned=function(pool: any)
+		Game.CountsAsUpgradeOwned=function(pool: string)
 		{
 			if (pool=='' || pool=='cookie' || pool=='tech') return true; else return false;
 		}
