@@ -3738,8 +3738,7 @@ window.loadMinigameModule!(me.minigameUrl).then(function(){
 			{
 				if (isNaN(Game.cookies)) {Game.cookies=0;Game.cookiesEarned=0;Game.recalculateGains=1;}
 				
-				var timePlayed: any=new Date();
-				timePlayed.setTime(Date.now()-Game.startDate);
+				var timePlayed: number=Date.now()-Game.startDate;//was a Date container (setTime + valueOf in the '<=' checks); the ms number is runtime-identical
 				
 				if (!Game.fullDate || (Date.now()-Game.fullDate)>=365*24*60*60*1000) Game.Win('So much to do so much to see');
 				
@@ -4145,12 +4144,12 @@ window.loadMinigameModule!(me.minigameUrl).then(function(){
 			//carry a <br>), wrapped in #cookieAmount so both children are always
 			//elements; the per-second line keeps its id for CSS/tests but is now
 			//a <span> updated in place.
-			var cookiesL=l('cookies') as any;
+			var cookiesL=l('cookies') as HTMLElement;
 			if (!cookiesL.__cc3Spans)
 			{
 				cookiesL.innerHTML='<span id="cookieAmount">'+str+'</span><span id="cookiesPerSecond"'+(Game.cpsSucked>0?' class="wrinkled"':'')+'></span>';
 				cookiesL.__cc3Spans={amount:cookiesL.firstChild as HTMLElement,cps:cookiesL.lastChild as HTMLElement,lastAmount:str,lastCps:loc("per second:")+' '+Beautify(Game.cookiesPs*(1-Game.cpsSucked),1)};
-				(cookiesL.__cc3Spans.cps as any).textContent=cookiesL.__cc3Spans.lastCps;
+				cookiesL.__cc3Spans.cps.textContent=cookiesL.__cc3Spans.lastCps;
 			}
 			else
 			{
@@ -4378,7 +4377,7 @@ window.addEventListener('load',function()
 {
 	if (!Game.ready)
 	{
-		var loadLangAndLaunch=function(lang: any)
+		var loadLangAndLaunch=function(lang: string)
 		{
 			localStorageSet('CookieClickerLang',lang);
 			
@@ -4418,7 +4417,7 @@ window.addEventListener('load',function()
 			});
 		}
 		
-		var showLangSelect=function(callback: any)
+		var showLangSelect=function(callback: (lang: string) => void)
 		{
 			var str='';
 			for (var i in Langs)
@@ -4433,8 +4432,8 @@ window.addEventListener('load',function()
 			for (var i in Langs)
 			{
 				var lang=Langs[i];
-				AddEvent(l('langSelect-'+lang.nameEN),'click',function(lang: any){return function(){callback(lang);};}(i));
-				AddEvent(l('langSelect-'+lang.nameEN),'mouseover',function(lang: any){return function(){l('languageSelectHeader').innerHTML=Langs[lang].changeLanguage;};}(i));
+				AddEvent(l('langSelect-'+lang.nameEN),'click',function(lang: string){return function(){callback(lang);};}(i));
+				AddEvent(l('langSelect-'+lang.nameEN),'mouseover',function(lang: string){return function(){l('languageSelectHeader').innerHTML=Langs[lang].changeLanguage;};}(i));
 			}
 		}
 		
@@ -4553,9 +4552,9 @@ Object.assign(window, {
  * sides observe one shared state, exactly like the original Init-scoped
  * closure vars. (Object.assign above copies values by reference-free
  * assignment, so it is not a bridge; the accessors are.) */
-Object.defineProperty(window, 'order', {get(){return order;}, set(v: any){order=v;}});
-Object.defineProperty(window, 'pool', {get(){return pool;}, set(v: any){pool=v;}});
-Object.defineProperty(window, 'power', {get(){return power;}, set(v: any){power=v;}});
+Object.defineProperty(window, 'order', {get(){return order;}, set(v: number){order=v;}});
+Object.defineProperty(window, 'pool', {get(){return pool;}, set(v: string){pool=v;}});
+Object.defineProperty(window, 'power', {get(){return power;}, set(v: number){power=v;}});
 /* CC3 rewrite (phase 3, slice 2): the core Building class reads these three
  * primitives unqualified, i.e. from window — but Object.assign above copied
  * them by value at module-eval time, before the language load reassigns
@@ -4572,12 +4571,12 @@ Object.defineProperty(window, 'TopBarOffset', {get(){return TopBarOffset;}});
  * without the accessor the Options pref buttons rendered e.g. "Fancy
  * graphicsundefined". Get/set keeps both the engine's writes and the menu
  * modules' reads on one shared state. */
-Object.defineProperty(window, 'ON', {get(){return ON;}, set(v: any){ON=v;}});
-Object.defineProperty(window, 'OFF', {get(){return OFF;}, set(v: any){OFF=v;}});
+Object.defineProperty(window, 'ON', {get(){return ON;}, set(v: string | undefined){ON=v;}});
+Object.defineProperty(window, 'OFF', {get(){return OFF;}, set(v: string | undefined){OFF=v;}});
 /* CC3: bridge the Music object the same way — the engine assigns it inside
  * Game.Launch (after the by-value Object.assign above), and menu.ts's
  * setVolumeMusic / the jukebox read it through window. */
-Object.defineProperty(window, 'Music', {get(){return Music;}, set(v: any){Music=v;}});
+Object.defineProperty(window, 'Music', {get(){return Music;}, set(v: MusicSystem | false){Music=v;}});
 
 /* CC3: explicit module marker — at runtime these files are always ESM modules
  * (Vite bundles them as such), and this keeps their top-level var/function

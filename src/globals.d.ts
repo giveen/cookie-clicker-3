@@ -367,4 +367,10 @@ declare global {
 	interface HTMLImageElement {
 		__pattern?: CanvasPattern | null | undefined;
 	}
+ /* CC3: the #cookies node (engine Draw) caches its two child <span>s so the
+  * per-frame text updates rewrite them in place; src/main.ts's animation
+  * pass reads the same slot. */
+ interface HTMLElement {
+ 	__cc3Spans?: {amount: HTMLElement; cps: HTMLElement; lastAmount: string; lastCps: string};
+ }
 }
