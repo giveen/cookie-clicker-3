@@ -723,6 +723,7 @@
 					func();
 					Game.recalculateGains=1;
 				}
+				return;
 			}
 		}
 		

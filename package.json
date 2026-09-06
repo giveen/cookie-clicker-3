@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "vite",
     "typecheck": "tsc --noEmit",
-    "build": "tsc --noEmit && vite build",
+		"build": "tsc --noEmit && vite build && node scripts/check-bundle-size.mjs",
     "preview": "vite preview",
     "test": "playwright test tests/qa.spec.js",
     "test:perf": "playwright test tests/perf.spec.js",

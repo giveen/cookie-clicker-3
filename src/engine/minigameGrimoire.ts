@@ -181,6 +181,7 @@ M.launch=function(this: GrimoireMinigame)
 					}
 					if (changed==0){Game.Popup('<div style="font-size:80%;">No buffs to alter!</div>',Game.mouseX,Game.mouseY);return -1;}
 					Game.Popup('<div style="font-size:80%;">Zap! Buffs lengthened.</div>',Game.mouseX,Game.mouseY);
+					return;
 				},
 				fail:function()
 				{
@@ -195,6 +196,7 @@ M.launch=function(this: GrimoireMinigame)
 					}
 					if (changed==0){Game.Popup('<div style="font-size:80%;">No buffs to alter!</div>',Game.mouseX,Game.mouseY);return -1;}
 					Game.Popup('<div style="font-size:80%;">Backfire!<br>Fizz! Buffs shortened.</div>',Game.mouseX,Game.mouseY);
+					return;
 				},
 			},
 			'spontaneous edifice':{
@@ -220,6 +222,7 @@ M.launch=function(this: GrimoireMinigame)
 					var building=choose(buildings);
 					building.buyFree(1);
 					Game.Popup('<div style="font-size:80%;">A new '+building.single+'<br>bursts out of the ground.</div>',Game.mouseX,Game.mouseY);
+					return;
 				},
 				fail:function()
 				{
@@ -230,6 +233,7 @@ M.launch=function(this: GrimoireMinigame)
 					var building=choose(buildings);
 					building.sacrifice(1);
 					Game.Popup('<div style="font-size:80%;">Backfire!<br>One of your '+building.plural+'<br>disappears in a puff of smoke.</div>',Game.mouseX,Game.mouseY);
+					return;
 				},
 			},
 			'haggler\'s charm':{
@@ -297,8 +301,10 @@ M.launch=function(this: GrimoireMinigame)
 								Game.Popup('<div style="font-size:80%;">That\'s too bad!<br>Magic refunded.</div>',Game.mouseX,Game.mouseY);
 							},1500);
 						}
+						return;
 					}}(spell,cost,Game.seed),1000);
 					Game.Popup('<div style="font-size:80%;">Casting '+spell.name+'<br>for '+Beautify(cost)+' magic...</div>',Game.mouseX,Game.mouseY);
+					return;
 				},
 			},
 			'resurrect abomination':{
@@ -313,12 +319,14 @@ M.launch=function(this: GrimoireMinigame)
 					var out=Game.SpawnWrinkler();
 					if (!out){Game.Popup('<div style="font-size:80%;">Unable to spawn a wrinkler!</div>',Game.mouseX,Game.mouseY);return -1;}
 					Game.Popup('<div style="font-size:80%;">Rise, my precious!</div>',Game.mouseX,Game.mouseY);
+					return;
 				},
 				fail:function()
 				{
 					var out=Game.PopRandomWrinkler();
 					if (!out){Game.Popup('<div style="font-size:80%;">Backfire!<br>But no wrinkler was harmed.</div>',Game.mouseX,Game.mouseY);return -1;}
 					Game.Popup('<div style="font-size:80%;">Backfire!<br>So long, ugly...</div>',Game.mouseX,Game.mouseY);
+					return;
 				},
 			},
 			'diminish ineptitude':{
@@ -554,6 +562,7 @@ M.launch=function(this: GrimoireMinigame)
 		M.spellsCast=parseInt(spl[i++]||0);
 		M.spellsCastTotal=parseInt(spl[i++]||0);
 		var on=parseInt(spl[i++]||0);if (on && Game.ascensionMode!=1) M.parent.switchMinigame(1);
+		return;
 	}
 	M.reset=function()
 	{

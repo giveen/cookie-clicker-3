@@ -13,7 +13,7 @@ import { HowMuchPrestige, HowManyCookiesReset, EarnHeavenlyChips, GetHeavenlyMul
 import { ValidateContent, GetEconomyReport, SimulateEconomy, AnalyzeEconomy, SimulateStrategy } from "./systems/contentValidation";
 import { ExportSave, ImportSave, ImportSaveCode, CopySaveToClipboard, FileSave, FileLoad, WriteSave, salvageSave, LoadSave } from "./systems/save";
 import { CaptureSave, ListBackups, RestoreBackup, DownloadBackup, RefreshBackupList } from "./systems/backup";
-import { CreateMusic } from "./systems/music";
+import { CreateMusic, type MusicSystem } from "./systems/music";
 import { Shimmer, updateShimmers, killShimmers } from "./systems/shimmer";
 import { getWrinklersMax, ResetWrinklers, CollectWrinklers, playWrinklerSquishSound, SpawnWrinkler, PopRandomWrinkler, UpdateWrinklers, DrawWrinklers, SaveWrinklers, LoadWrinklers } from "./systems/wrinkler";
 import { UpdateAscensionModePrompt, PickAscensionMode, UpdateAscendIntro, UpdateReincarnateIntro, Reincarnate, Ascend, AscendBrowseView, AscendBrowseClose, UpdateAscend, AscendRefocus, PurchaseHeavenlyUpgrade, BuildAscendTree, lumpTooltip, computeLumpTimes, loadLumps, gainLumps, clickLump, harvestLumps, computeLumpType, canLumps, getLumpRefillMax, getLumpRefillRemaining, canRefillLump, refillLump, spendLump, doLumps, SaveHeavenlyLayout, ToggleArrangeHeavenly, ResetHeavenlyLayout } from "./systems/ascend";
@@ -45,18 +45,28 @@ import { ShowMenu, tinyCookie, ClickTinyCookie, setVolume, setVolumeMusic, setWu
 import { DrawBackground } from "./ui/drawBackground";/* CC3: the original relied on implicit globals; declare them for module strict mode. */
 
 import { declareVanillaMilks } from "./content/milks";
-import { declareVanillaChangelog } from "./content/changelog";
 import { computeHeavenlyLayout, applyHeavenlyPreset, syncHeavenlyLayoutIfStale, HEAVENLY_PRESETS } from "./systems/heavenlyLayout";
 import { debugStr, Debug } from "./utils/debug";
-var Audio: any, localStorageGet: any, localStorageSet: any, Music: any, PlayCue: any, TopBarOffset: any, LASTHEAVENLYSELECTED: any, ON: any, OFF: any;
+import type { HeavenlyUpgradeRef } from "./types";
+var Audio: new (src?: string) => HTMLAudioElement;
+var localStorageGet: (key: string) => string | null | 0;
+var localStorageSet: (key: string, str: string) => void;
+var Music: MusicSystem | false;
+var PlayCue: (cue: string, arg?: string | number) => void;
+/* 32 normally, 0 in 'offWeb' mode — set in Init; the original declared these
+ * bare (undefined at module eval, when the Object.assign below publishes them
+ * by value), so keep the runtime-identical initializers. */
+var TopBarOffset: number | undefined = undefined;
+var LASTHEAVENLYSELECTED: HeavenlyUpgradeRef | undefined = undefined;
+var ON: string | undefined = undefined;
+var OFF: string | undefined = undefined;
 /* CC3 rewrite (slice 3): the vanilla-content order/pool/power bookkeeping.
  * Originally Init-scoped closure vars read by the Game.Upgrade /
  * Game.Achievement ctors and mutated by the upgrade declarations; the
  * declarations now run in content/upgrades.ts, so this state lives at
  * module scope and is bridged to the content module through window
  * accessors (bottom of this file, next to the window shim). */
-var order: any, pool: any, power: any;
-
+var order: number, pool: string, power: number;
 /*
 All this code is copyright Orteil, 2013-2022.
 	-with some help, advice and fixes by Nicholas Laux, Debugbro, Opti, the folks at Playsaurus, and lots of people on reddit, Discord, and the DashNet forums
@@ -76,14 +86,17 @@ MISC HELPER FUNCTIONS
 	//`typeof Audio` is 'undefined' here and realAudio fell back to the no-op
 	//`function(){return {}}` — every `new Audio(url)` then returned a dead plain
 	//object and no sound ever played. Capture the real constructor explicitly.
-	var realAudio: any=typeof window.Audio!=='undefined'?window.Audio:function(){return {}};//backup real audio
-Audio=function(this: any,src: any){
-	if (src && src.indexOf('soundjay')>-1) {Game.Popup('Sorry, no sounds hotlinked from soundjay.com.');this.play=function(){};}
+	var realAudio: new (src?: string) => HTMLAudioElement=typeof window.Audio!=='undefined'?window.Audio:(function(){return {};} as unknown) as new (src?: string) => HTMLAudioElement;//backup real audio
+	//CC3: the classic shim returns a real element, or (soundjay URLs) the bare
+	//constructed object with `play` neutered — `this` is not always an
+	//HTMLAudioElement, hence the `any` this + the construct-signature cast.
+Audio=function(this: any,src?: string){
+	if (src && src.indexOf('soundjay')>-1) {Game.Popup('Sorry, no sounds hotlinked from soundjay.com.');this.play=function(){};return;}
 	else return new realAudio(src);
-};
+} as unknown as typeof Audio;
 
 if(!Array.prototype.indexOf) {
-    Array.prototype.indexOf = function(needle: any) {
+    Array.prototype.indexOf = function(needle: unknown) {
         for(var i = 0; i < this.length; i++) {
             if(this[i] === needle) {return i;}
         }
@@ -99,21 +112,21 @@ Element.prototype.getBounds=function(){
 	return {x:r.x/s,y:r.y/s,width:r.width/s,height:r.height/s,top:r.top/s,bottom:r.bottom/s,left:r.left/s,right:r.right/s};
 };
 
-localStorageGet=function(key: any)
+localStorageGet=function(key: string)
 {
-	var local: any=0;
+	var local: string|null|0=0;
 	try {local=window.localStorage.getItem(key);} catch (exception) {}
 	return local;
 }
-localStorageSet=function(key: any,str: any)
+localStorageSet=function(key: string,str: string)
 {
-	var local: any=0;
-	try {local=window.localStorage.setItem(key,str);} catch (exception) {}
-	return local;
+	//CC3 cleanup: the 2.048 local round-trip (setItem returns undefined) had no
+	//consumer — the try/catch is the behavior (private-mode browsers throw).
+	try {window.localStorage.setItem(key,str);} catch (exception) {}
 }
 
 
-var ajax=function(url: any,callback: any)
+var ajax=function(url: string,callback: (text: string) => void)
 {
 	var httpRequest=new XMLHttpRequest();
 	if (!httpRequest){return false;}
@@ -136,20 +149,20 @@ var ajax=function(url: any,callback: any)
 	return true;
 }
 
-function toFixed(x: any)
+function toFixed(x: number): string | number
 {
 	if (Math.abs(x) < 1.0) {
 		var e = parseInt(x.toString().split('e-')[1]);
 		if (e) {
-			x *= Math.pow(10,e-1);
-			x = '0.' + (new Array(e)).join('0') + x.toString().substring(2);
+			x = x * Math.pow(10,e-1);
+			return '0.' + (new Array(e)).join('0') + x.toString().substring(2);
 		}
 	} else {
 		var e = parseInt(x.toString().split('+')[1]);
 		if (e > 20) {
 			e -= 20;
-			x /= Math.pow(10,e);
-			x += (new Array(e+1)).join('0');
+			x = x / Math.pow(10,e);
+			return x + (new Array(e+1)).join('0');
 		}
 	}
 	return x;
@@ -338,6 +351,7 @@ var ModLanguage=function(id: any, json: any){
 	}
 	delete json['REPLACE ALL'];
 	AddLanguage(id,Langs[id].name,json,true);
+	return;
 }
 
 var AddLanguage=function(id: any, _name: any, json: any, mod: any)
@@ -406,6 +420,7 @@ var AddLanguage=function(id: any, _name: any, json: any, mod: any)
 		
 		console.log('Loaded language "'+locName+'".');
 	}
+	return;
 }
 
 var LoadLang=LoadScript;
@@ -434,6 +449,7 @@ var LocalizeUpgradesAndAchievs=function()
 		if (found) it.ddesc+='<q>'+loc(found)+'</q>';
 	}
 	BeautifyAll();
+	return;
 }
 var getUpgradeName=function(name: any)
 {
@@ -647,6 +663,7 @@ var OldPlaySound=function(url: any,vol?: any)
 	if (!Sounds[url]) {Sounds[url]=new Audio(url);Sounds[url].onloadeddata=function(e: any){e.target.volume=Math.pow(volume*Game.volume/100,2);}}
 	else if (Sounds[url].readyState>=2) {Sounds[url].currentTime=0;Sounds[url].volume=Math.pow(volume*Game.volume/100,2);}
 	Sounds[url].play();
+	return;
 }
 var SoundInsts: any[]=[];
 var SoundI=0;
@@ -696,6 +713,7 @@ var PlaySound=function(url: any,vol?: any,pitchVar?: any)
 		sound.onended=function(e){if (e.target){delete e.target;}};
 		sound.play();*/
 	}
+	return;
 }
 var PlayMusicSound=function(url: any,vol: any,pitchVar: any)
 {
@@ -839,8 +857,8 @@ Game.Launch=function()
 		easterDay=Math.floor((easterDay-new Date(easterDay.getFullYear(),0,0).getTime())/(1000*60*60*24));
 		if (day>=easterDay-7 && day<=easterDay) Game.baseSeason='easter';
 	}
-	
-	declareVanillaChangelog(Game as any);//CC3 rewrite (phase 6, slice 5): the info/about + version-history HTML moved verbatim to content/changelog.ts; same Launch position.
+		//CC3 rewrite (phase 6, slice 5): the info/about + version-history HTML moved verbatim to content/changelog.ts; same Launch position. The module is the DEFERRED changelog chunk (src/main.ts starts its fetch at parse time and the launch gate above awaits it) — by the time Launch runs the module is loaded, so this resolves on the next microtask and Game.updateLog is built before any menu can open.
+		void import("./content/changelog").then(m=>{m.declareVanillaChangelog(Game as any);});
 	
 	Game.ready=0;
 	
@@ -1643,23 +1661,26 @@ Game.Launch=function()
 		Game.mouseX2=0;
 		Game.mouseY2=0;
 		Game.mouseMoved=0;
-		Game.GetMouseCoords=function(e: any)
+		Game.GetMouseCoords=function(e?: MouseEvent | null)
 		{
 			var posx=0;
 			var posy=0;
-			if (!e) var e: any=window.event;
-			if (e.pageX||e.pageY)
+			//CC3: the legacy `window.event` fallback is a MouseEvent in the
+			//mousemove handlers that call this; the cast keeps the verbatim
+			//lazy-evaluation semantics of the original `if (!e) var e=window.event;`.
+			var ev: MouseEvent=e||(window.event as MouseEvent);
+			if (ev.pageX||ev.pageY)
 			{
-				posx=e.pageX;
-				posy=e.pageY;
+				posx=ev.pageX;
+				posy=ev.pageY;
 			}
-			else if (e.clientX || e.clientY)
+			else if (ev.clientX || ev.clientY)
 			{
-				posx=e.clientX+document.body.scrollLeft+document.documentElement.scrollLeft;
-				posy=e.clientY+document.body.scrollTop+document.documentElement.scrollTop;
+				posx=ev.clientX+document.body.scrollLeft+document.documentElement.scrollLeft;
+				posy=ev.clientY+document.body.scrollTop+document.documentElement.scrollTop;
 			}
 			var x=0;
-			var y=TopBarOffset;
+			var y=TopBarOffset!;//set in Init, before any mouse event can fire
 			/*
 			var el=l('sectionLeft');
 			while(el && !isNaN(el.offsetLeft) && !isNaN(el.offsetTop))
@@ -2468,6 +2489,7 @@ window.loadMinigameModule!(me.minigameUrl).then(function(){
 				var me=Game.UpgradesInStore[i];
 				if (!me.isVaulted() && me.pool!='toggle' && me.pool!='tech') me.buy(1);
 			}
+			return;
 		}
 		
 		Game.vault=[];
@@ -2664,31 +2686,35 @@ window.loadMinigameModule!(me.minigameUrl).then(function(){
 		//jukebox track list, and start the default track on the first user
 		//gesture (browser autoplay policy).
 		Music=CreateMusic();
-		Music.init(Game);
+		//CC3: the closures below capture the system through this const (the
+		//module var stays `MusicSystem | false` until Init, and TS resets
+		//narrowing for captured mutable vars) — zero runtime difference.
+		const music: MusicSystem=Music;
+		music.init(Game);
 		Game.jukebox.tracks.length=0;
-		for (var mi=0;mi<Music.names.length;mi++) Game.jukebox.tracks.push(Music.names[mi]);
+		for (var mi=0;mi<music.names.length;mi++) Game.jukebox.tracks.push(music.names[mi]);
 		//CC3 soundtracks: the Settings picker calls these; persistence lives in
 		//localStorage (systems/music.ts) — not the prefs bitfield (save-compat).
 		Game.SetMusicSoundtrack=function(id: any)
 		{
-			Music.setSoundtrack(id);
+			music.setSoundtrack(id);
 			Game.jukebox.tracks.length=0;
-			for (var i=0;i<Music.names.length;i++) Game.jukebox.tracks.push(Music.names[i]);
+			for (var i=0;i<music.names.length;i++) Game.jukebox.tracks.push(music.names[i]);
 			Game.jukebox.onTrack=0;//repoint the jukebox selection (don't reset(): trackAuto/looped/shuffle are the user's own prefs)
 			//keep playing (respecting the user's gesture context): switch to the
 			//new pool's saved pick, or its first track
-			if (Game.prefs.bgMusic) Music.playTrack(Music.getStartName());
+			if (Game.prefs.bgMusic) music.playTrack(music.getStartName());
 			Game.UpdateMenu();
 		};
 		Game.SetMusicTrack=function(name: any)
 		{
-			Music.playTrack(name);//persist + start it (if bgMusic is on)
+			music.playTrack(name);//persist + start it (if bgMusic is on)
 			Game.UpdateMenu();
 		};
 		Game.ToggleMusic=function()
 		{
-			if (Game.prefs.bgMusic) {if (!Music.currentName) Music.playTrack(Music.getStartName()); else Music.unpause();}
-			else Music.pause();
+			if (Game.prefs.bgMusic) {if (!music.currentName) music.playTrack(music.getStartName()); else music.unpause();}
+			else music.pause();
 		};
 		var cc3MusicStarted=false;
 		var startMusicOnce=function()
@@ -2813,6 +2839,7 @@ window.loadMinigameModule!(me.minigameUrl).then(function(){
 			Game.upgradesToRebuild=1;
 			Game.recalculateGains=1;
 			PlaySound('snd/spellFail.mp3',0.75);
+			return;
 		}
 		Game.getVeilDefense=function()
 		{
@@ -4325,6 +4352,7 @@ window.loadMinigameModule!(me.minigameUrl).then(function(){
 		
 		Game.loopT++;
 		setTimeout(Game.Loop,1000/Game.fps);
+		return;
 	}
 }
 
@@ -4366,8 +4394,17 @@ window.addEventListener('load',function()
 							//catch(err) {console.log('ERROR : '+err.message);}
 						}
 					}
-					if (App && App.loadMods) App.loadMods(launch);
-					else launch();
+					//CC3: the bundled content mods (extras) + the changelog
+					//arrive as deferred chunks; src/main.ts publishes their
+					//combined load as window.cc3ContentReady. The mods must
+					//be registered before Launch — they declare buildings/
+					//upgrades/achievements at registration, so the first
+					//LoadSave must recognize saved custom content. On chunk
+					//failure we still launch: the game runs without the
+					//extras, and their save data stays intact in the save.
+					var doLaunch=function(){if (App && App.loadMods) App.loadMods(launch);else launch();};
+					if (window.cc3ContentReady) window.cc3ContentReady.then(doLaunch,doLaunch);
+					else doLaunch();
 				});
 			});
 		}

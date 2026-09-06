@@ -14,20 +14,22 @@
 import './config';
 import './engine/base64';
 import './engine/main';
-/* CC3 extras: content mods built on the engine's own mod API (no CCSE).
- * Must be imported after engine/main.ts so Game.registerMod exists at module
- * eval; each self-registers (its content is declared in the 'create' hook
- * during Game.Load, before LoadSave). */
-import './extras/blackHoleInverter';
-import './extras/decideDestiny';
-import './extras/americanSeason';
-import './extras/casino';
-import './extras/tutorial';
-import './extras/dailyCrumb';
-import './extras/crackingCookie';
-import './extras/transcendence';
 import './styles/main.css';
 import type { Cc3AnimStats, Game as EngineGame, LanguageData } from './engine/types';
+
+/* CC3 extras: content mods built on the engine's own mod API (no CCSE).
+ * They ship as one DEFERRED chunk (extras/index.ts): the fetch starts here
+ * (parallel with the language modules) and the engine's launch bootstrap
+ * awaits window.cc3ContentReady before Game.Launch — load-bearing, because
+ * the mods declare their buildings/upgrades/achievements at registration,
+ * so the first LoadSave must see them (a saved casino Chancemaker would
+ * otherwise not be recognized). Each mod self-registers through
+ * Game.registerMod once the chunk evaluates (content declared in the
+ * 'create' hook during Game.Load, before LoadSave). */
+window.cc3ContentReady=Promise.all([
+	import('./extras/index'),
+	import('./engine/content/changelog'),//Info > Version history HTML — only that menu needs it
+]);
 
 /* Error surface: paint uncaught boot/runtime errors to the DOM so they're
  * visible without DevTools. Always on in the dev server; in the production
@@ -3031,9 +3033,10 @@ const minigameModules: Record<string, () => Promise<unknown>> = {
 	'minigamePantheon.js': () => import('./engine/minigamePantheon'),
 	'minigameCatColony.js': () => import('./engine/minigameCatColony'),
 	'minigameGrandmaSittingRoom.js': () => import('./engine/minigameGrandmaSittingRoom'),
-	// CC3 extras mod (extras/casino.ts): the code is already in memory via
-	// the static import — this no-op module stands in for the original's
-	// remote "dummyFile.js" so the vanilla minigame machinery (LoadMinigames
+	// CC3 extras mod (extras/casino.ts): the mod's code arrives in the
+	// deferred extras chunk (window.cc3ContentReady, awaited before
+	// launch) — this no-op module stands in for the original's remote
+	// "dummyFile.js" so the vanilla minigame machinery (LoadMinigames
 	// -> scriptLoaded -> M.launch) works unchanged.
 	'casino.js': () => Promise.resolve(null),
 };

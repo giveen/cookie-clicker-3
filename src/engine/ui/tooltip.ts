@@ -139,6 +139,7 @@ export function tooltipUpdate(this: any)
 			this.tta.style.opacity='1';
 		}
 	}
+	return;
 }
 
 export function tooltipHide(this: any)

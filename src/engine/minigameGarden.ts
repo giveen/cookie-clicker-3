@@ -1498,6 +1498,7 @@ M.launch=function(this: GardenMinigame)
 						if (it.id==M.seedSelected){it.l!.classList.add('on');}
 						else {it.l!.classList.remove('on');}
 					}
+					return;
 				}}(me));
 				AddEvent(me.l!,'mouseover',M.hideCursor);
 				AddEvent(me.l!,'mouseout',M.showCursor);
@@ -1543,12 +1544,14 @@ M.launch=function(this: GardenMinigame)
 					M.nextSoil=Date.now()+(Game.Has('Turbo-charged soil')?1:(1000*60*10));
 					M.toCompute=true;M.soil=soil.id!;M.computeStepT();
 					for (var i in M.soils){var it=M.soils[i];if (it.id==M.soil){l('gardenSoil-'+it.id).classList.add('on');}else{l('gardenSoil-'+it.id).classList.remove('on');}}
+					return;
 				}}(soil));
 				AddEvent(l('gardenSoil-'+soil.id),'mouseover',M.hideCursor);
 				AddEvent(l('gardenSoil-'+soil.id),'mouseout',M.showCursor);
 			}
 			
 			M.cursorL=l('gardenCursor');
+			return;
 		}
 		M.buildPlot=function()
 		{
@@ -1610,6 +1613,7 @@ M.launch=function(this: GardenMinigame)
 				}
 			}
 			if (plants>=6*6) Game.Win('In the garden of Eden (baby)');
+			return;
 		}
 		
 		M.clickTile=function(x: number, y: number)
@@ -1689,6 +1693,7 @@ M.launch=function(this: GardenMinigame)
 		{
 			if (M.plantsUnlockedN<M.plantsN) return false;
 			Game.Prompt('<h3>Sacrifice garden</h3><div class="block">Do you REALLY want to sacrifice your garden to the sugar hornets?<br><small>You will be left with an empty plot and only the Baker\'s wheat seed unlocked.<br>In return, you will gain <b>10 sugar lumps</b>.</small></div>',[['Yes!','Game.ClosePrompt();Game.ObjectsById['+M.parent.id+'].minigame.convert();'],'No']);
+			return;
 		}
 		M.convert=function()
 		{
@@ -1705,6 +1710,7 @@ M.launch=function(this: GardenMinigame)
 			M.convertTimes++;
 			M.computeMatures();
 			PlaySound('snd/spellFail.mp3',0.75);
+			return;
 		}
 		
 		M.harvestAll=function(type?: Plant | 0, mature?: number, mortal?: number)
@@ -1986,6 +1992,7 @@ M.launch=function(this: GardenMinigame)
 		
 		M.computeBoostPlot();
 		M.toCompute=true;
+		return;
 	}
 	M.reset=function(hard?: boolean)
 	{

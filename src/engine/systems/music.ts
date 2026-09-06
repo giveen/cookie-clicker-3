@@ -37,6 +37,7 @@
  * switch, save-backed in the existing prefs bitfield).
  */
 
+
 /** Displayed track author line (required by the music license). */
 export const MUSIC_AUTHOR = 'Music composed by Bert Cole (bitbybitsound.com)';
 
@@ -93,11 +94,46 @@ export function SetMusicTrackPref(name: string): void {
 	localStorageSet('cc3_musicTrack:' + GetMusicSoundtrackPref(), name);
 }
 
-/** Build the Music object the engine publishes (and the jukebox drives). */
-export function CreateMusic(): any {
-	const tracks: any = {};//every registered track, across all soundtracks
+/** One registered track: display name, the license-required author line, and
+ * the lazily-sourced audio element. */
+export interface MusicTrack {
+	name: string;
+	author: string;
+	audio: HTMLAudioElement;
+}
+
+/** The Music object the engine publishes (and the jukebox drives) — the file
+ * header above documents the contract. */
+export interface MusicSystem {
+	/** Every registered track, across all soundtracks: name → track. */
+	tracks: Record<string, MusicTrack>;
+	/** The ACTIVE soundtrack's pool (order = play order). */
+	names: string[];
+	/** Alias for tracks (kept for the jukebox, which reads either). */
+	allTracks: Record<string, MusicTrack>;
+	get currentName(): string;
+	/** The full soundtrack registry (menu dropdown + pool switching). */
+	soundtracks: typeof MUSIC_SOUNDTRACKS;
+	activeSoundtrack: string;
+	setSoundtrack(id: string): void;
+	setVolume(volume: number): void;
+	/* no-op: the Steam "wub" filter has no web equivalent */
+	setFilter(): void;
+	playTrack(name: string): void;
+	pause(): void;
+	unpause(): void;
+	loop(loopOn: boolean): void;
+	/* no-op in the web build (auto-advance runs on 'ended'); the vanilla
+	 * jukebox still calls `Music.cue(cue, arg)`, hence the params. */
+	cue(cue?: string, arg?: string | number): void;
+	next(): void;
+	getStartName(): string;
+	init(game: { volumeMusic?: number; jukebox?: { trackAuto?: number } }): void;
+}
+export function CreateMusic(): MusicSystem {
+	const tracks: Record<string, MusicTrack> = {};//every registered track, across all soundtracks
 	const names: string[] = [];//the ACTIVE soundtrack's pool (order = play order)
-	const srcs: any = {};//track name -> file path (assigned to audio.src on first play)
+	const srcs: Record<string, string> = {};//track name -> file path (assigned to audio.src on first play)
 	let currentName = '';
 
 	/** Assign a track's src if it doesn't have one yet (no-op otherwise).
@@ -129,7 +165,7 @@ export function CreateMusic(): any {
 		}
 	};
 
-	const me: any = {
+	const me: MusicSystem = {
 		tracks,
 		names,
 		allTracks: tracks,
@@ -213,7 +249,7 @@ export function CreateMusic(): any {
 			const saved = GetMusicTrackPref();
 			return (saved && names.indexOf(saved) !== -1) ? saved : (names[0] || '');
 		},
-		init(game: any) {
+		init(game: { volumeMusic?: number; jukebox?: { trackAuto?: number } }) {
 			const entry = MUSIC_SOUNDTRACKS.find((s) => s[0] === GetMusicSoundtrackPref());
 			setPool(entry ? entry[2] : MUSIC_TRACKS);
 			for (const name in tracks) {

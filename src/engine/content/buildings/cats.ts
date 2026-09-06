@@ -251,6 +251,7 @@ export function declareCats(Game: EngineGame) {
 				ctx.drawImage(sprite,frame*animation.width,0,animation.width,64,movingRight?0:Math.floor(x),Math.floor(y),Math.floor(drawWidth),Math.floor(drawHeight));
 				ctx.restore();
 			}
+			return;
 		};
 		var catRow=l('row'+cats.id);
 		var farmRow=l('row'+Game.Objects['Farm'].id);

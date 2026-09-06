@@ -25,7 +25,7 @@ interface PantheonGod {
 	/* assigned right after the records are built (the godsById pass) */
 	id?: number;
 	/* -1 = unslotted, otherwise the slot index the spirit sits in */
-	slot?: number;
+	slot?: number | undefined;
 	name: string;
 	icon: number[];
 	descBefore?: string;
@@ -293,6 +293,7 @@ M.launch=function(this: PantheonMinigame)
 			if (slot!=-1) M.slot[slot]=god.id!;
 			god.slot=slot;
 			Game.recalculateGains=1;// CC3: typed as number in GameSurface; 2.048 set `true` — engine reads it as a truthy flag (main.ts), so `1` is runtime-identical.
+			return;
 		}
 		
 		M.dragging=false;
@@ -534,6 +535,7 @@ M.launch=function(this: PantheonMinigame)
 		M.swaps=parseFloat(spl[i++]||3);
 		M.swapT=parseFloat(spl[i++]||Date.now());
 		var on=parseInt(spl[i++]||0);if (on && Game.ascensionMode!=1) M.parent.switchMinigame(1);
+		return;
 	}
 	M.reset=function()
 	{

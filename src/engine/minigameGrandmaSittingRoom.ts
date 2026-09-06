@@ -559,6 +559,7 @@ M.launch = function (this: SittingRoomMinigame) {
 		}
 		M.computeEffs();
 		M.refresh();
+		return;
 	};
 
 	M.reset = function (_hard?: boolean) {

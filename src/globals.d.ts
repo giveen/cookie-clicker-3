@@ -228,6 +228,9 @@ declare global {
 		/* --- glue module loaders (defined in src/main.ts, called by the engine) --- */
 		loadLangModule?: (file: string, done: () => void, fail?: (err: unknown) => void) => void;
 		loadMinigameModule?: (url: string) => Promise<unknown>;
+		/* The deferred content chunk (extras + changelog) set by src/main.ts;
+		 * the engine's launch bootstrap awaits it before Game.Launch. */
+		cc3ContentReady?: Promise<unknown>;
 
 		/* --- CC3 flags --- */
 		/* The polish stats object published by src/main.ts's animation pass

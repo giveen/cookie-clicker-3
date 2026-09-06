@@ -88,6 +88,7 @@ export function FileSave()
 			var text=Game.WriteSave(1);
 			var blob=new Blob([text],{type:'text/plain;charset=utf-8'});
 			saveAs(blob,filename+'.txt');
+			return;
 		}
 export function FileLoad(e: any)
 		{
@@ -100,6 +101,7 @@ export function FileLoad(e: any)
 				Game.ImportSaveCode(e.target.result);
 			}
 			reader.readAsText(file);
+			return;
 		}
 
 
@@ -332,6 +334,7 @@ export function WriteSave(type?: number)
 					}
 				}
 			}
+			return;
 		}
 
 export function salvageSave()

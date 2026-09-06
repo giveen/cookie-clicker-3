@@ -461,6 +461,7 @@ export class Building {
 				this.refresh();}
 				else if (Game.buyMode!=-1) {PlaySound('snd/error1.mp3',0.5);}//CC3: interface error tone when nothing could be bought (can't afford)
 				//if (moni>0 && amount>1) Game.Notify(this.name,'Bought <b>'+bought+'</b> for '+Beautify(moni)+' cookies','',2);
+				return;
 			}
 			this.sell=function(amount: any,_bypass: any)
 			{
@@ -882,6 +883,7 @@ export class Building {
 				this.muted=val;
 				if (val) {l('productMute'+this.id).classList.add('on');l('row'+this.id).classList.add('muted');l('mutedProduct'+this.id).style.display='inline-block';}
 				else {l('productMute'+this.id).classList.remove('on');l('row'+this.id).classList.remove('muted');l('mutedProduct'+this.id).style.display='none';}
+				return;
 			};
 			
 			this.draw=function(){};
@@ -1132,6 +1134,7 @@ export class Building {
 					var y=128-Math.abs(Math.pow(Math.sin(Game.T*0.2+this.id*2),5)*16)-48*h;
 					ctx.drawImage(Pic('icons.webp'),picX*48,picY*48,48,48,Math.floor(x),Math.floor(y),48*w,48*h);
 					*/
+					return;
 				}
 			}
 			

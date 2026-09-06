@@ -886,6 +886,7 @@ M.launch=function(this: MarketMinigame)
 		M.onResize();
 		
 		var on=parseInt((spl[i++]||0) as string);if (on && Game.ascensionMode!=1) M.parent.switchMinigame(1);
+		return;
 	}
 	M.reset=function(hard?: boolean)
 	{
@@ -1050,6 +1051,7 @@ M.launch=function(this: MarketMinigame)
 			M.graphScale=newScale;
 			M.toRedraw=2;
 		}
+		return;
 	}
 	M.colBases=[
 		{bg:'#fff',line1:'#eee',line2:'#ccc',low:'#ce2549',high:'#79c600',highlight:'#000'},

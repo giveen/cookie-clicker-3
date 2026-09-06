@@ -1838,18 +1838,21 @@ export function declareVanillaUpgrades(Game: EngineGame) {
 				if (!data.paused) {Music.pause();l('jukeboxMusicPlay').innerHTML=loc("Play");}
 				else {Music.unpause();l('jukeboxMusicPlay').innerHTML=loc("Stop");}
 				Game.jukebox.updateMusicCurrentTime();
+				return;
 			},
 			pressLoopMusic:function(){
 				Game.jukebox.trackLooped=!Game.jukebox.trackLooped;
 				if (!Music) return false;
 				if (Game.jukebox.trackLooped) {Music.loop(true);l('jukeboxMusicLoop').classList.remove('off');}
 				else {Music.loop(false);l('jukeboxMusicLoop').classList.add('off');}
+				return;
 			},
 			pressMusicAuto:function(){
 				Game.jukebox.trackAuto=!Game.jukebox.trackAuto;
 				if (!Music) return false;
 				if (Game.jukebox.trackAuto) {Music.cue('play');l('jukeboxMusicAuto').classList.remove('off');}
 				else {/*Game.jukebox.setTrack(Game.jukebox.onTrack);*/l('jukeboxMusicAuto').classList.add('off');}
+				return;
 			},
 			pressMusicShuffle:function(){
 				Game.jukebox.trackShuffle=!Game.jukebox.trackShuffle;
@@ -1862,6 +1865,7 @@ export function declareVanillaUpgrades(Game: EngineGame) {
 				l('jukeboxMusicScrub').value=(data.currentTime/data.duration)*1000;
 				l('jukeboxMusicScrubElapsed').style.width=Math.max(0,(data.currentTime/data.duration)*288-4)+'px';
 				if (!noLoop) setTimeout(Game.jukebox.updateMusicCurrentTime,1000/2);
+				return;
 			},
 			musicScrub:function(time: any){
 				var data=Music.tracks[Game.jukebox.tracks[Game.jukebox.onTrack]].audio;

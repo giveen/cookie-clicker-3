@@ -1095,6 +1095,7 @@
 
 			M.games.Blackjack.buildSidebar();
 			M.games.Blackjack.buildTable();
+			return;
 		};
 
 		M.reset = function (hard?: boolean) {

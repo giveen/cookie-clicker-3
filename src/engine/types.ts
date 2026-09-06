@@ -170,7 +170,7 @@ export interface ContentValidationIssue {
 	severity: 'error' | 'warning';
 	code: string;
 	message: string;
-	item?: string;
+	item?: string | undefined;
 }
 
 export interface ContentValidationReport {
@@ -224,7 +224,7 @@ export interface EconomyUpgradeReport {
 	purchaseClickCps: number;
 	paybackSeconds: number;
 	clickPaybackSeconds: { one: number; five: number; ten: number };
-	balanceWarning?: string;
+	balanceWarning?: string | undefined;
 }
 
 export interface EconomyMilestoneReport {
@@ -295,7 +295,7 @@ export interface EconomyStrategyReport {
 	buildingAmounts: Record<string, number>;
 	upgradesBought: string[];
 	purchases: number;
-	stoppedReason?: string;
+	stoppedReason?: string | undefined;
 	samples: EconomyStrategySample[];
 }
 
@@ -371,7 +371,18 @@ export interface Prefs {
 
 /* ====================================================================== */
 /* The Game object                                                        */
-/* ====================================================================== */
+
+/** A heavenly (ascend-tree) upgrade node — the shape of the PrestigeUpgrades
+ * entries the tree renders. LASTHEAVENLYSELECTED references the last clicked
+ * one (the arrange-mode anchor point); the engine reads only name/pos/parents,
+ * the rest of the node flows through the index signature. */
+export interface HeavenlyUpgradeRef {
+	name: string;
+	posX: number;
+	posY: number;
+	parents: string[];
+	[key: string]: unknown;
+}
 
 /**
  * The engine's `Game` object — runtime-built in 2.048, typed here as the

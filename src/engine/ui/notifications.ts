@@ -161,6 +161,7 @@ export function NotifyTooltip(content: any)
 			var me=Game.NotesById[Game.noteId-1];
 			me.tooltip=content;
 			Game.UpdateNotes();
+			return;
 		}
 
 export function UpdatePrompt()
@@ -216,6 +217,7 @@ export function ClosePrompt()
 			Game.promptUpdateFunc=0;
 			Game.promptOptionFocus=0;
 			Game.promptOptionsN=0;
+			return;
 		}
 
 export function ConfirmPrompt()

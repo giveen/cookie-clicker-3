@@ -546,6 +546,7 @@ M.launch = function (this: CatColonyMinigame) {
 			if (mUp && mUp.bought && M.upgradeStacks[u] < 1) M.upgradeStacks[u] = 1;
 		}
 		M.refresh();
+		return;
 	};
 	M.reset = function (_hard?: boolean) {
 		M.treats = 0;
