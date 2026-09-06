@@ -1,12 +1,156 @@
-/* CC3 rewrite (phase 5): minigame re-typed; M is any to match engine pattern. */
-var M: any ={};
+/* CC3 rewrite (phase 5): minigame re-typed; M is any to match engine pattern.
+ * CC3 rewrite (phase 6): M is typed (was `any`). Same approach as the
+ * Pantheon/Grimoire: the engine only reads the guarded contract on
+ * `building.minigame` (launch/save/load/reset/logic/draw/onResize), and the
+ * tooltip paths (goodTooltip/tradeTooltip/loanTooltip/officeTooltip/
+ * brokersTooltip/oppTooltip/refillTooltip) are invoked through the
+ * getDynamicTooltip string paths init wires up - those eval'd paths pass
+ * bare numeric ids and quantities, so the tooltip fns take numbers.
+ *
+ * Zero runtime change: body edits are type-only (param annotations, a `this`
+ * on launch, one `as Good` on the build-loop var, `as string` on the load()
+ * parseInt/parseFloat slots that fall back to numeric defaults, a `!` on
+ * the canvas getContext, `as number[]` on the office cost read for the
+ * final 0-cost tier). */
+import type { Building } from './types';
+
+/** The static per-commodity content records (the M.goods object). */
+interface GoodContent {
+	name: string;
+	symbol: string;
+	company: string;
+	desc: string;
+}
+/** A tradeable commodity: content plus the market state the init build loop
+ *  and tick() maintain, and the DOM refs init wires up afterwards. */
+interface Good extends GoodContent {
+	id: number;
+	hidden: boolean;
+	active: boolean;
+	/* 0: no trade this tick, 1: bought this tick, 2: sold this tick */
+	last: number;
+	building: Building;
+	stock: number;
+	/* price-walk mode 0-5 (see the random walks in tick()) */
+	mode: number;
+	dur: number;
+	val: number;
+	vals: number[];
+	d: number;
+	icon: number[];
+	/* DOM refs (init assigns them after writing the HTML) */
+	l: HTMLElement;
+	symbolNumL: HTMLElement;
+	valL: HTMLElement;
+	stockBoxL: HTMLElement;
+	stockL: HTMLElement;
+	stockMaxL: HTMLElement;
+	viewHideL: HTMLElement;
+	graphIconL: HTMLElement;
+}
+/** An office tier. cost is [cursors, cursor level]; 0 for the final tier. */
+interface Office {
+	name: string;
+	icon: number[];
+	cost: number[] | 0;
+	desc: string;
+}
+/* A loan offer: [name, CpS mult, duration (min), payback mult, payback
+ * duration (min), downpayment (fraction of bank), quote]. */
+type Loan = [string, number, number, number, number, number, string];
+/** A graph color scheme (light/dark). */
+interface GraphCols {
+	bg: string;
+	line1: string;
+	line2: string;
+	low: string;
+	high: string;
+	highlight: string;
+}
+
+interface MarketMinigame {
+	/* --- engine contract (building.minigame.*) --- */
+	name: string | 0;
+	parent: Building;
+	launch: () => void;
+	init: (div: HTMLElement) => void;
+	save: () => string;
+	load: (str: string) => boolean | undefined;
+	/* the engine calls reset(true) on a hard reset */
+	reset: (hard?: boolean) => void;
+	logic: () => void;
+	draw: () => void;
+	onResize: () => void;
+	/* dynamic tooltip surface (init wires getDynamicTooltip string paths;
+	   the eval'd paths pass bare numeric ids/quantities) */
+	goodTooltip: (id: number) => () => string;
+	tradeTooltip: (id: number, n: number) => () => string;
+	loanTooltip: (id: number) => () => string;
+	officeTooltip: () => () => string;
+	brokersTooltip: () => () => string;
+	oppTooltip: () => () => string;
+	refillTooltip: () => string;
+
+	/* --- content --- */
+	goods: Record<string, GoodContent>;
+	goodsById: Good[];
+	offices: Office[];
+	loanTypes: Loan[];
+	colBases: GraphCols[];
+
+	/* --- state --- */
+	officeLevel: number;
+	brokers: number;
+	/* profit in $econds of highest raw CpS (can be negative) */
+	profit: number;
+	ticks: number;
+	lastTickDrawn: number;
+	secondsPerTick: number;
+	tickT: number;
+	/* good under the pointer; -1 when none */
+	hoverOnGood: number;
+	/* units of price per vertical graph pixel */
+	graphScale: number;
+	graphLines: number;
+	graphCols: number;
+	/* 0: up to date, 1: append a step, 2: full redraw */
+	toRedraw: number;
+
+	/* --- DOM handles (init sets them from the HTML it just wrote) --- */
+	graph: HTMLCanvasElement;
+	graphCtx: CanvasRenderingContext2D;
+	/* the active graph color scheme (setCols) */
+	cols: GraphCols;
+
+	/* --- market math --- */
+	getRestingVal: (id: number) => number;
+	getGoodMaxStock: (good: Good) => number;
+	getGoodPrice: (good: Good) => number;
+	goodDelta: (id: number, back?: number) => number;
+	getMaxBrokers: () => number;
+	getBrokerPrice: () => number;
+	getOppSlots: () => number;
+
+	/* --- trading --- */
+	buyGood: (id: number, n: number) => boolean;
+	sellGood: (id: number, n: number) => boolean;
+	/* the engine calls this back as Game.takeLoan when a loan buff ends */
+	takeLoan: (id: number, interest?: number) => boolean;
+	updateGoodStyle: (id: number) => void;
+	setCols: () => void;
+	checkGraphScale: () => boolean | undefined;
+	tick: () => void;
+	drawGraph: (full: boolean) => void;
+}
+
+var M = {} as MarketMinigame;
 M.parent=Game.Objects['Bank'];
 M.parent.minigame=M;
-M.launch=function()
+M.launch=function(this: MarketMinigame)
 {
 	var M=this;
 	M.name=M.parent.minigameName;
-	M.init=function(div: any)
+	M.init=function(div: HTMLElement)
 	{
 		//populate div with html and initialize values
 				
@@ -109,9 +253,9 @@ M.launch=function()
 			},
 		};
 		M.goodsById=[];var n=0;
-		for (var iG in M.goods){var it=M.goods[iG];it.id=n;it.hidden=false;it.active=false;it.last=0;it.building=Game.Objects[iG];it.stock=0;it.mode=0;it.dur=0;it.val=1;it.vals=[it.val];it.d=0;M.goodsById[n]=it;it.icon=[it.building.iconColumn,33];n++;}
+		for (var iG in M.goods){var it=M.goods[iG] as Good;it.id=n;it.hidden=false;it.active=false;it.last=0;it.building=Game.Objects[iG];it.stock=0;it.mode=0;it.dur=0;it.val=1;it.vals=[it.val];it.d=0;M.goodsById[n]=it;it.icon=[it.building.iconColumn,33];n++;}
 		
-		M.goodTooltip=function(id: any)
+		M.goodTooltip=function(id: number)
 		{
 			return function(){
 				var me=M.goodsById[id];
@@ -129,7 +273,7 @@ M.launch=function()
 				return str;
 			};
 		}
-		M.tradeTooltip=function(id: any,n: any)
+		M.tradeTooltip=function(id: number,n: number)
 		{
 			return function(){
 				var me=M.goodsById[id];
@@ -163,9 +307,9 @@ M.launch=function()
 			};
 		}
 		
-		M.goodDelta=function(id: any,back: any)//if back is 0 we get the current step; else get current step -back
+		M.goodDelta=function(id: number,back?: number)//if back is 0 we get the current step; else get current step -back
 		{
-			var back=back||0;
+			var back: number | undefined = back||0;
 			var me=M.goodsById[id];
 			var val=0;
 			if (me.vals.length>=(2+back))
@@ -176,7 +320,7 @@ M.launch=function()
 			return val;
 		}
 		
-		M.getGoodMaxStock=function(good: any)
+		M.getGoodMaxStock=function(good: Good)
 		{
 			var bonus=0;
 			if (M.officeLevel>0) bonus+=25;
@@ -185,11 +329,11 @@ M.launch=function()
 			if (M.officeLevel>3) bonus+=100;
 			return Math.ceil(good.building.highest*(M.officeLevel>4?1.5:1)+bonus+good.building.level*10);
 		}
-		M.getGoodPrice=function(good: any)
+		M.getGoodPrice=function(good: Good)
 		{
 			return good.val;
 		}
-		M.buyGood=function(id: any,n: any)
+		M.buyGood=function(id: number,n: number)
 		{
 			var me=M.goodsById[id];
 			var costInS=M.getGoodPrice(me);
@@ -219,7 +363,7 @@ M.launch=function()
 			}
 			return false;
 		}
-		M.sellGood=function(id: any,n: any)
+		M.sellGood=function(id: number,n: number)
 		{
 			var me=M.goodsById[id];
 			if (n==10000) n=me.stock;
@@ -242,12 +386,12 @@ M.launch=function()
 			}
 			return false;
 		}
-		M.getRestingVal=function(id: any)
+		M.getRestingVal=function(id: number)
 		{
 			return 10+10*id+(Game.Objects['Bank'].level-1);
 		}
 		
-		M.updateGoodStyle=function(id: any)
+		M.updateGoodStyle=function(id: number)
 		{
 			var me=M.goodsById[id];
 			if (me.active)
@@ -337,7 +481,7 @@ M.launch=function()
 			['a pawnshop loan',2,0.67,0.1,40,0.4,'Bad credit? No problem. It\'s your money, and you need it now.'],
 			['a retirement loan',1.2,60*24*2,0.8,60*24*5,0.5,'Finance your next house, boat, spouse, etc. You\'ve earned it.'],
 		];
-		M.loanTooltip=function(id: any)
+		M.loanTooltip=function(id: number)
 		{
 			return function(){
 				var loan=M.loanTypes[id-1];
@@ -352,7 +496,7 @@ M.launch=function()
 				return str;
 			};
 		}
-		M.takeLoan=function(id: any,interest: any)
+		M.takeLoan=function(id: number,interest?: number)
 		{
 			var loan=M.loanTypes[id-1];
 			if (!interest)
@@ -496,7 +640,7 @@ M.launch=function()
 		canvas.height=64;
 		l('bankGraphBox').appendChild(canvas);
 		M.graph=canvas;
-		M.graphCtx=M.graph.getContext('2d',{alpha:false});
+		M.graphCtx=M.graph.getContext('2d',{alpha:false})!;
 		
 		AddEvent(l('bankGraphLines'),'click',function(){
 			if (M.graphLines==0) M.graphLines=1;
@@ -705,7 +849,7 @@ M.launch=function()
 		str+=' '+parseInt(M.parent.onMinigame?'1':'0');
 		return str;
 	}
-	M.load=function(str: any)
+	M.load=function(str: string)
 	{
 		//interpret str; called after .init
 		//note : not actually called in the Game's load; see "minigameSave" in main.js
@@ -714,11 +858,11 @@ M.launch=function()
 		var spl=str.split(' ');
 		var spl2=spl[i++].split(':');
 		var i2=0;
-		M.officeLevel=parseInt(spl2[i2++]||M.officeLevel);
-		M.brokers=parseInt(spl2[i2++]||M.brokers);
-		M.graphLines=parseInt(spl2[i2++]||M.graphLines);
-		M.profit=parseFloat(spl2[i2++]||0);
-		M.graphCols=parseInt(spl2[i2++]||M.graphCols);M.setCols();
+		M.officeLevel=parseInt((spl2[i2++]||M.officeLevel) as string);
+		M.brokers=parseInt((spl2[i2++]||M.brokers) as string);
+		M.graphLines=parseInt((spl2[i2++]||M.graphLines) as string);
+		M.profit=parseFloat((spl2[i2++]||0) as string);
+		M.graphCols=parseInt((spl2[i2++]||M.graphCols) as string);M.setCols();
 		M.tickT=0;
 		
 		var goods=spl[i++].split('!');
@@ -735,15 +879,15 @@ M.launch=function()
 			it.stock=parseInt(itData[4]);
 			it.hidden=parseInt(itData[5])?true:false;
 			it.active=false;
-			it.last=parseInt(itData[6]||0);
+			it.last=parseInt((itData[6]||0) as string);
 			if (it.building.highest>0) it.active=true;
 			if (it.l) M.updateGoodStyle(it.id);
 		}
 		M.onResize();
 		
-		var on=parseInt(spl[i++]||0);if (on && Game.ascensionMode!=1) M.parent.switchMinigame(1);
+		var on=parseInt((spl[i++]||0) as string);if (on && Game.ascensionMode!=1) M.parent.switchMinigame(1);
 	}
-	M.reset=function(hard: any)
+	M.reset=function(hard?: boolean)
 	{
 		M.tickT=0;
 		M.toRedraw=0;
@@ -923,7 +1067,7 @@ M.launch=function()
 		if (M.graph) M.graph.style.backgroundColor=M.cols.bg;
 	}
 	M.setCols();
-	M.drawGraph=function(full: any)
+	M.drawGraph=function(full: boolean)
 	{
 		/*
 			what this does :
@@ -1044,7 +1188,7 @@ M.launch=function()
 			var office=M.offices[M.officeLevel];
 			l('bankOfficeIcon').style.backgroundPosition=(-office.icon[0]*48)+'px '+(-office.icon[1]*48)+'px';
 			l('bankOfficeName').innerHTML=office.name;
-			l('bankOfficeUpgrade').innerHTML='Upgrade ('+office.cost[0]+' cursors)';
+			l('bankOfficeUpgrade').innerHTML='Upgrade ('+(office.cost as number[])[0]+' cursors)';
 			if (!office.cost) l('bankOfficeUpgrade').style.display='none';
 			else
 			{
