@@ -3252,9 +3252,9 @@ window.loadMinigameModule!(me.minigameUrl).then(function(){
 				if (!EN) it.action=loc("Train %1",Game.dragonAuras[i-3].dname)+'<br><small>'+loc("Aura: %1",Game.dragonAuras[i-3].desc)+'</small>';
 				if (i>=5)
 				{
-					it.costStr=function(building: any){return function(){return loc("%1 "+building.bsingle,LBeautify(100));}}(Game.ObjectsById[i-5]);
-					it.cost=function(building: any){return function(){return building.amount>=100;}}(Game.ObjectsById[i-5]);
-					it.buy=function(building: any){return function(){building.sacrifice(100);}}(Game.ObjectsById[i-5]);
+					it.costStr=function(building: Building){return function(){return loc("%1 "+building.bsingle,LBeautify(100));}}(Game.ObjectsById[i-5]);
+					it.cost=function(building: Building){return function(){return building.amount>=100;}}(Game.ObjectsById[i-5]);
+					it.buy=function(building: Building){return function(){building.sacrifice(100);}}(Game.ObjectsById[i-5]);
 				}
 			}
 		}
@@ -3264,12 +3264,12 @@ window.loadMinigameModule!(me.minigameUrl).then(function(){
 		
 		Game.SelectDragonAura=SelectDragonAura;//CC3 rewrite (phase 6, slice 3): moved verbatim to systems/dragon.ts; same Game slot, same Init position.
 		Game.SelectingDragonAura=-1;
-		Game.SetDragonAura=function(aura: any,slot: any)
+		Game.SetDragonAura=function(aura: number,slot: number)
 		{
 			Game.SelectingDragonAura=aura;
 			Game.SelectDragonAura(slot,1);
 		}
-		Game.DescribeDragonAura=function(aura: any)
+		Game.DescribeDragonAura=function(aura: number)
 		{
 			l('dragonAuraInfo').innerHTML=
 			'<div style="min-width:200px;text-align:center;"><h4>'+Game.dragonAuras[aura].dname+'</h4>'+
@@ -3310,7 +3310,7 @@ window.loadMinigameModule!(me.minigameUrl).then(function(){
 		Game.killShimmers();
 		
 		//booooo
-		Game.RuinTheFun=function(silent: any)
+		Game.RuinTheFun=function(silent: number)
 		{
 			Game.popups=0;
 			Game.SetAllUpgrades(1);
@@ -3340,7 +3340,7 @@ window.loadMinigameModule!(me.minigameUrl).then(function(){
 			return 'You feel a bitter taste in your mouth...';
 		}
 		
-		Game.SetAllUpgrades=function(on: any)
+		Game.SetAllUpgrades=function(on: number)
 		{
 			Game.popups=0;
 			var leftout=['Magic shenanigans','Occult obstruction','Glucose-charged air'];
@@ -3354,7 +3354,7 @@ window.loadMinigameModule!(me.minigameUrl).then(function(){
 			Game.recalculateGains=1;
 			Game.popups=1;
 		}
-		Game.SetAllAchievs=function(on: any)
+		Game.SetAllAchievs=function(on: number)
 		{
 			Game.popups=0;
 			for (var i in Game.Achievements)
@@ -3448,7 +3448,7 @@ window.loadMinigameModule!(me.minigameUrl).then(function(){
 				div.id='fpsGraph';
 				div.width=128;
 				div.height=64;
-				(div.style as any).opacity=0.5;
+				div.style.opacity='0.5';
 				div.style.pointerEvents='none';
 				div.style.transformOrigin='0% 0%';
 				div.style.transform='scale(0.75)';
@@ -3545,9 +3545,9 @@ window.loadMinigameModule!(me.minigameUrl).then(function(){
 		
 		if (!EN)
 		{
-			var adaptWidth=function(node: any)
+			var adaptWidth=function(node: HTMLElement)
 			{
-				var el=node.firstChild;
+				var el=node.firstChild as HTMLElement;//panelButton's firstChild is the .subButton div (index.html)
 				var width=el.clientWidth;
 				if (el.classList.contains('subButton'))
 				{
