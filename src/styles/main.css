@@ -603,8 +603,8 @@ a.orangeLink:hover,#topBar a.orangeLink:hover
 }
 @keyframes appear
 {
-	from {opacity:0;top:20px;}
-	to {opacity:1;top:0px;}
+	from {opacity:0;transform:translateY(20px);}
+	to {opacity:1;transform:translateY(0px);}
 }
 #loading
 {
@@ -1883,13 +1883,16 @@ from {background-position:0px -24px;}
    -moz-animation:riseUpLinger 4s 1 forwards ease-out;
         animation:riseUpLinger 4s 1 forwards ease-out;
 }
+/* CC3 modern: the rise animations move via transform (not top) so they run on
+   the compositor without per-frame layout — the base .commentsText top:0px is
+   static, so translateY is pixel-identical to the old top offsets. */
 @-webkit-keyframes riseAway{
-from {top:0px;opacity:1;}
-	to {top:-20px;opacity:0;}
+from {transform:translateY(0px);opacity:1;}
+	to {transform:translateY(-20px);opacity:0;}
 }
 @-webkit-keyframes riseUp{
-from {top:20px;opacity:0;}
-	to {top:0px;opacity:1;}
+from {transform:translateY(20px);opacity:0;}
+	to {transform:translateY(0px);opacity:1;}
 }
 @-webkit-keyframes riseUpLinger{
 0% {transform:translate(0px,0px);opacity:0;}
@@ -1898,12 +1901,12 @@ from {top:20px;opacity:0;}
 100% {transform:translate(0px,-32px);opacity:0;}
 }
 @-moz-keyframes riseAway{
-from {top:0px;opacity:1;}
-	to {top:-20px;opacity:0;}
+from {transform:translateY(0px);opacity:1;}
+	to {transform:translateY(-20px);opacity:0;}
 }
 @-moz-keyframes riseUp{
-from {top:20px;opacity:0;}
-	to {top:0px;opacity:1;}
+from {transform:translateY(20px);opacity:0;}
+	to {transform:translateY(0px);opacity:1;}
 }
 @-moz-keyframes riseUpLinger{
 0% {transform:translate(0px,0px);opacity:0;}
@@ -1912,12 +1915,12 @@ from {top:20px;opacity:0;}
 100% {transform:translate(0px,-32px);opacity:0;}
 }
 @keyframes riseAway{
-from {top:0px;opacity:1;}
-	to {top:-20px;opacity:0;}
+from {transform:translateY(0px);opacity:1;}
+	to {transform:translateY(-20px);opacity:0;}
 }
 @keyframes riseUp{
-from {top:20px;opacity:0;}
-	to {top:0px;opacity:1;}
+from {transform:translateY(20px);opacity:0;}
+	to {transform:translateY(0px);opacity:1;}
 }
 @keyframes riseUpLinger{
 0% {transform:translate(0px,0px);opacity:0;}
