@@ -10,6 +10,7 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "test": "playwright test tests/qa.spec.js",
+    "test:perf": "playwright test tests/perf.spec.js",
     "setup:master": "node scripts/setup-master.mjs",
     "test:compat": "npm run setup:master && playwright test tests/save-compat.spec.js"
   },

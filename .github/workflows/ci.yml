@@ -9,7 +9,11 @@
 #              diffs the re-exports, so a save-format break can't merge. The
 #              baseline is materialized by checking out master into
 #              .cc3-master/ (playwright.config.js serves it on :4174).
-# deploy:      only runs when both test jobs pass (and never on PRs). Replaces
+# perf:        perf regression gate (tests/perf.spec.js) — boot speed (FCP +
+#              time-to-ready) plus a sustained 4-minigame load: loop tick
+#              rate and a long-task budget. Generous thresholds on purpose
+#              (CI runners vary); the run logs the measured numbers.
+# deploy:      only runs when all test jobs pass (and never on PRs). Replaces
 #              the gh-pages branch with the fresh dist/ (peaceiris/actions-gh-pages).
 #              The relocatable build (base './') serves from the repo subpath, and
 #              the per-build service-worker cache stamp (vite.config.ts) makes each
@@ -95,8 +99,29 @@ jobs:
           path: playwright-report/
           retention-days: 14
 
+  # Perf regression gate: boots the production build, then holds the 4-minigame
+  # load of ?qa=perf at a heavier level and budgets boot speed, loop tick rate
+  # and main-thread long tasks. See tests/perf.spec.js for the thresholds.
+  perf:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install chromium
+      - run: npx playwright test tests/perf.spec.js
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: playwright-report-perf
+          path: playwright-report/
+          retention-days: 14
+
   deploy:
-    needs: [test, test-compat]
+    needs: [test, test-compat, perf]
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     steps:
