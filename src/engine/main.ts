@@ -1800,14 +1800,14 @@ Game.Launch=function()
 		Game.cookiesMultByType={};
 		//display bars with http://codepen.io/anon/pen/waGyEJ
 		Game.effs={};
-		Game.eff=function(name: any,def: any){if (typeof Game.effs[name]==='undefined') return (typeof def==='undefined'?1:def); else return Game.effs[name];};
+		Game.eff=function(name: string,def?: number){if (typeof Game.effs[name]==='undefined') return (typeof def==='undefined'?1:def); else return Game.effs[name];};
 		
 		Game.CalculateGains=function()
 		{
 			Game.cookiesPs=0;
 			var mult=1;
 			//add up effect bonuses from building minigames
-			var effs: any={};
+			var effs: Record<string, number>={};
 			for (var iKey in Game.Objects)
 			{
 				if (Game.Objects[iKey].minigameLoaded && Game.Objects[iKey].minigame.effs)
@@ -2170,18 +2170,18 @@ Game.Launch=function()
 		MENUS
 		=======================================================================================*/
 		Game.cssClasses=[];
-		Game.addClass=function(what: any) {if (Game.cssClasses.indexOf(what)==-1) Game.cssClasses.push(what);Game.updateClasses();}
-		Game.removeClass=function(what: any) {var i=Game.cssClasses.indexOf(what);if(i!=-1) {Game.cssClasses.splice(i,1);}Game.updateClasses();}
+		Game.addClass=function(what: string) {if (Game.cssClasses.indexOf(what)==-1) Game.cssClasses.push(what);Game.updateClasses();}
+		Game.removeClass=function(what: string) {var i=Game.cssClasses.indexOf(what);if(i!=-1) {Game.cssClasses.splice(i,1);}Game.updateClasses();}
 		Game.updateClasses=function() {Game.l.className=Game.cssClasses.join(' ');}
 		
-		Game.WritePrefButton=function(prefName: any,button: any,on: any,off: any,callback: any,invert: any)
+		Game.WritePrefButton=function(prefName: string,button: string,on: string,off: string,callback?: string,invert?: number)
 		{
 			var invertN=invert?1:0;
 			if (!callback) callback='';
 			callback+='PlaySound(\'snd/tick.mp3\');';
 			return '<a class="smallFancyButton prefButton option'+((Game.prefs[prefName]^invertN)?'':' off')+'" id="'+button+'" '+Game.clickStr+'="Game.Toggle(\''+prefName+'\',\''+button+'\',\''+on+'\',\''+off+'\',\''+invertN+'\');'+callback+'">'+(Game.prefs[prefName]?on:off)+'</a>';
 		}
-		Game.Toggle=function(prefName: any,button: any,on: any,off: any,invert: any)
+		Game.Toggle=function(prefName: string,button: string,on: string,off: string,invert: number)
 		{
 			if (Game.prefs[prefName])
 			{
@@ -2220,7 +2220,7 @@ Game.Launch=function()
 			if (App) App.setFullscreen(Game.prefs.fullscreen);
 		}
 		
-		Game.WriteSlider=function(slider: any,leftText: any,rightText: any,startValueFunction: any,callback: any)
+		Game.WriteSlider=function(slider: string,leftText: string,rightText: string,startValueFunction: () => string,callback?: string)
 		{
 			if (!callback) callback='';
 			return '<div class="sliderBox"><div style="float:left;" class="smallFancyButton">'+leftText+'</div><div style="float:right;" class="smallFancyButton" id="'+slider+'RightText">'+rightText.replace('[$]',startValueFunction())+'</div><input class="slider" style="clear:both;" type="range" min="0" max="100" step="1" value="'+startValueFunction()+'" onchange="'+callback+'" oninput="'+callback+'" onmouseup="PlaySound(\'snd/tick.mp3\');" id="'+slider+'"/></div>';
@@ -2228,7 +2228,7 @@ Game.Launch=function()
 		
 		Game.onPanel='Left';
 		Game.addClass('focus'+Game.onPanel);
-		Game.ShowPanel=function(what: any)
+		Game.ShowPanel=function(what?: string)
 		{
 			if (!what) what='';
 			if (Game.onPanel!=what)
@@ -2276,7 +2276,7 @@ Game.Launch=function()
 		Game.tickerBelowL=l('commentsText2');
 		Game.tickerTooNarrow=900;
 		Game.TickerDraw=TickerDraw;//CC3 rewrite (phase 6, slice 3): moved verbatim to systems/ticker.ts; same Game slot, same Init position.
-		AddEvent(Game.tickerL,'click',function(_event: any){
+		AddEvent(Game.tickerL,'click',function(_event: MouseEvent){
 			Game.Ticker='';
 			Game.TickerClicks++;
 			if (Game.windowW<Game.tickerTooNarrow) {Game.Win('Stifling the press');}
