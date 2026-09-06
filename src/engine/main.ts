@@ -1042,7 +1042,7 @@ Game.Launch=function()
 		Game.windowH=window.innerHeight;
 		Game.scale=1;
 		
-		window.addEventListener('resize',function(_e: any)
+		window.addEventListener('resize',function(_e: Event)
 		{
 			Game.resize();
 			if (App && App.onResize) App.onResize();
@@ -1508,16 +1508,16 @@ Game.Launch=function()
 		Game.refillLump=refillLump;//CC3 rewrite (phase 4, slice 6).
 		Game.spendLump=spendLump;//CC3 rewrite (phase 4, slice 6).
 		Game.doLumps=doLumps;//CC3 rewrite (phase 4, slice 6).
-		Game.Earn=function(howmuch: any)
+		Game.Earn=function(howmuch: number)
 		{
 			Game.cookies+=howmuch;
 			Game.cookiesEarned+=howmuch;
 		}
-		Game.Spend=function(howmuch: any)
+		Game.Spend=function(howmuch: number)
 		{
 			Game.cookies-=howmuch;
 		}
-		Game.Dissolve=function(howmuch: any)
+		Game.Dissolve=function(howmuch: number)
 		{
 			Game.cookies-=howmuch;
 			Game.cookiesEarned-=howmuch;
@@ -1630,11 +1630,11 @@ Game.Launch=function()
 			Game.cookieClickSound+=Math.floor(Math.random()*4)+1;
 			if (Game.cookieClickSound>7) Game.cookieClickSound-=7;
 		}
-		Game.ClickCookie=function(e: any,amount: any)
+		Game.ClickCookie=function(e: Event | null | undefined,amount: number)
 		{
 			var now=Date.now();
 			if (e) e.preventDefault();
-			if (Game.OnAscend || Game.AscendTimer>0 || Game.T<3 || now-Game.lastClick<1000/((e?e.detail:1)===0?3:50)) {}
+			if (Game.OnAscend || Game.AscendTimer>0 || Game.T<3 || now-Game.lastClick<1000/((e?(e as UIEvent).detail:1)===0?3:50)) {}
 			else
 			{
 				if (now-Game.lastClick<(1000/15) && Game.ascensionMode!=2)//CC3: Trigger finger — scroll clicks don't count as autoclicker clicking achievements
@@ -1643,7 +1643,7 @@ Game.Launch=function()
 					if (Game.autoclickerDetected>=Game.fps*5) Game.Win('Uncanny clicker');
 				}
 				Game.loseShimmeringVeil('click');
-				var amount=amount?amount:Game.computedMouseCps;
+				var amount:number=amount?amount:Game.computedMouseCps;
 				Game.Earn(amount);
 				Game.handmadeCookies+=amount;
 				if (Game.prefs.particles)
@@ -1720,18 +1720,19 @@ Game.Launch=function()
 		if (!Game.touchEvents)
 		{
 			AddEvent(bigCookie,'click',Game.ClickCookie);
-			AddEvent(bigCookie,'mousedown',function(event: any){Game.BigCookieState=1;if (Game.prefs.cookiesound) {Game.playCookieClickSound();}if (event) event.preventDefault();});
-			AddEvent(bigCookie,'mouseup',function(event: any){Game.BigCookieState=2;if (event) event.preventDefault();});
-			AddEvent(bigCookie,'mouseout',function(_event: any){Game.BigCookieState=0;});
-			AddEvent(bigCookie,'mouseover',function(_event: any){Game.BigCookieState=2;});
+			AddEvent(bigCookie,'mousedown',function(event: MouseEvent){Game.BigCookieState=1;if (Game.prefs.cookiesound) {Game.playCookieClickSound();}if (event) event.preventDefault();});
+			AddEvent(bigCookie,'mouseup',function(event: MouseEvent){Game.BigCookieState=2;if (event) event.preventDefault();});
+			AddEvent(bigCookie,'mouseout',function(_event: MouseEvent){Game.BigCookieState=0;});
+			AddEvent(bigCookie,'mouseover',function(_event: MouseEvent){Game.BigCookieState=2;});
 			AddEvent(document,'mousemove',Game.GetMouseCoords);
-			AddEvent(document,'mousedown',function(event: any){Game.lastActivity=Game.time;Game.mouseDown=1;Game.clickFrom=event.target;});
-			AddEvent(document,'mouseup',function(_event: any){Game.lastActivity=Game.time;Game.mouseDown=0;Game.clickFrom=0;});
-			AddEvent(document,'click',function(event: any){Game.lastActivity=Game.time;Game.Click=1;Game.lastClickedEl=event.target;Game.clickFrom=0;});
-			Game.handleScroll=function(e: any)
+			AddEvent(document,'mousedown',function(event: MouseEvent){Game.lastActivity=Game.time;Game.mouseDown=1;Game.clickFrom=event.target;});
+			AddEvent(document,'mouseup',function(_event: MouseEvent){Game.lastActivity=Game.time;Game.mouseDown=0;Game.clickFrom=0;});
+			AddEvent(document,'click',function(event: MouseEvent){Game.lastActivity=Game.time;Game.Click=1;Game.lastClickedEl=event.target;Game.clickFrom=0;});
+			Game.handleScroll=function(e: Event | null | undefined)
 			{
-				if (!e) e=event;
-				Game.Scroll=(e.detail<0||e.wheelDelta>0)?1:-1;
+				if (!e) e=event as Event;
+				var wheelEvent=e as UIEvent & {wheelDelta: number};//non-standard wheelDelta (legacy mousewheel) is not in the TS lib
+				Game.Scroll=(wheelEvent.detail<0||wheelEvent.wheelDelta>0)?1:-1;
 				Game.lastActivity=Game.time;
 			};
 			AddEvent(document,'DOMMouseScroll',Game.handleScroll);
@@ -1741,17 +1742,17 @@ Game.Launch=function()
 		{
 			//touch events
 			AddEvent(bigCookie,'touchend',Game.ClickCookie);
-			AddEvent(bigCookie,'touchstart',function(event: any){Game.BigCookieState=1;if (event) event.preventDefault();});
-			AddEvent(bigCookie,'touchend',function(event: any){Game.BigCookieState=0;if (event) event.preventDefault();});
+			AddEvent(bigCookie,'touchstart',function(event: TouchEvent){Game.BigCookieState=1;if (event) event.preventDefault();});
+			AddEvent(bigCookie,'touchend',function(event: TouchEvent){Game.BigCookieState=0;if (event) event.preventDefault();});
 			//AddEvent(document,'touchmove',Game.GetMouseCoords);
 			AddEvent(document,'mousemove',Game.GetMouseCoords);
-			AddEvent(document,'touchstart',function(_event: any){Game.lastActivity=Game.time;Game.mouseDown=1;});
-			AddEvent(document,'touchend',function(_event: any){Game.lastActivity=Game.time;Game.mouseDown=0;});
-			AddEvent(document,'touchend',function(_event: any){Game.lastActivity=Game.time;Game.Click=1;});
+			AddEvent(document,'touchstart',function(_event: TouchEvent){Game.lastActivity=Game.time;Game.mouseDown=1;});
+			AddEvent(document,'touchend',function(_event: TouchEvent){Game.lastActivity=Game.time;Game.mouseDown=0;});
+			AddEvent(document,'touchend',function(_event: TouchEvent){Game.lastActivity=Game.time;Game.Click=1;});
 		}
 		
 		Game.keys=[];
-		AddEvent(window,'keyup',function(e: any){
+		AddEvent(window,'keyup',function(e: KeyboardEvent){
 			Game.lastActivity=Game.time;
 			if (e.keyCode==27)
 			{
@@ -1764,7 +1765,7 @@ Game.Launch=function()
 			}
 			Game.keys[e.keyCode]=0;
 		});
-		AddEvent(window,'keydown',function(e: any){
+		AddEvent(window,'keydown',function(e: KeyboardEvent){
 			if (Game.promptOn)
 			{
 				if (e.keyCode==9)
@@ -1785,7 +1786,7 @@ Game.Launch=function()
 			if (e.keyCode==9) Game.keys=[];//reset keys on tab press
 		});
 		
-		AddEvent(window,'visibilitychange',function(_e: any){
+		AddEvent(window,'visibilitychange',function(_e: Event){
 			Game.keys=[];//reset all key pressed on visibility change (should help prevent ctrl still being down after ctrl-tab)
 		});
 		
