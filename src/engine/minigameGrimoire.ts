@@ -1,12 +1,97 @@
-/* CC3 rewrite (phase 5): minigame re-typed; M is any to match engine pattern. */
-var M: any ={};
+/* CC3 rewrite (phase 5): minigame re-typed.
+ * CC3 rewrite (phase 6): M is typed (was `any`). The engine only reads the
+ * guarded contract on `building.minigame` (launch/save/load/reset/logic/
+ * draw + the dynamic tooltip paths), so the interface covers this file's
+ * surface plus that contract. The spell records are now checked against
+ * GrimoireSpell — a missing costMin or mistyped icon fails typecheck.
+ *
+ * Zero runtime change: body edits are type-only — param/variable
+ * annotations, a `this` on launch, `!` asserts where l()'s HTMLElement|null
+ * meets an element init() just wrote, and one explicit Number() (the
+ * original string<=number ToNumber coercion, behavior-identical). */
+import type { Building } from './types';
+
+/** A Grimoire spell. win/fail return -1 to signal "nothing happened" (the
+ *  cast is not counted and no magic is spent); no return value = success. */
+interface GrimoireSpell {
+	/* assigned right after the records are built (the spellsById pass) */
+	id?: number;
+	name: string;
+	desc: string;
+	failDesc?: string;
+	icon: number[];
+	costMin: number;
+	costPercent?: number;
+	/* cast skips the spell counters (gambler's fever dream re-casts) */
+	passthrough?: boolean;
+	descFunc?: () => string;
+	win: () => number | void;
+	fail?: () => number | void;
+	/* adjusts the base fail chance before the roll (hand of fate) */
+	failFunc?: (fail: number) => number;
+}
+
+/** castSpell options — all optional, each applied when present. */
+interface GrimoireCastOptions {
+	cost?: number;
+	failChanceSet?: number;
+	failChanceAdd?: number;
+	failChanceMult?: number;
+	failChanceMax?: number;
+	passthrough?: boolean;
+}
+
+interface GrimoireMinigame {
+	/* --- engine contract (building.minigame.*) --- */
+	name: string | 0;
+	parent: Building;
+	launch: () => void;
+	init: (div: HTMLElement) => void;
+	save: () => string;
+	load: (str: string) => boolean | undefined;
+	/* the engine calls reset(true) on a hard reset, bare otherwise */
+	reset: (hard?: boolean) => void;
+	logic: () => void;
+	draw: () => void;
+	/* dynamic tooltip surface (invoked through the getDynamicTooltip string
+	   paths the init HTML wires up) */
+	spellTooltip: (id: number) => () => string;
+	refillTooltip: () => string;
+
+	/* --- content --- */
+	spells: Record<string, GrimoireSpell>;
+	spellsById: GrimoireSpell[];
+
+	/* --- state --- */
+	magic: number;
+	magicM: number;
+	magicPS: number;
+	spellsCast: number;
+	spellsCastTotal: number;
+
+	/* --- DOM handles (init sets them from the HTML it just wrote) --- */
+	magicBarL: HTMLElement;
+	magicBarFullL: HTMLElement;
+	magicBarTextL: HTMLElement;
+	lumpRefill: HTMLElement;
+	infoL: HTMLElement;
+
+	/* --- internal helpers --- */
+	computeMagicM: () => void;
+	getFailChance: (spell: GrimoireSpell) => number;
+	castSpell: (spell: GrimoireSpell, obj?: GrimoireCastOptions) => boolean;
+	getSpellCost: (spell: GrimoireSpell) => number;
+	getSpellCostBreakdown: (spell: GrimoireSpell) => string;
+}
+
+var M = {} as GrimoireMinigame;
 M.parent=Game.Objects['Wizard tower'];
 M.parent.minigame=M;
-M.launch=function()
+M.launch=function(this: GrimoireMinigame)
 {
 	var M=this;
 	M.name=M.parent.minigameName;
-	M.init=function(div: any)
+	M.init=function(div: HTMLElement)
 	{
 		//populate div with html and initialize values
 		
@@ -42,7 +127,7 @@ M.launch=function()
 				icon:[22,11],
 				costMin:10,
 				costPercent:0.6,
-				failFunc:function(fail: any)
+				failFunc:function(fail: number)
 				{
 					return fail+0.15*Game.shimmerTypes['golden'].n;
 				},
@@ -225,13 +310,13 @@ M.launch=function()
 				costPercent:0.1,
 				win:function()
 				{
-					var out=(Game.SpawnWrinkler as any)();
+					var out=Game.SpawnWrinkler();
 					if (!out){Game.Popup('<div style="font-size:80%;">Unable to spawn a wrinkler!</div>',Game.mouseX,Game.mouseY);return -1;}
 					Game.Popup('<div style="font-size:80%;">Rise, my precious!</div>',Game.mouseX,Game.mouseY);
 				},
 				fail:function()
 				{
-					var out=(Game.PopRandomWrinkler as any)();
+					var out=Game.PopRandomWrinkler();
 					if (!out){Game.Popup('<div style="font-size:80%;">Backfire!<br>But no wrinkler was harmed.</div>',Game.mouseX,Game.mouseY);return -1;}
 					Game.Popup('<div style="font-size:80%;">Backfire!<br>So long, ugly...</div>',Game.mouseX,Game.mouseY);
 				},
@@ -287,7 +372,7 @@ M.launch=function()
 			M.magic=Math.min(M.magicM,M.magic);
 		}
 		
-		M.getFailChance=function(spell: any)
+		M.getFailChance=function(spell: GrimoireSpell)
 		{
 			var failChance=0.15;
 			if (Game.hasBuff('Magic adept')) failChance*=0.1;
@@ -296,10 +381,10 @@ M.launch=function()
 			return failChance;
 		}
 		
-		M.castSpell=function(spell: any, obj: any)
+		M.castSpell=function(spell: GrimoireSpell, obj?: GrimoireCastOptions)
 		{
-			var obj=obj||{};
-			var out=0;
+			var obj: GrimoireCastOptions | undefined = obj||{};
+			var out: unknown = 0;//win/fail sentinel (no return = success, -1 = nothing happened); a no-return win is `() => void`, which fits unknown, not number|undefined
 			var cost=0;
 			var fail=false;
 			if (typeof obj.cost!=='undefined') cost=obj.cost; else cost=M.getSpellCost(spell);
@@ -326,7 +411,7 @@ M.launch=function()
 				M.magic-=cost;
 				M.magic=Math.max(0,M.magic);
 				
-				var rect=l('grimoireSpell'+spell.id).getBoundingClientRect();
+				var rect=l('grimoireSpell'+spell.id)!.getBoundingClientRect();
 				Game.SparkleAt((rect.left+rect.right)/2,(rect.top+rect.bottom)/2-24);
 				
 				if (fail) {PlaySound('snd/spellFail.mp3',0.75);PlaySound('snd/error1.mp3',0.4);} else PlaySound('snd/spell.mp3',0.75);//CC3: interface error tone layered on the backfire
@@ -336,13 +421,13 @@ M.launch=function()
 			return false;
 		}
 		
-		M.getSpellCost=function(spell: any)
+		M.getSpellCost=function(spell: GrimoireSpell)
 		{
 			var out=spell.costMin;
 			if (spell.costPercent) out+=M.magicM*spell.costPercent;
 			return Math.floor(out);
 		}
-		M.getSpellCostBreakdown=function(spell: any)
+		M.getSpellCostBreakdown=function(spell: GrimoireSpell)
 		{
 			var str='';
 			if (spell.costPercent) str+=Beautify(spell.costMin)+' magic +'+Beautify(Math.ceil(spell.costPercent*100))+'% of max magic';
@@ -350,7 +435,7 @@ M.launch=function()
 			return str;
 		}
 		
-		M.spellTooltip=function(id: any)
+		M.spellTooltip=function(id: number)
 		{
 			return function(){
 				var me=M.spellsById[id];
@@ -362,7 +447,7 @@ M.launch=function()
 				var str='<div style="padding:8px 4px;min-width:350px;">'+
 				'<div class="icon" style="float:left;margin-left:-8px;margin-top:-8px;background-position:'+(-me.icon[0]*48)+'px '+(-me.icon[1]*48)+'px;"></div>'+
 				'<div class="name">'+me.name+'</div>'+
-				'<div>Magic cost : <b style="color:#'+(cost<=M.magic?'6f6':'f66')+';">'+cost+'</b>'+costBreakdown+'</div>'+
+			'<div>Magic cost : <b style="color:#'+(Number(cost)<=M.magic?'6f6':'f66')+';">'+cost+'</b>'+costBreakdown+'</div>'+
 				(me.fail?('<div><small>Chance to backfire : <b style="color:#f66">'+Math.ceil(100*backfire)+'%</b></small></div>'):'')+
 				'<div class="line"></div><div class="description"><b>Effect :</b> <span class="green">'+(me.descFunc?me.descFunc():me.desc)+'</span>'+(me.failDesc?('<div style="height:8px;"></div><b>Backfire :</b> <span class="red">'+me.failDesc+'</span>'):'')+'</div></div>';
 				return str;
@@ -411,11 +496,14 @@ M.launch=function()
 			str+='<div id="grimoireInfo"></div>';
 		str+='</div>';
 		div.innerHTML=str;
-		M.magicBarL=l('grimoireBar');
-		M.magicBarFullL=l('grimoireBarFull');
-		M.magicBarTextL=l('grimoireBarText');
-		M.lumpRefill=l('grimoireLumpRefill');
-		M.infoL=l('grimoireInfo');
+		/* the five handles below were written into the DOM a few lines up —
+		   l()'s null return is impossible here, assert to keep the hot
+		   draw()/refill paths free of null checks (original assumed it too) */
+		M.magicBarL=l('grimoireBar')!;
+		M.magicBarFullL=l('grimoireBarFull')!;
+		M.magicBarTextL=l('grimoireBarText')!;
+		M.lumpRefill=l('grimoireLumpRefill')!;
+		M.infoL=l('grimoireInfo')!;
 		for (var i in M.spells)
 		{
 			var me=M.spells[i];
@@ -454,7 +542,7 @@ M.launch=function()
 		;
 		return str;
 	}
-	M.load=function(str: any)
+	M.load=function(str: string)
 	{
 		//interpret str; called after .init
 		//note : not actually called in the Game's load; see "minigameSave" in main.js
@@ -486,9 +574,9 @@ M.launch=function()
 			{
 				var me=M.spells[i];
 				var cost=M.getSpellCost(me);
-				l('grimoirePrice'+me.id).innerHTML=Beautify(cost);
-				if (M.magic<cost) l('grimoireSpell'+me.id).className='grimoireSpell titleFont';
-				else l('grimoireSpell'+me.id).className='grimoireSpell titleFont ready';
+				l('grimoirePrice'+me.id)!.innerHTML=Beautify(cost);
+				if (M.magic<cost) l('grimoireSpell'+me.id)!.className='grimoireSpell titleFont';
+				else l('grimoireSpell'+me.id)!.className='grimoireSpell titleFont ready';
 			}
 		}
 	}
@@ -500,7 +588,7 @@ M.launch=function()
 		M.magicBarL.style.width=(M.magicM*3)+'px';
 		M.infoL.innerHTML='Spells cast : '+Beautify(M.spellsCast)+' (total : '+Beautify(M.spellsCastTotal)+')';
 	}
-	M.init(l('rowSpecial'+M.parent.id));
+	M.init(l('rowSpecial'+M.parent.id)!);
 }
 /* CC3: explicit module marker — at runtime these files are always ESM modules
  * (Vite bundles them as such), and this keeps their top-level var/function

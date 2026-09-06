@@ -559,7 +559,12 @@ export interface Game {
 
 	/* --- shimmers / wrinklers --- */
 	shimmer: new (type: string, obj?: unknown, noCount?: number) => Shimmer;
-	SpawnWrinkler(me: Wrinkler): void;
+	/** Spawn a wrinkler (picks a free slot when none given). Returns the
+	    spawned wrinkler, or `false` when no slot is free. */
+	SpawnWrinkler(me?: Wrinkler): Wrinkler | false;
+	/** Pop one random visible, alive wrinkler. Returns it, or `false` when
+	    none is on screen. */
+	PopRandomWrinkler(): Wrinkler | false;
 	/** Pop all on-screen wrinklers at once (e.g. when the Elder Pact resolves). */
 	CollectWrinklers(): void;
 
