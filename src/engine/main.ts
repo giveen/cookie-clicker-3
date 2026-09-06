@@ -47,7 +47,7 @@ import { DrawBackground } from "./ui/drawBackground";/* CC3: the original relied
 import { declareVanillaMilks } from "./content/milks";
 import { computeHeavenlyLayout, applyHeavenlyPreset, syncHeavenlyLayoutIfStale, HEAVENLY_PRESETS } from "./systems/heavenlyLayout";
 import { debugStr, Debug } from "./utils/debug";
-import type { HeavenlyUpgradeRef, LanguageString, LanguageHeader } from "./types";
+import type { HeavenlyUpgradeRef, LanguageString, LanguageHeader, EconomyAnalysisOptions, EconomyStrategyOptions } from "./types";
 var Audio: new (src?: string) => HTMLAudioElement;
 var localStorageGet: (key: string) => string | null | 0;
 var localStorageSet: (key: string, str: string) => void;
@@ -2517,12 +2517,12 @@ window.loadMinigameModule!(me.minigameUrl).then(function(){
 			}
 		);*/
 		
-		Game.RequiresConfirmation=function(upgrade: any,prompt: any)
+		Game.RequiresConfirmation=function(upgrade: Upgrade,prompt: string)
 		{
 			upgrade.clickFunction=function(){Game.Prompt('<id RequiresConfirmation>'+prompt,[[loc("Yes"),'Game.UpgradesById['+upgrade.id+'].buy(1);Game.ClosePrompt();'],loc("No")]);return false;};
 		}
 		
-		Game.Unlock=function(what: any)
+		Game.Unlock=function(what: string | Record<string, string>)
 		{
 			if (typeof what==='string')
 			{
@@ -2539,7 +2539,7 @@ window.loadMinigameModule!(me.minigameUrl).then(function(){
 			}
 			else {for (var i in what) {Game.Unlock(what[i]);}}
 		}
-		Game.Lock=function(what: any)
+		Game.Lock=function(what: string | Record<string, string>)
 		{
 			if (typeof what==='string')
 			{
@@ -2555,13 +2555,13 @@ window.loadMinigameModule!(me.minigameUrl).then(function(){
 			else {for (var i in what) {Game.Lock(what[i]);}}
 		}
 		
-		Game.Has=function(what: any)
+		Game.Has=function(what: string)
 		{
 			var it=Game.Upgrades[what];
 			if (it && Game.ascensionMode==1 && (it.pool=='prestige' || it.tier=='fortune')) return 0;
 			return (it?it.bought:0);
 		}
-		Game.HasUnlocked=function(what: any)
+		Game.HasUnlocked=function(what: string)
 		{
 			return (Game.Upgrades[what]?Game.Upgrades[what].unlocked:0);
 		}
@@ -2580,7 +2580,7 @@ window.loadMinigameModule!(me.minigameUrl).then(function(){
 				}
 				else if (me.displayFuncWhenOwned && me.bought) list.push(me);
 			}
-			var sortMap=function(a: any,b: any)
+			var sortMap=function(a: Upgrade,b: Upgrade)
 			{
 				var ap=a.pool=='toggle'?a.order:a.getPrice();
 				var bp=b.pool=='toggle'?b.order:b.getPrice();
@@ -2649,13 +2649,13 @@ window.loadMinigameModule!(me.minigameUrl).then(function(){
 		// once-created literal; the .upgrades append below mutates it as before.
 		Game.Tiers=TIERS;
 		for (var iKey in Game.Tiers){Game.Tiers[iKey].upgrades=[];}
-		Game.GetIcon=function(type: any,tier: any)
+		Game.GetIcon=function(type: string,tier: number)
 		{
 			var col=0;
 			if (type=='Kitten') col=18; else col=Game.Objects[type].iconColumn;
 			return [col,Game.Tiers[tier].iconRow];
 		}
-		Game.SetTier=function(building: any,tier: any)
+		Game.SetTier=function(building: string,tier: number)
 		{
 			if (!Game.Objects[building]) console.log('Warning: No building named',building);
 			Game.last.tier=tier;
@@ -2663,7 +2663,7 @@ window.loadMinigameModule!(me.minigameUrl).then(function(){
 			if (Game.last.type=='achievement') Game.Objects[building].tieredAchievs[tier]=Game.last;
 			else Game.Objects[building].tieredUpgrades[tier]=Game.last;
 		}
-		Game.MakeTiered=function(upgrade: any,tier: any,col: any)
+		Game.MakeTiered=function(upgrade: Upgrade,tier: number,col?: number)
 		{
 			upgrade.tier=tier;
 			if (typeof col!=='undefined') upgrade.icon=[col,Game.Tiers[tier].iconRow];
@@ -2671,11 +2671,11 @@ window.loadMinigameModule!(me.minigameUrl).then(function(){
 		Game.TieredUpgrade=TieredUpgrade;//CC3 rewrite (phase 3, slice 3): the non-capturing factory moved to core/upgrade.ts; the engine keeps the same Game.TieredUpgrade slot.
 		Game.SynergyUpgrade=SynergyUpgrade;//CC3 rewrite (phase 3, slice 3): the non-capturing factory moved to core/upgrade.ts; the engine keeps the same Game.SynergyUpgrade slot.
 		Game.GetTieredCpsMult=GetTieredCpsMult;//CC3 rewrite (phase 4, slice 1): moved verbatim to systems/economy.ts; same Game slot, same Init position.
-		Game.UnlockTiered=function(me: any)
+		Game.UnlockTiered=function(me: Building)
 		{
-			for (var i in me.tieredUpgrades) {if (Game.Tiers[me.tieredUpgrades[i].tier].unlock!=-1 && me.amount>=Game.Tiers[me.tieredUpgrades[i].tier].unlock) Game.Unlock(me.tieredUpgrades[i].name);}
-			for (var i in me.tieredAchievs) {if (me.amount>=Game.Tiers[me.tieredAchievs[i].tier].achievUnlock) Game.Win(me.tieredAchievs[i].name);}
-			for (var i in me.synergies) {var syn=me.synergies[i];if (Game.Has(Game.Tiers[syn.tier].req) && syn.buildingTie1.amount>=Game.Tiers[syn.tier].unlock && syn.buildingTie2.amount>=Game.Tiers[syn.tier].unlock) Game.Unlock(syn.name);}
+			for (var i in me.tieredUpgrades) {if (Game.Tiers[me.tieredUpgrades[i].tier!].unlock!=-1 && me.amount>=Game.Tiers[me.tieredUpgrades[i].tier!].unlock) Game.Unlock(me.tieredUpgrades[i].name);}
+			for (var i in me.tieredAchievs) {if (me.amount>=Game.Tiers[me.tieredAchievs[i].tier!].achievUnlock) Game.Win(me.tieredAchievs[i].name);}
+			for (var i in me.synergies) {var syn=me.synergies[i];if (Game.Has(Game.Tiers[syn.tier!].req) && syn.buildingTie1!.amount>=Game.Tiers[syn.tier!].unlock && syn.buildingTie2!.amount>=Game.Tiers[syn.tier!].unlock) Game.Unlock(syn.name);}
 		}
 		
 		
@@ -2704,7 +2704,7 @@ window.loadMinigameModule!(me.minigameUrl).then(function(){
 		for (var mi=0;mi<music.names.length;mi++) Game.jukebox.tracks.push(music.names[mi]);
 		//CC3 soundtracks: the Settings picker calls these; persistence lives in
 		//localStorage (systems/music.ts) — not the prefs bitfield (save-compat).
-		Game.SetMusicSoundtrack=function(id: any)
+		Game.SetMusicSoundtrack=function(id: string)
 		{
 			music.setSoundtrack(id);
 			Game.jukebox.tracks.length=0;
@@ -2715,7 +2715,7 @@ window.loadMinigameModule!(me.minigameUrl).then(function(){
 			if (Game.prefs.bgMusic) music.playTrack(music.getStartName());
 			Game.UpdateMenu();
 		};
-		Game.SetMusicTrack=function(name: any)
+		Game.SetMusicTrack=function(name: string)
 		{
 			music.playTrack(name);//persist + start it (if bgMusic is on)
 			Game.UpdateMenu();
@@ -2744,10 +2744,10 @@ window.loadMinigameModule!(me.minigameUrl).then(function(){
 		Game.ValidateContent=function(){return ValidateContent(Game as any);};
 		Game.GetEconomyReport=function(){return GetEconomyReport(Game as any);};
 		Game.SimulateEconomy=function(scenarios: Record<string, number>[]){return SimulateEconomy(Game as any,scenarios);};
-		Game.AnalyzeEconomy=function(options: any){return AnalyzeEconomy(Game as any,options);};
-		Game.SimulateStrategy=function(options: any){return SimulateStrategy(Game as any,options);};
+		Game.AnalyzeEconomy=function(options: EconomyAnalysisOptions){return AnalyzeEconomy(Game as any,options);};
+		Game.SimulateStrategy=function(options: EconomyStrategyOptions){return SimulateStrategy(Game as any,options);};
 		Game.baseResearchTime=Game.fps*60*30;
-		Game.SetResearch=function(what: any,_time: any)
+		Game.SetResearch=function(what: string,_time: number)
 		{
 			if (Game.Upgrades[what] && !Game.Has(what))
 			{
@@ -2763,12 +2763,12 @@ window.loadMinigameModule!(me.minigameUrl).then(function(){
 		Game.GetHowManyHeartDrops=GetHowManyHeartDrops;//CC3 rewrite (phase 6, slice 3): moved verbatim to systems/seasons.ts; same Game slot, same Init position.
 		Game.GetHowManyEggs=GetHowManyEggs;//CC3 rewrite (phase 6, slice 3): moved verbatim to systems/seasons.ts; same Game slot, same Init position.
 		Game.DropEgg=DropEgg;//CC3 rewrite (phase 6, slice 3): moved verbatim to systems/seasons.ts; same Game slot, same Init position.
-		Game.PermanentSlotIcon=function(slot: any)
+		Game.PermanentSlotIcon=function(slot: number)
 		{
 			if (Game.permanentUpgrades[slot]==-1) return [slot,10];
 			return Game.UpgradesById[Game.permanentUpgrades[slot]].icon;
 		}
-		Game.AssignPermanentSlot=function(slot: any)
+		Game.AssignPermanentSlot=function(slot: number)
 		{
 			PlaySound('snd/tick.mp3');
 			Game.tooltip.hide();
@@ -2784,7 +2784,7 @@ window.loadMinigameModule!(me.minigameUrl).then(function(){
 				}
 			}
 			
-			var sortMap=function(a: any,b: any)
+			var sortMap=function(a: Upgrade,b: Upgrade)
 			{
 				if (a.order>b.order) return 1;
 				else if (a.order<b.order) return -1;
@@ -2808,7 +2808,7 @@ window.loadMinigameModule!(me.minigameUrl).then(function(){
 						,[[loc("Confirm"),'Game.permanentUpgrades['+slot+']=Game.SelectingPermanentUpgrade;Game.BuildAscendTree();Game.ClosePrompt();'],loc("Cancel")],0,'widePrompt');
 		}
 		Game.SelectingPermanentUpgrade=-1;
-		Game.PutUpgradeInPermanentSlot=function(upgrade: any,_slot: any)
+		Game.PutUpgradeInPermanentSlot=function(upgrade: number,_slot: number)
 		{
 			Game.SelectingPermanentUpgrade=upgrade;
 			l('upgradeToSlotWrap').innerHTML='';
@@ -2823,7 +2823,7 @@ window.loadMinigameModule!(me.minigameUrl).then(function(){
 			else if (Game.chimeType==3) PlaySound('snd/cymbalRev.mp3');
 			else if (Game.chimeType==4) {Game.wrinklerSquishSound++;if (Game.wrinklerSquishSound>4) {Game.wrinklerSquishSound-=4;}PlaySound('snd/squeak'+(Game.wrinklerSquishSound)+'.mp3');}
 		}
-		Game.loseShimmeringVeil=function(context: any)
+		Game.loseShimmeringVeil=function(context: string)
 		{
 			if (!Game.Has('Shimmering veil')) return false;
 			if (!Game.Has('Shimmering veil [off]') && Game.Has('Shimmering veil [on]')) return false;
@@ -2868,7 +2868,7 @@ window.loadMinigameModule!(me.minigameUrl).then(function(){
 			if (Game.Has('Glittering edge')) n+=0.05;
 			return n;
 		}
-		Game.listTinyOwnedUpgrades=function(arr: any)
+		Game.listTinyOwnedUpgrades=function(arr: string[])
 		{
 			var str='';
 			for (var i=0;i<arr.length;i++)
