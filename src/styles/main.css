@@ -847,18 +847,6 @@ a.orangeLink:hover,#topBar a.orangeLink:hover
 	background:var(--ink-10);
 	box-shadow:0px 0px 0px 1px var(--ink-50) inset;
 }
-.mouseOver{cursor:pointer;}
-.mouseOver:hover
-{
-	filter:brightness(125%);
-	background:rgba(255,255,255,0.07);
-	text-shadow:0px -1px 6px var(--ink);
-}
-.mouseOver:active
-{
-	filter:brightness(75%);
-	background:rgba(0,0,0,0.07);
-}
 
 /* this is a mess */
 .framed,a.option,.sliderBox,.smallFramed

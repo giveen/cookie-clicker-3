@@ -95,15 +95,6 @@ Audio=function(this: any,src?: string){
 	else return new realAudio(src);
 } as unknown as typeof Audio;
 
-if(!Array.prototype.indexOf) {
-    Array.prototype.indexOf = function(needle: unknown) {
-        for(var i = 0; i < this.length; i++) {
-            if(this[i] === needle) {return i;}
-        }
-        return -1;
-    };
-}
-
 Element.prototype.getBounds=function(){
 	// CC3: getBoundingClientRect() returns an immutable DOMRect in
 	// modern browsers; compute scaled values in a fresh plain object.
