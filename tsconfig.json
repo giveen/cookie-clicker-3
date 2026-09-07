@@ -5,11 +5,16 @@
 	 * modules (content/, core/, systems/, ui/, utils/), the minigames, the
 	 * localization, and the glue (src/main.ts, config, base64, extras) — is
 	 * checked under full strict; there is no `@ts-nocheck` anywhere. Vite
-	 * (esbuild) strips types at build time, so `tsc --noEmit` is the type gate
-	 * and never emits.
+	 * (Rolldown/OXC) strips types at build time, so `tsc --noEmit` is the
+	 * type gate and never emits.
+	 *
+	 * incremental: TS 7 caches parse/check results in .tsbuildinfo so
+	 * repeat `tsc --noEmit` runs only re-check changed files and their
+	 * dependents (typically <200 ms vs ~500 ms cold). The cache file is
+	 * ephemeral (gitignored) and not emitted to dist/.
 	 */
 	"compilerOptions": {
-		/* The build target stays es2020 (Vite); this only feeds type-checking libs. */
+		/* The build target is esnext (Vite); this only feeds type-checking libs. */
 		"target": "ES2022",
 		"lib": ["ES2022", "DOM", "DOM.Iterable"],
 		"module": "ESNext",
@@ -26,7 +31,9 @@
 		"verbatimModuleSyntax": true,
 		"erasableSyntaxOnly": true,
 		"skipLibCheck": true,
-		"noEmit": true
+		"noEmit": true,
+		"incremental": true,
+		"tsBuildInfoFile": ".tsbuildinfo"
 	},
 	"include": ["src", "vite.config.ts"]
 }

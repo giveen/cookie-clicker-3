@@ -98,11 +98,39 @@ export default defineConfig({
 		port: 4173,
 	},
 	build: {
-		// The ported engine is old-style but perfectly valid ES; keep the
-		// output readable and modern without downleveling anything.
-		target: 'es2020',
+		// Evergreen-browsers only: modulePreload polyfill is off and the source
+		// is modern ES — use esnext so Rolldown emits native syntax (class
+		// fields, private methods, top-level await, …) with zero transform
+		// overhead.  Falls back to the Vite 8 default ('baseline-widely-
+		// available') if a plugin or env constraint needs a hard ceiling.
+		target: 'esnext',
 		// The engine is a single large chunk by nature; silence the warning.
 		chunkSizeWarningLimit: 4096,
 		modulePreload: { polyfill: false }, // evergreen browsers only
+		// Skip gzip-compressed-size measurement — saves ~100 ms per build
+		// with no impact on the output; the bundle-size gate only compares
+		// raw byte counts.
+		reportCompressedSize: false,
+		// Use import maps for chunk URLs so the browser can resolve cached
+		// chunks without a network round-trip on repeat visits.  Experimental
+		// in Vite 8 but stable for evergreen targets that support
+		// import.meta.resolve (the same bar our modulePreload:false already
+		// assumes).
+		chunkImportMap: true,
+
+		// Rolldown-level tunings (via Vite 8's build.rolldownOptions passthrough):
+		rolldownOptions: {
+			// Inline all imported constants at usage sites (default is
+			// "smart" — only conditionals).  This lets the OXC minifier
+			// collapse the inlined values further.
+			optimization: {
+				inlineConst: { mode: 'all', pass: 1 },
+			},
+			output: {
+				// Minify cross-chunk exports (e.g. __vite__cjsImport) for
+				// slightly smaller chunks.
+				minifyInternalExports: true,
+			},
+		},
 	},
 });

@@ -109,10 +109,14 @@ import type { Game as EngineGame } from '../engine/types';
 		/* Cooldown until this ms epoch (0 = no cooldown). The bonus cannot
 		 * be collected while now < cooldownUntil. */
 		cooldownUntil: number;
+		/* True after the payoff notification has been shown this prestige.
+		 * Reset on ascension so the "Cracked!" banner only fires once per
+		 * prestige, not on every crack cycle. */
+		prestigeNotified: boolean;
 	}
 	const state: CrumbleState = {
 		progress: 0, totalTriggers: 0, lastTickMs: Date.now(),
-		notified: false, cooldownUntil: 0,
+		notified: false, cooldownUntil: 0, prestigeNotified: false,
 	};
 
 	/* ------------------------------------------------------------------ */
@@ -317,7 +321,10 @@ import type { Game as EngineGame } from '../engine/types';
 		if (typeof G.SparkleAt === 'function') G.SparkleAt(G.cookieOriginX, G.cookieOriginY);
 		PlaySound('snd/cookieBreak.mp3', 0.8);
 		PlaySound('snd/cashIn.mp3', 0.6);
-		G.Notify(loc('Cracked!'), loc('+%1 cookies and a Click frenzy!', [Beautify(Math.round(burst)), '×777']), ACH_ICON, 1, 1);
+		if (!state.prestigeNotified) {
+			state.prestigeNotified = true;
+			G.Notify(loc('Cracked!'), loc('+%1 cookies and a Click frenzy!', [Beautify(Math.round(burst)), '×777']), ACH_ICON, 1, 1);
+		}
 		G.toSave = true;
 	}
 
@@ -372,6 +379,7 @@ import type { Game as EngineGame } from '../engine/types';
 			lastTickMs: state.lastTickMs,
 			notified: state.notified ? 1 : 0,
 			cooldownUntil: state.cooldownUntil,
+			prestigeNotified: state.prestigeNotified ? 1 : 0,
 		});
 	}
 
@@ -385,6 +393,7 @@ import type { Game as EngineGame } from '../engine/types';
 			state.lastTickMs = typeof d.lastTickMs === 'number' ? d.lastTickMs : Date.now();
 			state.notified = d.notified ? true : false;
 			state.cooldownUntil = typeof d.cooldownUntil === 'number' ? Math.max(0, d.cooldownUntil) : 0;
+			state.prestigeNotified = d.prestigeNotified ? true : false;
 		} catch (e) {
 			/* corrupt entry: keep defaults */
 		}
@@ -393,6 +402,7 @@ import type { Game as EngineGame } from '../engine/types';
 	function resetCrack(): void {
 		state.progress = 0;
 		state.notified = false;
+		state.prestigeNotified = false;
 		state.lastTickMs = Date.now();
 		state.cooldownUntil = 0;
 	}
