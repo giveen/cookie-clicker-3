@@ -8,16 +8,22 @@
  * shim publishes the same object, so the runtime surface is unchanged
  * (same identity, same assignment sequence, same window.Game).
  *
- * The class is an index-signature shell for now on purpose: the named
- * surface of the `Game` object (lifecycle, economy, save/load, shimmers, …)
- * is the Phase 4 systems work. Those will land here as real methods/fields
- * and types.ts can then alias the class the same way Phase 3 does for
- * Building/Upgrade/Achievement. Until then the `Game` interface in
- * types.ts remains the description and `GameCore` the implementation.
+ * `GameCore` stays an index-signature shell: the named surface of `Game`
+ * (lifecycle, economy, save/load, shimmers, …) is described by the `Game`
+ * interface in types.ts, and the singleton below is cast to it once so
+ * every `Game.X` in the engine and in the extracted modules checks
+ * against those named members (the interface's own index signature still
+ * covers the legacy dynamic surface).
  */
+import type { Game as GameSurface } from '../types';
+
 export class GameCore {
 	[key: string]: any;
 }
 
-/** The engine's `Game` singleton (was `var Game={}` in engine/main.ts). */
-export const Game = new GameCore();
+/** The engine's `Game` singleton (was `var Game={}` in engine/main.ts).
+ * The index-signature shell is cast to the canonical `Game` surface once,
+ * here: from this point every `Game.X` in the engine and every extracted
+ * module checks against the named members of types.ts (the interface's own
+ * index signature still covers the legacy dynamic surface). */
+export const Game = new GameCore() as GameSurface;

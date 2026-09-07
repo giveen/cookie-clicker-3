@@ -85,7 +85,7 @@ export function FileSave()
 			if (App) return false;
 			Game.prefs.showBackupWarning=0;
 			var filename=Game.bakeryName.replace(/[^a-zA-Z0-9]+/g,'')+'Bakery';
-			var text=Game.WriteSave(1);
+			var text=Game.WriteSave(1)!;//type 1 always returns the string form
 			var blob=new Blob([text],{type:'text/plain;charset=utf-8'});
 			saveAs(blob,filename+'.txt');
 			return;

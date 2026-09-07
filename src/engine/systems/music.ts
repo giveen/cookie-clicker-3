@@ -36,6 +36,7 @@
  * one-time pointerdown/keydown listener (Game.prefs.bgMusic is the on/off
  * switch, save-backed in the existing prefs bitfield).
  */
+import type { Game } from '../types';
 
 
 /** Displayed track author line (required by the music license). */
@@ -128,7 +129,7 @@ export interface MusicSystem {
 	cue(cue?: string, arg?: string | number): void;
 	next(): void;
 	getStartName(): string;
-	init(game: { volumeMusic?: number; jukebox?: { trackAuto?: number } }): void;
+	init(game: Game): void;
 }
 export function CreateMusic(): MusicSystem {
 	const tracks: Record<string, MusicTrack> = {};//every registered track, across all soundtracks
@@ -249,7 +250,7 @@ export function CreateMusic(): MusicSystem {
 			const saved = GetMusicTrackPref();
 			return (saved && names.indexOf(saved) !== -1) ? saved : (names[0] || '');
 		},
-		init(game: { volumeMusic?: number; jukebox?: { trackAuto?: number } }) {
+		init(game: Game) {
 			const entry = MUSIC_SOUNDTRACKS.find((s) => s[0] === GetMusicSoundtrackPref());
 			setPool(entry ? entry[2] : MUSIC_TRACKS);
 			for (const name in tracks) {

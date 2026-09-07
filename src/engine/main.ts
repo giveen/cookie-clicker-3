@@ -47,7 +47,7 @@ import { DrawBackground } from "./ui/drawBackground";/* CC3: the original relied
 import { declareVanillaMilks } from "./content/milks";
 import { computeHeavenlyLayout, applyHeavenlyPreset, syncHeavenlyLayoutIfStale, HEAVENLY_PRESETS } from "./systems/heavenlyLayout";
 import { debugStr, Debug } from "./utils/debug";
-import type { HeavenlyUpgradeRef, LanguageString, LanguageHeader, EconomyAnalysisOptions, EconomyStrategyOptions } from "./types";
+import type { HeavenlyUpgradeRef, LanguageString, LanguageHeader, EconomyAnalysisOptions, EconomyStrategyOptions, Prefs } from "./types";
 var Audio: new (src?: string) => HTMLAudioElement;
 var localStorageGet: (key: string) => string | null | 0;
 var localStorageSet: (key: string, str: string) => void;
@@ -885,7 +885,7 @@ Game.Launch=function()
 		if (day>=easterDay-7 && day<=easterDay) Game.baseSeason='easter';
 	}
 		//CC3 rewrite (phase 6, slice 5): the info/about + version-history HTML moved verbatim to content/changelog.ts; same Launch position. The module is the DEFERRED changelog chunk (src/main.ts starts its fetch at parse time and the launch gate above awaits it) — by the time Launch runs the module is loaded, so this resolves on the next microtask and Game.updateLog is built before any menu can open.
-		void import("./content/changelog").then(m=>{m.declareVanillaChangelog(Game as any);});
+		void import("./content/changelog").then(m=>{m.declareVanillaChangelog(Game);});
 	
 	Game.ready=0;
 	
@@ -950,12 +950,12 @@ Game.Launch=function()
 		Game.bounds=0;//rectangle defining screen limits (right,left,bottom,top) updated every logic frame
 		
 		TopBarOffset=32;
-		if (!App) Game.wrapper.classList.add('onWeb');
-		else {Game.wrapper.classList.add('offWeb');TopBarOffset=0;}
+ 		if (!App) Game.wrapper!.classList.add('onWeb');
+ 		else {Game.wrapper!.classList.add('offWeb');TopBarOffset=0;}
 		
 		if (Game.mobile==1)
 		{
-			Game.wrapper.className='mobile';
+ 			Game.wrapper!.className='mobile';
 		}
 		Game.clickStr=Game.touchEvents?'ontouchend':'onclick';
 		
@@ -1082,15 +1082,15 @@ Game.Launch=function()
 			Game.windowH=Math.floor(h/scale);
 			if (scale!=1)
 			{
-				Game.wrapper.style.transform='scale('+(scale)+')';
-				Game.wrapper.style.width=Game.windowW+'px';
-				Game.wrapper.style.height=Game.windowH+'px';
+ 				Game.wrapper!.style.transform='scale('+(scale)+')';
+ 				Game.wrapper!.style.width=Game.windowW+'px';
+ 				Game.wrapper!.style.height=Game.windowH+'px';
 			}
 			else
 			{
-				Game.wrapper.style.removeProperty('transform');
-				Game.wrapper.style.width='100%';
-				Game.wrapper.style.height='100%';
+ 				Game.wrapper!.style.removeProperty('transform');
+ 				Game.wrapper!.style.width='100%';
+ 				Game.wrapper!.style.height='100%';
 			}
 			Game.scale=scale;
 			
@@ -1113,7 +1113,7 @@ Game.Launch=function()
 		Game.fullDate=parseInt(Date.now());//when we started playing (carries over with resets)
 		Game.lastDate=parseInt(Date.now());//when we last saved the game (used to compute "cookies made since we closed the game" etc)
 		
-		Game.prefs=[];
+ 		Game.prefs={} as Prefs;//2.048 used []; DefaultPrefs() (next line) fills every slot
 		Game.DefaultPrefs=function()
 		{
 			Game.prefs.particles=1;//particle effects : falling cookies etc
@@ -1162,19 +1162,19 @@ Game.Launch=function()
 		{
 			if (!Game.mobile)
 			{
-				Game.wrapper.className='mobile';
+ 				Game.wrapper!.className='mobile';
 				Game.mobile=1;
 			}
 			else
 			{
-				Game.wrapper.className='';
+ 				Game.wrapper!.className='';
 				Game.mobile=0;
 			}
 		}
 		
 		Game.showBackupWarning=function()
 		{
-			Game.Notify(loc("Back up your save!"),loc("Hello again! Just a reminder that you may want to back up your Cookie Clicker save every once in a while, just in case.<br>To do so, go to Options and hit \"Export save\" or \"Save to file\"!")+'<div class="line"></div><a style="float:right;" onclick="Game.prefs.showBackupWarning=0;==CLOSETHIS()==">'+loc("Don't show this again")+'</a>',[25,7]);
+ 			Game.Notify(loc("Back up your save!") as string,loc("Hello again! Just a reminder that you may want to back up your Cookie Clicker save every once in a while, just in case.<br>To do so, go to Options and hit \"Export save\" or \"Save to file\"!")+'<div class="line"></div><a style="float:right;" onclick="Game.prefs.showBackupWarning=0;==CLOSETHIS()==">'+loc("Don't show this again")+'</a>',[25,7]);
 		}
 		Game.RandomBakeryName=RandomBakeryName;//CC3 rewrite (phase 6, slice 3): moved verbatim to systems/bakeryName.ts; same Game slot, same Init position.
 		Game.GetBakeryName=GetBakeryName;//CC3 rewrite (phase 6, slice 3): moved verbatim to systems/bakeryName.ts; same Game slot, same Init position.
@@ -1356,11 +1356,11 @@ Game.Launch=function()
 		
 		// CC3: rolling save backups (systems/backup.ts). CaptureSave is also
 		// called from WriteSave itself; the Game slots expose the menu + QA.
-		Game.CaptureSave=function(saveData: string){return CaptureSave(Game as any,saveData);};
-		Game.ListBackups=function(){return ListBackups(Game as any);};
-		Game.RestoreBackup=function(timestamp: number){return RestoreBackup(Game as any,timestamp);};
-		Game.DownloadBackup=function(timestamp: number){return DownloadBackup(Game as any,timestamp);};
-		Game.RefreshBackupList=function(){return RefreshBackupList(Game as any);};
+		Game.CaptureSave=function(saveData: string){return CaptureSave(Game,saveData);};
+		Game.ListBackups=function(){return ListBackups(Game);};
+		Game.RestoreBackup=function(timestamp: number){return RestoreBackup(Game,timestamp);};
+		Game.DownloadBackup=function(timestamp: number){return DownloadBackup(Game,timestamp);};
+		Game.RefreshBackupList=function(){return RefreshBackupList(Game);};
 		
 		Game.toReload=false;
 		Game.toSave=false;
@@ -1649,7 +1649,7 @@ Game.Launch=function()
 			Game.cookieClickSound+=Math.floor(Math.random()*4)+1;
 			if (Game.cookieClickSound>7) Game.cookieClickSound-=7;
 		}
-		Game.ClickCookie=function(e: Event | null | undefined,amount: number)
+		Game.ClickCookie=function(e?: Event | null,amount?: number)
 		{
 			var now=Date.now();
 			if (e) e.preventDefault();
@@ -1662,15 +1662,15 @@ Game.Launch=function()
 					if (Game.autoclickerDetected>=Game.fps*5) Game.Win('Uncanny clicker');
 				}
 				Game.loseShimmeringVeil('click');
-				var amount:number=amount?amount:Game.computedMouseCps;
-				Game.Earn(amount);
-				Game.handmadeCookies+=amount;
+				var amt:number=amount?amount:Game.computedMouseCps;
+				Game.Earn(amt);
+				Game.handmadeCookies+=amt;
 				if (Game.prefs.particles)
 				{
 					Game.particleAdd();
 					Game.particleAdd(Game.mouseX,Game.mouseY,Math.random()*4-2,Math.random()*-2-2,Math.random()*0.5+0.75,1,2);
 				}
-				if (Game.prefs.numbers) Game.particleAdd(Game.mouseX+Math.random()*8-4,Game.mouseY-8+Math.random()*8-4,0,-2,1,4,2,'','+'+Beautify(amount,1));
+				if (Game.prefs.numbers) Game.particleAdd(Game.mouseX+Math.random()*8-4,Game.mouseY-8-4,0,-2,1,4,2,'','+'+Beautify(amt,1));
 				
 				Game.runModHook('click');
 				
@@ -1850,7 +1850,7 @@ Game.Launch=function()
 			
 			for (var iKey in Game.cookieUpgrades)
 			{
-				var me=Game.cookieUpgrades[iKey];
+ 				var me:any=Game.cookieUpgrades[iKey];//CC3: same-scope var me reused with different container types (save.ts pattern)
 				if (Game.Has(me.name))
 				{
 					mult*=(1+(typeof(me.power)==='function'?me.power(me):me.power)*0.01);
@@ -1943,7 +1943,7 @@ Game.Launch=function()
 			
 			for (var iKey in Game.Objects)
 			{
-				var me=Game.Objects[iKey];
+ 				var me:any=Game.Objects[iKey];
 				me.storedCps=me.cps(me);
 				if (Game.ascensionMode!=1) me.storedCps*=(1+me.level*0.01)*buildMult;
 				if (me.id==1 && Game.Has('Milkhelp&reg; lactose intolerance relief tablets')) me.storedCps*=1+0.05*Game.milkProgress*milkMult;//this used to be "me.storedCps*=1+0.1*Math.pow(catMult-1,0.5)" which was. hmm
@@ -2191,7 +2191,7 @@ Game.Launch=function()
 		Game.cssClasses=[];
 		Game.addClass=function(what: string) {if (Game.cssClasses.indexOf(what)==-1) Game.cssClasses.push(what);Game.updateClasses();}
 		Game.removeClass=function(what: string) {var i=Game.cssClasses.indexOf(what);if(i!=-1) {Game.cssClasses.splice(i,1);}Game.updateClasses();}
-		Game.updateClasses=function() {Game.l.className=Game.cssClasses.join(' ');}
+ 		Game.updateClasses=function() {Game.l!.className=Game.cssClasses.join(' ');}
 		
 		Game.WritePrefButton=function(prefName: string,button: string,on: string,off: string,callback?: string,invert?: number)
 		{
@@ -2308,20 +2308,20 @@ Game.Launch=function()
 				var effect=Game.TickerEffect.sub;
 				if (effect=='fortuneGC')
 				{
-					Game.Notify(loc("Fortune!"),loc("A golden cookie has appeared."),[10,32]);
+ 					Game.Notify(loc("Fortune!") as string,loc("A golden cookie has appeared.") as string,[10,32]);
 					Game.fortuneGC=1;
 					var newShimmer=new Game.shimmer('golden',{noWrath:true});
 					void newShimmer;//CC3: verbatim 2.048 unused local; void keeps noUnusedLocals quiet with zero runtime effect.
 				}
 				else if (effect=='fortuneCPS')
 				{
-					Game.Notify(loc("Fortune!"),loc("You gain <b>one hour</b> of your CpS (capped at double your bank)."),[10,32]);
+ 					Game.Notify(loc("Fortune!") as string,loc("You gain <b>one hour</b> of your CpS (capped at double your bank).") as string,[10,32]);
 					Game.fortuneCPS=1;
 					Game.Earn(Math.min(Game.cookiesPs*60*60,Game.cookies));
 				}
 				else
 				{
-					Game.Notify(effect.dname,loc("You've unlocked a new upgrade."),effect.icon);
+ 					Game.Notify(effect.dname,loc("You've unlocked a new upgrade.") as string,effect.icon);
 					effect.unlock();
 				}
 			}
@@ -2392,7 +2392,7 @@ Game.Launch=function()
 		Game.ComputeCps=ComputeCps;//CC3 rewrite (phase 4, slice 1): moved verbatim to systems/economy.ts; same Game slot, same Init position.
 		
 		Game.isMinigameReady=function(me: Building)
-		{return (me.minigameUrl && me.minigameLoaded && me.level>0);}
+ 		{return !!(me.minigameUrl && me.minigameLoaded && me.level>0);}
 		Game.scriptBindings=[];
 		Game.showedScriptLoadError=false;
 		Game.LoadMinigames=function()//load scripts for each minigame
@@ -2414,13 +2414,13 @@ window.loadMinigameModule!(me.minigameUrl).then(function(){
 						if (!me.minigameLoaded && !Game.showedScriptLoadError)
 						{
 							Game.showedScriptLoadError=true;
-							Game.Notify(loc("Error!"),'Couldn\'t load minigames. Try reloading.');
+ 							Game.Notify(loc("Error!") as string,'Couldn\'t load minigames. Try reloading.');
 						}
 					});
 				}
 			}
 		}
-		Game.scriptLoaded=function(who: Building,_script: unknown)
+ 		Game.scriptLoaded=function(who: Building,_script?: unknown)
 		{
 			who.minigameLoading=false;
 			who.minigameLoaded=true;
@@ -2447,12 +2447,12 @@ window.loadMinigameModule!(me.minigameUrl).then(function(){
 		// CC3 rewrite: the 19 vanilla building declarations now live in the
 		// typed content layer (content/buildings.ts) — same new Game.Object
 		// calls, same order, same closures; only the file moved.
-		declareVanillaBuildings(Game as any);
+		declareVanillaBuildings(Game);
 		
 		// CC3 rewrite: the foolObjects joke-business map + its localization
 		// loop now live in the typed content layer (content/foolObjects.ts)
 		// same data, same loop, same position after the building block.
-		declareVanillaFoolObjects(Game as any);
+		declareVanillaFoolObjects(Game);
 		
 		//build store
 		Game.BuildStore();
@@ -2467,7 +2467,7 @@ window.loadMinigameModule!(me.minigameUrl).then(function(){
 		var muteStr='<div style="position:absolute;left:8px;bottom:12px;opacity:0.5;">'+loc("Muted:")+'</div>';
 		for (var iKey in Game.Objects)
 		{
-			var me=Game.Objects[iKey];
+ 			var me:any=Game.Objects[iKey];//CC3: first same-scope me in Init — later loops reuse the var with other container types
 			
 			if (locStrings[me.name+' (short)']) me.displayName=loc(me.name+' (short)');
 			
@@ -2541,7 +2541,7 @@ window.loadMinigameModule!(me.minigameUrl).then(function(){
 			upgrade.clickFunction=function(){Game.Prompt('<id RequiresConfirmation>'+prompt,[[loc("Yes"),'Game.UpgradesById['+upgrade.id+'].buy(1);Game.ClosePrompt();'],loc("No")]);return false;};
 		}
 		
-		Game.Unlock=function(what: string | Record<string, string>)
+ 		Game.Unlock=function(what: string | string[] | Record<string, string>)
 		{
 			if (typeof what==='string')
 			{
@@ -2556,9 +2556,9 @@ window.loadMinigameModule!(me.minigameUrl).then(function(){
 					}
 				}
 			}
-			else {for (var i in what) {Game.Unlock(what[i]);}}
+			else {for (var i in what) {Game.Unlock((what as Record<string, string>)[i]);}}
 		}
-		Game.Lock=function(what: string | Record<string, string>)
+ 		Game.Lock=function(what: string | string[] | Record<string, string>)
 		{
 			if (typeof what==='string')
 			{
@@ -2571,7 +2571,7 @@ window.loadMinigameModule!(me.minigameUrl).then(function(){
 					Game.recalculateGains=1;
 				}
 			}
-			else {for (var i in what) {Game.Lock(what[i]);}}
+			else {for (var i in what) {Game.Lock((what as Record<string, string>)[i]);}}
 		}
 		
 		Game.Has=function(what: string)
@@ -2592,7 +2592,7 @@ window.loadMinigameModule!(me.minigameUrl).then(function(){
 			var list=[];
 			for (var i in Game.Upgrades)
 			{
-				var me=Game.Upgrades[i];
+ 				var me:any=Game.Upgrades[i];//CC3: same-scope var me reused with different container types (save.ts pattern)
 				if (!me.bought && me.pool!='debug' && me.pool!='prestige' && me.pool!='prestigeDecor' && (Game.ascensionMode!=1 || (!me.lasting && me.tier!='fortune')))
 				{
 					if (me.unlocked) list.push(me);
@@ -2634,7 +2634,7 @@ window.loadMinigameModule!(me.minigameUrl).then(function(){
 			for (var i in Game.UpgradesInStore)
 			{
 				//if (!Game.UpgradesInStore[i]) break;
-				var me=Game.UpgradesInStore[i];
+ 				var me:any=Game.UpgradesInStore[i];
 				var str=Game.crate(me,'store','Game.UpgradesById['+me.id+'].click(event);','upgrade'+i);
 				
 				/*var str='<div class="crate upgrade" '+Game.getTooltip(
@@ -2693,8 +2693,8 @@ window.loadMinigameModule!(me.minigameUrl).then(function(){
 		Game.UnlockTiered=function(me: Building)
 		{
 			for (var i in me.tieredUpgrades) {if (Game.Tiers[me.tieredUpgrades[i].tier!].unlock!=-1 && me.amount>=Game.Tiers[me.tieredUpgrades[i].tier!].unlock) Game.Unlock(me.tieredUpgrades[i].name);}
-			for (var i in me.tieredAchievs) {if (me.amount>=Game.Tiers[me.tieredAchievs[i].tier!].achievUnlock) Game.Win(me.tieredAchievs[i].name);}
-			for (var i in me.synergies) {var syn=me.synergies[i];if (Game.Has(Game.Tiers[syn.tier!].req) && syn.buildingTie1!.amount>=Game.Tiers[syn.tier!].unlock && syn.buildingTie2!.amount>=Game.Tiers[syn.tier!].unlock) Game.Unlock(syn.name);}
+ 			for (var i in me.tieredAchievs) {if (me.amount>=Game.Tiers[me.tieredAchievs[i].tier!].achievUnlock!) Game.Win(me.tieredAchievs[i].name);}
+ 			for (var i in me.synergies) {var syn=me.synergies[i];if (Game.Has(Game.Tiers[syn.tier!].req!) && syn.buildingTie1!.amount>=Game.Tiers[syn.tier!].unlock && syn.buildingTie2!.amount>=Game.Tiers[syn.tier!].unlock) Game.Unlock(syn.name);}
 		}
 		
 		
@@ -2706,7 +2706,7 @@ window.loadMinigameModule!(me.minigameUrl).then(function(){
 		// in the typed content layer (content/upgrades.ts). They run at this
 		// exact point in Init, so declaration order (and every id, save slot
 		// and Game.last hand-off) is unchanged.
-		declareVanillaUpgrades(Game as any);
+		declareVanillaUpgrades(Game);
 		//CC3: web background music (systems/music.ts) — 2.048's browser build had
 		//no music engine (Steam-only). Must run after declareVanillaUpgrades,
 		//which creates Game.jukebox (the Sound test upgrade). Publish the Music
@@ -2760,11 +2760,11 @@ window.loadMinigameModule!(me.minigameUrl).then(function(){
 		};
 		document.addEventListener('pointerdown',startMusicOnce);
 		document.addEventListener('keydown',startMusicOnce);
-		Game.ValidateContent=function(){return ValidateContent(Game as any);};
-		Game.GetEconomyReport=function(){return GetEconomyReport(Game as any);};
-		Game.SimulateEconomy=function(scenarios: Record<string, number>[]){return SimulateEconomy(Game as any,scenarios);};
-		Game.AnalyzeEconomy=function(options: EconomyAnalysisOptions){return AnalyzeEconomy(Game as any,options);};
-		Game.SimulateStrategy=function(options: EconomyStrategyOptions){return SimulateStrategy(Game as any,options);};
+		Game.ValidateContent=function(){return ValidateContent(Game);};
+		Game.GetEconomyReport=function(){return GetEconomyReport(Game);};
+		Game.SimulateEconomy=function(scenarios: Record<string, number>[]){return SimulateEconomy(Game,scenarios);};
+		Game.AnalyzeEconomy=function(options: EconomyAnalysisOptions){return AnalyzeEconomy(Game,options);};
+		Game.SimulateStrategy=function(options: EconomyStrategyOptions){return SimulateStrategy(Game,options);};
 		Game.baseResearchTime=Game.fps*60*30;
 		Game.SetResearch=function(what: string,_time: number)
 		{
@@ -2774,7 +2774,7 @@ window.loadMinigameModule!(me.minigameUrl).then(function(){
 				if (Game.Has('Persistent memory')) Game.researchT=Math.ceil(Game.baseResearchTime/10);
 				if (Game.Has('Ultrascience')) Game.researchT=Game.fps*5;
 				Game.nextResearch=Game.Upgrades[what].id;
-				Game.Notify(loc("Research has begun"),loc("Your bingo center/research facility is conducting experiments."),[9,0]);
+ 				Game.Notify(loc("Research has begun") as string,loc("Your bingo center/research facility is conducting experiments.") as string,[9,0]);
 			}
 		}
 		Game.getPledgeDuration=function(){return Game.fps*60*(Game.Has('Sacrificial rolling pins')?60:30);}
@@ -2852,7 +2852,7 @@ window.loadMinigameModule!(me.minigameUrl).then(function(){
 				else if (context=='click') Math.seedrandom(Game.seed+'/'+Game.cookieClicks);
 				if (Math.random()<Game.getVeilDefense())
 				{
-					Game.Notify(loc("The reinforced membrane protects the shimmering veil."),'',[7,10]);
+ 					Game.Notify(loc("The reinforced membrane protects the shimmering veil.") as string,'',[7,10]);
 					Game.Win('Thick-skinned');
 					return false;
 				}
@@ -2863,7 +2863,7 @@ window.loadMinigameModule!(me.minigameUrl).then(function(){
 			//Game.Upgrades[me.toggleInto].bought=false;
 			Game.Lock(me.toggleInto);
 			Game.Unlock(me.toggleInto);
-			Game.Notify(loc("The shimmering veil disappears..."),'',[9,10]);
+ 			Game.Notify(loc("The shimmering veil disappears...") as string,'',[9,10]);
 			Game.upgradesToRebuild=1;
 			Game.recalculateGains=1;
 			PlaySound('snd/spellFail.mp3',0.75);
@@ -2911,7 +2911,7 @@ window.loadMinigameModule!(me.minigameUrl).then(function(){
 		//alert untiered building upgrades
 		for (var iKey in Game.Upgrades)
 		{
-			var me=Game.Upgrades[iKey];
+ 			var me:any=Game.Upgrades[iKey];
 			if (me.order>=200 && me.order<2000 && !me.tier && me.name.indexOf('grandma')==-1 && me.pool!='prestige') console.log(me.name+' has no tier.');
 		}
 		
@@ -2932,7 +2932,7 @@ window.loadMinigameModule!(me.minigameUrl).then(function(){
 				if (Game.Upgrades[iKey].posX || Game.Upgrades[iKey].posY) Game.Upgrades[iKey].placedByCode=true;
 				else {Game.Upgrades[iKey].posX=0;Game.Upgrades[iKey].posY=0;}
 				if (Game.Upgrades[iKey].parents.length==0 && Game.Upgrades[iKey].name!='Legacy') Game.Upgrades[iKey].parents=['Legacy'];
-				for (var ii in Game.Upgrades[iKey].parents) {Game.Upgrades[iKey].parents[ii]=Game.Upgrades[Game.Upgrades[iKey].parents[ii]];}
+ 				for (var ii in Game.Upgrades[iKey].parents) {Game.Upgrades[iKey].parents[ii]=Game.Upgrades[Game.Upgrades[iKey].parents[ii] as string];}
 			}
 		}
 		
@@ -2941,9 +2941,9 @@ window.loadMinigameModule!(me.minigameUrl).then(function(){
 		Game.cookieUpgrades=[];
 		for (var iKey in Game.Upgrades)
 		{
-			var me=Game.Upgrades[iKey];
+ 			var me:any=Game.Upgrades[iKey];
 			if ((me.pool=='cookie' || me.pseudoCookie)) Game.cookieUpgrades.push(me);
-			if (me.tier) Game.Tiers[me.tier].upgrades.push(me);
+ 			if (me.tier) Game.Tiers[me.tier].upgrades!.push(me);
 		}
 		for (var iKey in Game.UnlockAt){Game.Upgrades[Game.UnlockAt[iKey].name].unlockAt=Game.UnlockAt[iKey];}
 		for (var iKey in Game.Upgrades){if (Game.Upgrades[iKey].pool=='prestige') Game.Upgrades[iKey].order=Game.Upgrades[iKey].id;}
@@ -2953,7 +2953,7 @@ window.loadMinigameModule!(me.minigameUrl).then(function(){
 		
 		//CC3: heavenly-upgrade positions are now derived deterministically from
 		//the prestige DAG (parents[]), not a hand-authored coordinate table.
-		computeHeavenlyLayout(Game as any);
+		computeHeavenlyLayout(Game);
 		
 		//CC3: player-arranged heavenly layout — snapshot the canonical positions
 		//(vanilla table + declared CC3 spots), then apply any saved overrides so
@@ -2981,14 +2981,14 @@ window.loadMinigameModule!(me.minigameUrl).then(function(){
 		// declaration order (and every id, save slot and Game.last hand-off)
 		// is unchanged; the order bookkeeping inherits the slice-3
 		// order/pool/power bridge.
-		declareVanillaAchievements(Game as any);
+		declareVanillaAchievements(Game);
 		
 		
 		
 		
 		for (var iKey in Game.Objects)
 		{
-			if (Game.Objects[iKey].levelAchiev10) {Game.Objects[iKey].levelAchiev10.baseDesc=loc("Reach level <b>%1</b> %2.",[10,Game.Objects[iKey].plural]);Game.Objects[iKey].levelAchiev10.desc=Game.Objects[iKey].levelAchiev10.baseDesc;}
+ 			if (Game.Objects[iKey].levelAchiev10) {Game.Objects[iKey].levelAchiev10!.baseDesc=loc("Reach level <b>%1</b> %2.",[10,Game.Objects[iKey].plural]) as string;Game.Objects[iKey].levelAchiev10!.desc=Game.Objects[iKey].levelAchiev10!.baseDesc;}
 		}
 		
 		
@@ -3313,7 +3313,7 @@ window.loadMinigameModule!(me.minigameUrl).then(function(){
 		VISUAL EFFECTS
 		=======================================================================================*/
 		
-		declareVanillaMilks(Game as any);//CC3 rewrite (phase 6, slice 5): the AllMilks data + localization loop moved verbatim to content/milks.ts; same Init position.
+		declareVanillaMilks(Game);//CC3 rewrite (phase 6, slice 5): the AllMilks data + localization loop moved verbatim to content/milks.ts; same Init position.
 		
 		Game.mousePointer=0;//when 1, draw the mouse as a pointer on the left screen
 		
@@ -3598,13 +3598,13 @@ window.loadMinigameModule!(me.minigameUrl).then(function(){
 	=======================================================================================*/
 	Game.Logic=function()
 	{
-		Game.bounds=Game.l.getBounds();
+ 		Game.bounds=Game.l!.getBounds();
 		
 		if (!Game.OnAscend && Game.AscendTimer==0)
 		{
 			for (var iKey in Game.Objects)
 			{
-				if (Game.Objects[iKey].eachFrame) Game.Objects[iKey].eachFrame();
+ 				var eachFrame=Game.Objects[iKey].eachFrame; if (eachFrame) eachFrame();
 			}
 			Game.UpdateSpecial();
 			Game.UpdateGrandmapocalypse();
@@ -3673,7 +3673,7 @@ window.loadMinigameModule!(me.minigameUrl).then(function(){
 				if (!Game.Has(Game.UpgradesById[Game.nextResearch].name))
 				{
 					Game.Unlock(Game.UpgradesById[Game.nextResearch].name);
-					Game.Notify(loc("Research complete"),loc("You have discovered: <b>%1</b>.",Game.UpgradesById[Game.nextResearch].dname),Game.UpgradesById[Game.nextResearch].icon);
+ 					Game.Notify(loc("Research complete") as string,loc("You have discovered: <b>%1</b>.",Game.UpgradesById[Game.nextResearch].dname) as string,Game.UpgradesById[Game.nextResearch].icon);
 				}
 				Game.nextResearch=0;
 				Game.researchT=-1;
@@ -3817,11 +3817,11 @@ window.loadMinigameModule!(me.minigameUrl).then(function(){
 				
 				if (Game.Has('Fortune cookies'))
 				{
-					var list=Game.Tiers['fortune'].upgrades;
+ 					var list=Game.Tiers['fortune'].upgrades!;
 					var fortunes=0;
 					for (var iKey in list)
 					{
-						if (Game.Has(list[iKey].name)) fortunes++;
+ 						if (Game.Has(list[+iKey].name)) fortunes++;
 					}
 					if (fortunes>=list.length) Game.Win('O Fortuna');
 				}
@@ -4192,7 +4192,7 @@ window.loadMinigameModule!(me.minigameUrl).then(function(){
 			
 			for (var i in Game.Objects)
 			{
-				var me=Game.Objects[i];
+ 				var me:any=Game.Objects[i];
 				if (me.onMinigame && me.minigame.draw && !me.muted && !Game.onMenu) me.minigame.draw();
 			}
 			Timer.track('draw minigames');
@@ -4211,7 +4211,7 @@ window.loadMinigameModule!(me.minigameUrl).then(function(){
 				});
 				for (var si=0;si<sortedObjects.length;si++)
 				{
-					var me=sortedObjects[si];
+ 					var me:any=sortedObjects[si];
 					
 					//make products full-opacity if we can buy them
 					var classes='product';
@@ -4229,7 +4229,7 @@ window.loadMinigameModule!(me.minigameUrl).then(function(){
 				var lastPrice=0;
 				for (var i in Game.UpgradesInStore)
 				{
-					var me=Game.UpgradesInStore[i];
+ 					var me:any=Game.UpgradesInStore[i];
 					if (!me.bought)
 					{
 						var price=me.getPrice();
@@ -4258,11 +4258,11 @@ window.loadMinigameModule!(me.minigameUrl).then(function(){
 			if (Game.PARTY)//i was bored and felt like messing with CSS
 			{
 				var pulse=Math.pow((Game.T%10)/10,0.5);
-				Game.l.style.filter='hue-rotate('+((Game.T*5)%360)+'deg) brightness('+(150-50*pulse)+'%)';
-				Game.l.style.webkitFilter='hue-rotate('+((Game.T*5)%360)+'deg) brightness('+(150-50*pulse)+'%)';
-				Game.l.style.transform='scale('+(1.02-0.02*pulse)+','+(1.02-0.02*pulse)+') rotate('+(Math.sin(Game.T*0.5)*0.5)+'deg)';
-				Game.wrapper.style.overflowX='hidden';
-				Game.wrapper.style.overflowY='hidden';
+ 				Game.l!.style.filter='hue-rotate('+((Game.T*5)%360)+'deg) brightness('+(150-50*pulse)+'%)';
+ 				Game.l!.style.webkitFilter='hue-rotate('+((Game.T*5)%360)+'deg) brightness('+(150-50*pulse)+'%)';
+ 				Game.l!.style.transform='scale('+(1.02-0.02*pulse)+','+(1.02-0.02*pulse)+') rotate('+(Math.sin(Game.T*0.5)*0.5)+'deg)';
+ 				Game.wrapper!.style.overflowX='hidden';
+ 				Game.wrapper!.style.overflowY='hidden';
 			}
 			
 			Timer.clean();

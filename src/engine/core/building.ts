@@ -97,7 +97,7 @@ export class Building {
 	/* The loaded minigame instance (an object owned by the minigame module,
 	 * with its own full surface: computeStepT, computeMapBounds, …). */
 	declare minigame?: any;
-	declare eachFrame: number;
+	declare eachFrame: 0 | (() => void);
 
 	/* --- method surface (per-instance closures assigned in the ctor;
 	 * `declare` on a method element is rejected by tsgo (TS1031), so the

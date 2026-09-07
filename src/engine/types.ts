@@ -395,8 +395,8 @@ export interface Game {
 	version: number;
 	beta: number;
 	mobile: number;
-	touchEvents: boolean;
-	https: number;
+	touchEvents: number | boolean;
+	https: number | boolean;
 	season: string;
 	baseSeason: string;
 	clickStr: string;
@@ -530,7 +530,7 @@ export interface Game {
 	Load(): void;
 	LoadSave(data?: any, ignoreVersionIssues?: any): any;
 	Resume(): void;
-	WriteSave(type?: number): string;
+	WriteSave(type?: number): string | undefined;
 	ImportSaveCode(save: string): boolean;
 	ExportSaveCode(): string;
 	/* CC3: one-click copy of the export-save code (roadmap: cloud-save
@@ -551,7 +551,7 @@ export interface Game {
 	SimulateEconomy(scenarios: Record<string, number>[]): EconomySimulationPoint[];
 	AnalyzeEconomy(options?: EconomyAnalysisOptions): FullEconomyReport;
 	SimulateStrategy(options?: EconomyStrategyOptions): EconomyStrategyReport;
-	ClickCookie(e: MouseEvent | null, amount?: number): void;
+	ClickCookie(e?: Event | null, amount?: number): void;
 	/* pic accepts an [iconColumn, iconRow] pair, a bare icon column/row, or a
 	 * sound name — the engine handles all of these at runtime. */
 	Notify(title: string, desc: string, pic?: number | (string | number)[] | string, quick?: number, noLog?: number | boolean): void;
@@ -585,8 +585,8 @@ export interface Game {
 	UpgradeDragon(): void;
 
 	/* --- content / unlock API --- */
-	Unlock(name: string | string[]): void;
-	Lock(name: string): void;
+	Unlock(name: string | string[] | Record<string, string>): void;
+	Lock(name: string | string[] | Record<string, string>): void;
 	UnlockTiered(me: Building): void;
 	/* A name, or a record of names (the legacy else-branch iterates it). */
 	Win(name: string | Record<string, string>): void;

@@ -382,7 +382,7 @@ if (debugSurface && params.get('qa') === 'save') {
 			G.recalculateGains = 1; G.CalculateGains();
 			const cpsA = G.cookiesPs;
 			// 2. export the save string
-			const saveStr = G.WriteSave(1);
+			const saveStr = G.WriteSave(1)!;
 			// 3. corrupt the live state (so the import must do real work)
 			G.cookies = 7;
 			G.Objects['Cursor'].amount = 0;
@@ -465,18 +465,18 @@ if (debugSurface && params.get('qa') === 'backup') {
 			for (const cookies of [100, 200, 300]) {
 				G.cookies = cookies;
 				G.recalculateGains = 1; G.CalculateGains();
-				G.CaptureSave(G.WriteSave(1));
+				G.CaptureSave(G.WriteSave(1)!);
 				captures.push(cookies);
 			}
 			const list1 = G.ListBackups(); // newest first
 			const countOk = list1.length === 3;
 			const orderOk = list1[0].timestamp > list1[1].timestamp && list1[1].timestamp > list1[2].timestamp;
 			// 2. dedupe: capturing the same save again adds nothing
-			G.CaptureSave(G.WriteSave(1));
+			G.CaptureSave(G.WriteSave(1)!);
 			const dedupeOk = G.ListBackups().length === 3;
 			// 3. prune: 12 captures keep only the newest 10
 			G.cookies = 400;
-			for (let i = 0; i < 9; i++) { G.CaptureSave(G.WriteSave(1) + '_' + i); }
+			for (let i = 0; i < 9; i++) { G.CaptureSave(G.WriteSave(1)! + '_' + i); }
 			const pruneOk = G.ListBackups().length === 10;
 			// 4. download the selected backup as a .txt save file (before restoring —
 			// the restore re-captures and would prune the oldest entry away)
@@ -645,7 +645,7 @@ if (debugSurface && params.get('qa') === 'binverter') {
 			const modObj = G.mods && G.mods['Black Hole Inverter'];
 			const directSave = (modObj && typeof modObj.save === 'function') ? modObj.save() : '(no mod.save)';
 			chk('mod.save() captures "Blacker holes"', directSave.indexOf('Blacker holes') !== -1);
-			const saveStr = G.WriteSave(1);
+			const saveStr = G.WriteSave(1)!;
 			me.amount = 0; me.highest = 0; me.level = 0;
 			if (up) { up.bought = 0; up.unlocked = 0; }
 			G.recalculateGains = 1; G.CalculateGains();
@@ -724,7 +724,7 @@ if (debugSurface && params.get('qa') === 'destiny') {
 			// 4. save round-trip through the engine save format
 			decider.choicesPick(2); // AllDestinies[2] = Lucky
 			chk('second decision: Lucky, 2 times (price 4)', modSave() === '1.3;Lucky,2' && decider.priceLumps === 4);
-			const saveStr = G.WriteSave(1);
+			const saveStr = G.WriteSave(1)!;
 			//WriteSave(1) returns a base64 string, so assert on the mod data
 			//registry that saveModData() populated while building it
 			chk('WriteSave invoked the mod save (registry "' + (G.modSaveData[NAME] || '(missing)') + '")', G.modSaveData[NAME] === '1.3;Lucky,2');
@@ -843,7 +843,7 @@ if (debugSurface && params.get('qa') === 'amseason') {
 
 			// 8. save round-trip through the engine save format
 			AS.config.STAR_COUNT = 42;
-			const saveStr = G.WriteSave(1);
+			const saveStr = G.WriteSave(1)!;
 			//WriteSave(1) returns a base64 string, so assert on the mod data
 			//registry that saveModData() populated while building it
 			const reg = G.modSaveData[NAME] as string;
@@ -1092,7 +1092,7 @@ chk('formatPercentage floors to 1 decimal', CM.formatPercentage(0.1234) === '12.
 			chk('load restores stats/bet config/deck (winsT ' + bj.winsT + ', betMode ' + CM.betMode + ')', bj.winsT === 21 && bj.wins === 7 && Math.abs(bj.netTotal - 12345.6) < 1e-9 && CM.betMode === 3 && CM.betChoice === 5 && !CM.bankPercentage && CM.Deck.length === savedDeckLen && bj.phase === bj.phases.inactive);
 
 			// 13. full engine save -> import round-trip (the real persistence path)
-			const saveCode = G.WriteSave(1);
+			const saveCode = G.WriteSave(1)!;
 			bj.winsT = 0;
 			chk('state corrupted before import', bj.winsT === 0);
 			G.ImportSaveCode(saveCode);
@@ -1180,7 +1180,7 @@ if (debugSurface && params.get('qa') === 'dailycrumb') {
 			// so the raw mod key would not be visible in it)
 			const rawSave = G.WriteSave(2);
 			chk('save carries the CC3DailyCrumb mod entry', typeof rawSave === 'string' && rawSave.indexOf('CC3DailyCrumb') !== -1);
-			const saveCode = G.WriteSave(1);
+			const saveCode = G.WriteSave(1)!;
 			st.lastClaim = null;
 			st.streak = 0;
 			st.totalClaims = 0;
@@ -1298,7 +1298,7 @@ if (debugSurface && params.get('qa') === 'cracking') {
 			const cdBefore = st.cooldownUntil;
 			const rawSave = G.WriteSave(2);
 			chk('save carries the CC3CrackingCookie mod entry', typeof rawSave === 'string' && rawSave.indexOf('CC3CrackingCookie') !== -1);
-			const saveCode = G.WriteSave(1);
+			const saveCode = G.WriteSave(1)!;
 			st.progress = 0;
 			st.totalTriggers = 0;
 			st.lastTickMs = 0;
@@ -1467,7 +1467,7 @@ if (debugSurface && params.get('qa') === 'saveimport') {
 			const dd: any = mods['Decide Your Destiny'];
 			if (dd && dd.load) dd.load('1;Lucky,4');
 			// 2. round-trip: export the full save, import it back into THIS session
-			const saveCode = G.WriteSave(1);
+			const saveCode = G.WriteSave(1)!;
 			const ok = G.ImportSaveCode(saveCode);
 			chk('ImportSaveCode accepts its own fresh export (ok=' + ok + ')', !!ok);
 			const st = CC3.state;
