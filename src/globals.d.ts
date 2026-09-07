@@ -231,6 +231,12 @@ declare global {
 		/* The deferred content chunk (extras + changelog) set by src/main.ts;
 		 * the engine's launch bootstrap awaits it before Game.Launch. */
 		cc3ContentReady?: Promise<unknown>;
+		/* The REQUIRED vanilla-content chunk (tiers/buildings/upgrades/
+		 * achievements/foolObjects/milks), fetched by engine/main.ts at module
+		 * eval; the launch gate awaits it before Game.Launch because Init
+		 * declares the content. Unlike cc3ContentReady, its failure aborts
+		 * launch with an error surface. */
+		cc3VanillaContentReady?: Promise<unknown>;
 
 		/* --- CC3 flags --- */
 		/* The polish stats object published by src/main.ts's animation pass

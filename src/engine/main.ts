@@ -1,10 +1,10 @@
 /* CC3 rewrite (phase 6): engine typed. */
 /* CC3 rewrite: typed content layer, extracted from this file incrementally. */
-import { TIERS } from './content/tiers';
-import { declareVanillaBuildings } from './content/buildings';
-import { declareVanillaUpgrades } from './content/upgrades';
-import { declareVanillaAchievements } from './content/achievements';
-import { declareVanillaFoolObjects } from "./content/foolObjects";
+import type { TIERS } from './content/tiers';
+import type { declareVanillaBuildings } from './content/buildings';
+import type { declareVanillaUpgrades } from './content/upgrades';
+import type { declareVanillaAchievements } from './content/achievements';
+import type { declareVanillaFoolObjects } from "./content/foolObjects";
 /* CC3 rewrite (phase 3): the Game singleton is now a real class instance from the typed core layer. */
 import { Game } from "./core/game";
 import { Building } from "./core/building";
@@ -44,10 +44,48 @@ import { modifyBuildingPrice, storeBulkButton, BuildStore, ClickProduct, Refresh
 import { ShowMenu, tinyCookie, ClickTinyCookie, setVolume, setVolumeMusic, setWubMusic, showLangSelection, UpdateMenu } from "./ui/menu";
 import { DrawBackground } from "./ui/drawBackground";/* CC3: the original relied on implicit globals; declare them for module strict mode. */
 
-import { declareVanillaMilks } from "./content/milks";
+import type { declareVanillaMilks } from "./content/milks";
 import { computeHeavenlyLayout, applyHeavenlyPreset, syncHeavenlyLayoutIfStale, HEAVENLY_PRESETS } from "./systems/heavenlyLayout";
 import { debugStr, Debug } from "./utils/debug";
 import type { HeavenlyUpgradeRef, LanguageString, LanguageHeader, EconomyAnalysisOptions, EconomyStrategyOptions, Prefs } from "./types";
+/* CC3: the vanilla content (tiers/buildings/upgrades/achievements/fool
+ * objects/milks — ~300 KB of the old critical chunk) ships as a DEFERRED
+ * chunk: the fetch starts here at module eval, in parallel with the extras
+ * + changelog wave (src/main.ts) and the language modules, and the launch
+ * gate at the boot tail awaits vanillaContentReady before Game.Launch,
+ * because Game.Init declares the content at fixed Init positions. Unlike
+ * the extras wave (the game runs without it), this chunk is REQUIRED — a
+ * failure aborts launch with an error surface. The `import type` lines
+ * above are erased at runtime: they type the members below without pulling
+ * the chunk back into the critical path. */
+interface VanillaContent {
+	TIERS: typeof TIERS;
+	declareVanillaBuildings: typeof declareVanillaBuildings;
+	declareVanillaUpgrades: typeof declareVanillaUpgrades;
+	declareVanillaAchievements: typeof declareVanillaAchievements;
+	declareVanillaFoolObjects: typeof declareVanillaFoolObjects;
+	declareVanillaMilks: typeof declareVanillaMilks;
+}
+var vanillaContent: VanillaContent | null = null;
+var vanillaContentReady: Promise<VanillaContent>=Promise.all([
+	import('./content/tiers'),
+	import('./content/buildings'),
+	import('./content/upgrades'),
+	import('./content/achievements'),
+	import('./content/foolObjects'),
+	import('./content/milks'),
+]).then(function(m){
+	vanillaContent={
+		TIERS:m[0].TIERS,
+		declareVanillaBuildings:m[1].declareVanillaBuildings,
+		declareVanillaUpgrades:m[2].declareVanillaUpgrades,
+		declareVanillaAchievements:m[3].declareVanillaAchievements,
+		declareVanillaFoolObjects:m[4].declareVanillaFoolObjects,
+		declareVanillaMilks:m[5].declareVanillaMilks,
+	};
+	return vanillaContent;
+});
+window.cc3VanillaContentReady=vanillaContentReady;
 var Audio: new (src?: string) => HTMLAudioElement;
 var localStorageGet: (key: string) => string | null | 0;
 var localStorageSet: (key: string, str: string) => void;
@@ -2438,12 +2476,12 @@ window.loadMinigameModule!(me.minigameUrl).then(function(){
 		// CC3 rewrite: the 19 vanilla building declarations now live in the
 		// typed content layer (content/buildings.ts) — same new Game.Object
 		// calls, same order, same closures; only the file moved.
-		declareVanillaBuildings(Game);
+		vanillaContent!.declareVanillaBuildings(Game);//CC3: deferred chunk — resolved by the vanillaContentReady gate before Init runs
 		
 		// CC3 rewrite: the foolObjects joke-business map + its localization
 		// loop now live in the typed content layer (content/foolObjects.ts)
 		// same data, same loop, same position after the building block.
-		declareVanillaFoolObjects(Game);
+		vanillaContent!.declareVanillaFoolObjects(Game);
 		
 		//build store
 		Game.BuildStore();
@@ -2657,7 +2695,7 @@ window.loadMinigameModule!(me.minigameUrl).then(function(){
 		// (content/tiers.ts). Game.Init runs exactly once (Loader.doneLoading
 		// guard), so the module singleton's lifetime matches the original
 		// once-created literal; the .upgrades append below mutates it as before.
-		Game.Tiers=TIERS;
+		Game.Tiers=vanillaContent!.TIERS;
 		for (var iKey in Game.Tiers){Game.Tiers[iKey].upgrades=[];}
 		Game.GetIcon=function(type: string,tier: number)
 		{
@@ -2697,7 +2735,7 @@ window.loadMinigameModule!(me.minigameUrl).then(function(){
 		// in the typed content layer (content/upgrades.ts). They run at this
 		// exact point in Init, so declaration order (and every id, save slot
 		// and Game.last hand-off) is unchanged.
-		declareVanillaUpgrades(Game);
+		vanillaContent!.declareVanillaUpgrades(Game);
 		//CC3: web background music (systems/music.ts) — 2.048's browser build had
 		//no music engine (Steam-only). Must run after declareVanillaUpgrades,
 		//which creates Game.jukebox (the Sound test upgrade). Publish the Music
@@ -2972,7 +3010,7 @@ window.loadMinigameModule!(me.minigameUrl).then(function(){
 		// declaration order (and every id, save slot and Game.last hand-off)
 		// is unchanged; the order bookkeeping inherits the slice-3
 		// order/pool/power bridge.
-		declareVanillaAchievements(Game);
+		vanillaContent!.declareVanillaAchievements(Game);
 		
 		
 		
@@ -3304,7 +3342,7 @@ window.loadMinigameModule!(me.minigameUrl).then(function(){
 		VISUAL EFFECTS
 		=======================================================================================*/
 		
-		declareVanillaMilks(Game);//CC3 rewrite (phase 6, slice 5): the AllMilks data + localization loop moved verbatim to content/milks.ts; same Init position.
+		vanillaContent!.declareVanillaMilks(Game);//CC3 rewrite (phase 6, slice 5): the AllMilks data + localization loop moved verbatim to content/milks.ts; same Init position.
 		
 		Game.mousePointer=0;//when 1, draw the mouse as a pointer on the left screen
 		
@@ -4412,18 +4450,40 @@ window.addEventListener('load',function()
 							//catch(err) {console.log('ERROR : '+err.message);}
 						}
 					}
-					//CC3: the bundled content mods (extras) + the changelog
-					//arrive as deferred chunks; src/main.ts publishes their
-					//combined load as window.cc3ContentReady. The mods must
-					//be registered before Launch — they declare buildings/
-					//upgrades/achievements at registration, so the first
-					//LoadSave must recognize saved custom content. On chunk
-					//failure we still launch: the game runs without the
-					//extras, and their save data stays intact in the save.
+					//CC3: launch gate — two deferred waves, one REQUIRED:
+					// - vanillaContentReady (this module, REQUIRED): the vanilla
+					//   content chunk (tiers/buildings/upgrades/achievements/
+					//   foolObjects/milks). Game.Init declares it, so Launch and
+					//   the first LoadSave must wait for it. On failure we abort
+					//   with an error surface: without the content the game has
+					//   no buildings (nothing was written, so saves are intact).
+					// - window.cc3ContentReady (src/main.ts, OPTIONAL): the extras
+					//   mods + changelog. The mods must be registered before the
+					//   first LoadSave (a saved casino Chancemaker would otherwise
+					//   not be recognized); on failure we still launch — the game
+					//   runs without the extras and their save data stays intact.
 					var doLaunch=function(){if (App && App.loadMods) App.loadMods(launch);else launch();};
-					if (window.cc3ContentReady) window.cc3ContentReady.then(doLaunch,doLaunch);
-					else doLaunch();
-				});
+					vanillaContentReady.then(function(){
+						if (window.cc3ContentReady) window.cc3ContentReady.then(doLaunch,doLaunch);
+						else doLaunch();
+					},function(err){
+						console.error('[cc3] vanilla content chunk failed to load',err);
+						var box=document.createElement('div');
+						box.style.cssText='position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.92);color:#fff;font:14px/150% sans-serif;text-align:center;padding:24px;';
+						var msg=document.createElement('div');
+						msg.style.cssText='font-size:18px;margin-bottom:8px;';
+						msg.textContent='Content failed to load.';
+						var sub=document.createElement('div');
+						sub.style.cssText='opacity:0.7;margin-bottom:16px;';
+						sub.textContent='Your save is untouched — reload to retry.';
+						var btn=document.createElement('button');
+						btn.style.cssText='padding:6px 18px;cursor:pointer;';
+						btn.textContent='Reload';
+						btn.onclick=function(){location.reload();};
+						box.appendChild(msg);box.appendChild(sub);box.appendChild(btn);
+						document.body.appendChild(box);
+					});
+					});
 			});
 		}
 		
