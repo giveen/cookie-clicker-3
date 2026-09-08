@@ -11,6 +11,14 @@ upstream Cookie Clicker 2.048 patch notes that the engine also displays
 (31/05/2022 back to 05/08/2013) are Orteil's, shown verbatim in the
 in-game log, and are not duplicated here.
 
+## 04/09/2026 - daily crumb payoff feedback
+
+- the Daily crumb's Collect button now makes the reward land: closing the
+  collect dialog floats the reward summary over the bakery with a sparkle
+  and a pop sound (the rewards were granted the moment the dialog appeared,
+  but nothing showed them — clicking Collect used to just close it); claims
+  that announce as a toast (another dialog open) float the same payoff too
+
 ## 04/09/2026 - soundtracks and a music picker
 
 - Settings now has a music section: pick between the original soundtrack and

@@ -133,13 +133,35 @@ import type { Game as EngineGame } from '../engine/types';
 		lines.push(loc('Weekly crumb: %1 golden cookies + %2 cookies', [String(WEEKLY_GOLDENS), Beautify(amt)]));
 	}
 
+	/* Payoff feedback: float the reward summary over the game (the same
+	 * text-particle Popup + SparkleAt + pop sound the sugar-lump harvest
+	 * uses), centered on the big cookie's column. Rewards are granted in
+	 * tryClaim before the announcement, so by the time the dialog closes
+	 * the bank already moved invisibly — this is what makes the collection
+	 * land. Runs after the prompt's ClosePrompt in the button's inline
+	 * handler (popupOn=true means the dialog is closing right now). */
+	let popupOn = false;
+	function payoffFeedback(Game: EngineGame, lines: string[]): void {
+		const text = lines.length > 0
+			? '<div style="font-size:110%;font-weight:bold;">' + loc("Daily crumb") + '</div><div class="line"></div>' + lines.slice(0, 3).join('<br>') + (lines.length > 3 ? '<br>' + loc("+%1 more", String(lines.length - 3)) : '')
+			: loc("Daily crumb");
+		const rect = Game.l && Game.l.getBounds ? Game.l.getBounds() : { left: 0, right: 0, top: 0, bottom: 0 };
+		const x = (rect.left + rect.right) / 2;
+		const y = (rect.top + rect.bottom) / 2 - 48;
+		Game.Popup(text, x, y);
+		Game.SparkleAt(x, y);
+		PlaySound('snd/pop' + Math.floor(Math.random() * 3 + 1) + '.mp3', 0.75);
+	}
+
 	/* Announce a collection like the engine's welcome prompt: a centered
 	 * Game.Prompt dialog (title, reward lines, streak, a Collect button).
 	 * Falls back to the old toast notification when a prompt dialog is
 	 * already open (never clobber another dialog, e.g. the tutorial's
 	 * welcome prompt) or while an ascend animation is running. Rewards are
 	 * granted in tryClaim before this runs — the dialog is the announcement,
-	 * so day bookkeeping never waits on the player clicking it.
+	 * so day bookkeeping never waits on the player clicking it. The
+	 * Collect button closes the dialog and then runs payoffFeedback, so the
+	 * grant becomes visible the moment the screen un-dims.
 	 * lastAnnouncement mirrors what was shown so the QA probe can assert the
 	 * rendered text. */
 	let lastAnnouncement = '';
@@ -152,13 +174,19 @@ import type { Game as EngineGame } from '../engine/types';
 		lastAnnouncement = title + ' ' + body;
 		const canPrompt = !Game.promptOn && !Game.OnAscend && Game.AscendTimer <= 0 && !Game.ReincarnateTimer;
 		if (canPrompt) {
+			popupOn = true;
+			const linesSnapshot = lines.slice();
 			Game.Prompt(
 				'<h3>' + title + '</h3>' + body,
-				[[loc('Collect'), 'Game.ClosePrompt();PlaySound(\'snd/tick.mp3\');']]
+				[[loc('Collect'), 'Game.ClosePrompt();window.__cc3DailyCrumb.collectFeedback();']]
 			);
+			/* Stash the reward lines for the Collect button's feedback (the
+			 * inline handler string cannot close over them). Cleared on use. */
+			lastLines = linesSnapshot;
 		} else {
 			const summary = lines.length > 3 ? lines[0] + '  ·  +' + (lines.length - 1) + loc(" more") : lines.join('  ·  ');
 			Game.Notify(title, loc("Collected %1 %2: %3", [String(days), days > 1 ? loc("days") : loc("day"), summary]), [22, 6]);
+			payoffFeedback(Game, lines);
 		}
 	}
 
@@ -343,8 +371,14 @@ import type { Game as EngineGame } from '../engine/types';
 		window.addEventListener('load', function () { window.clearInterval(t); }, { once: true });
 	}
 
+	/* Reward lines staged by announce() for the Collect button's floating
+	 * payoff text (the inline handler string cannot capture them). */
+	let lastLines: string[] = [];
+
 	/* Test/inspection surface (used by ?qa=dailycrumb): the live state, the
-	 * persistence round-trip, and a forced claim for the probe. */
+	 * persistence round-trip, a forced claim for the probe, and the Collect
+	 * button's payoff-feedback entry point (the prompt's inline handler
+	 * calls this through the window global). */
 	window.__cc3DailyCrumb = {
 		state,
 		save,
@@ -352,5 +386,11 @@ import type { Game as EngineGame } from '../engine/types';
 		startOfDay,
 		claim: function () { return tryClaim(window.Game); },
 		lastAnnouncement: function () { return lastAnnouncement; },
+		collectFeedback: function () {
+			if (!popupOn) return;
+			popupOn = false;
+			payoffFeedback(window.Game, lastLines);
+			lastLines = [];
+		},
 	};
 })();

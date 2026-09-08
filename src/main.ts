@@ -1206,7 +1206,19 @@ if (debugSurface && params.get('qa') === 'dailycrumb') {
 			const popupShown = G.promptOn && promptText.indexOf('Daily crumb') !== -1;
 			const toastShown = (G.Log || []).some((s: any) => String(s).indexOf('Daily crumb') !== -1);
 			chk('collect announcement shown (popup=' + popupShown + ', toast=' + toastShown + ')', popupShown || toastShown);
-			if (popupShown) chk('collect popup has a Collect button', !!document.getElementById('promptOption0'));
+			if (popupShown) {
+				chk('collect popup has a Collect button', !!document.getElementById('promptOption0'));
+				// payoff feedback: the rewards were granted before the dialog
+				// appeared, so the Collect click is the moment the player must
+				// SEE the grant — closing the dialog floats the reward summary
+				// over the bakery (text particle + sparkle + pop sound).
+				const liveBefore = new Set((G.textParticles || []).filter((p: any) => p.life >= 0));
+				(document.getElementById('promptOption0') as HTMLElement).click();
+				const fresh = (G.textParticles || []).filter((p: any) => p.life >= 0 && !liveBefore.has(p));
+				chk('Collect closes the dialog', !G.promptOn);
+				chk('Collect floats the reward text (fresh particles=' + fresh.length + ')', fresh.some((p: any) => String(p.text || '').indexOf('Daily crumb') !== -1));
+				chk('Collect sparkles (sparklesT=' + G.sparklesT + ', blend=' + G.blendModesOn + ')', !G.blendModesOn || G.sparklesT > 0);
+			}
 			// toast-fallback path: a claim while a dialog is already open must
 			// announce via a notification instead of clobbering the dialog
 			G.Prompt('<h3>' + loc('Placeholder dialog') + '</h3>', [[loc('OK'), 'Game.ClosePrompt();']]);
