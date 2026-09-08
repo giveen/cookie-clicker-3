@@ -1029,9 +1029,10 @@
 			appendCollapsibleOptionsMenu(NAME, getMenuString());
 		});
 
-		// Announce completion (as in the original)
-		if (Game2.prefs.popups) Game2.Popup(NAME + ' loaded!');
-		else Game2.Notify(NAME + ' loaded!', '', '', 1, 1);
+		/* The original announced the mod on load ("American Season loaded!")
+		 * but that toast fires on EVERY reload and reads like the season
+		 * activating — the real "Independence Day!" announcement below is the
+		 * only load-time season notice this extra needs. */
 
 		state.isLoaded = 1;
 

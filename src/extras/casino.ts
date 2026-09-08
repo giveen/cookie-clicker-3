@@ -910,8 +910,8 @@
 			M.buildTable();
 
 			M.loadedCount++;
-			if (G.prefs.popups) G.Popup(loc('Casino loaded!'));
-			else G.Notify(loc('Casino loaded!'), '', '', 1, 1);
+			/* No "Casino loaded!" toast: it fired on every reload — the
+			 * minigame panel button on the Chancemaker is discovery enough. */
 		};
 
 		//Called by the engine's save system (the string lands in the

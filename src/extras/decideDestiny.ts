@@ -307,8 +307,9 @@ import type { Game as EngineGame, Upgrade } from '../engine/types';
 		Game.registerHook('reset', function (hard: any) { onReset(window.Game as EngineGame, !!hard); });
 		Game.registerHook('check', function () { onCheck(window.Game as EngineGame); });
 
-		if (Game.prefs.popups) Game.Popup(NAME + ' loaded!');
-		else Game.Notify(NAME + ' loaded!', '', '', 1, 1);
+		/* No "loaded!" toast: it fired on every reload and players read it as
+		 * an event activating. The mod is visible in Options > Mods-style
+		 * menus (stats version line + options section) instead. */
 	}
 
 	/* ------------------------------------------------------------------ */
