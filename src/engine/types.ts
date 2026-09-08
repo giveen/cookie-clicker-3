@@ -329,7 +329,12 @@ export interface Tier {
 	upgrades?: Upgrade[];
 	/** Upgrade name that "unshackles" the tier (extra production), if any. */
 	unshackleUpgrade?: string;
-	[key: string]: any;
+	/**
+ * Additional tier-specific data. The legacy engine stored arbitrary
+ * properties on tier objects; this is preserved for compatibility.
+ * Typed code should only access known properties from the interface above.
+ */
+	[key: string]: unknown;
 }
 
 /**

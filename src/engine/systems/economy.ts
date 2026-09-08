@@ -108,3 +108,169 @@ export function GetTieredCpsMult(me: Building)
 			if (me.cat && Game.Has(me.cat.name) && Game.Has('Territorial pact')) mult*=(1+Game.Objects['Cats'].amount*0.01*(1/Math.max(1,me.id-1)));
 			return mult;
 		}
+
+/*=====================================================================================
+ECONOMY WRAPPERS (Phase 7, slice 2)
+=======================================================================================*/
+// The 2.048 engine defined these as function expressions inside `Game.Init`;
+// they are now typed exports and the engine keeps the same Game.X = X slots
+// at the exact original Init positions.
+
+export function Earn(howmuch: number)
+	{
+		Game.cookies+=howmuch;
+		Game.cookiesEarned+=howmuch;
+	}
+export function Spend(howmuch: number)
+	{
+		Game.cookies-=howmuch;
+	}
+export function Dissolve(howmuch: number)
+	{
+		Game.cookies-=howmuch;
+		Game.cookiesEarned-=howmuch;
+		Game.cookies=Math.max(0,Game.cookies);
+		Game.cookiesEarned=Math.max(0,Game.cookiesEarned);
+	}
+export function mouseCps()
+	{
+		var add=0;
+		if (Game.Has('Thousand fingers')) add+=		0.1;
+		if (Game.Has('Million fingers')) add*=		5;
+		if (Game.Has('Billion fingers')) add*=		10;
+		if (Game.Has('Trillion fingers')) add*=		20;
+		if (Game.Has('Quadrillion fingers')) add*=	20;
+		if (Game.Has('Quintillion fingers')) add*=	20;
+		if (Game.Has('Sextillion fingers')) add*=	20;
+		if (Game.Has('Septillion fingers')) add*=	20;
+		if (Game.Has('Octillion fingers')) add*=	20;
+		if (Game.Has('Nonillion fingers')) add*=	20;
+		if (Game.Has('Decillion fingers')) add*=	20;
+		if (Game.Has('Unshackled cursors')) add*=	25;
+		
+		var num=0;
+		for (var i in Game.Objects) {num+=Game.Objects[i].amount;}
+		num-=Game.Objects['Cursor'].amount;
+		add=add*num;
+		if (Game.Has('Plastic mouse')) add+=Game.cookiesPs*0.01;
+		if (Game.Has('Iron mouse')) add+=Game.cookiesPs*0.01;
+		if (Game.Has('Titanium mouse')) add+=Game.cookiesPs*0.01;
+		if (Game.Has('Adamantium mouse')) add+=Game.cookiesPs*0.01;
+		if (Game.Has('Unobtainium mouse')) add+=Game.cookiesPs*0.01;
+		if (Game.Has('Eludium mouse')) add+=Game.cookiesPs*0.01;
+		if (Game.Has('Wishalloy mouse')) add+=Game.cookiesPs*0.01;
+		if (Game.Has('Fantasteel mouse')) add+=Game.cookiesPs*0.01;
+		if (Game.Has('Nevercrack mouse')) add+=Game.cookiesPs*0.01;
+		if (Game.Has('Armythril mouse')) add+=Game.cookiesPs*0.01;
+		if (Game.Has('Technobsidian mouse')) add+=Game.cookiesPs*0.01;
+		if (Game.Has('Plasmarble mouse')) add+=Game.cookiesPs*0.01;
+		if (Game.Has('Miraculite mouse')) add+=Game.cookiesPs*0.01;
+		if (Game.Has('Aetherice mouse')) add+=Game.cookiesPs*0.01;
+		
+		if (Game.Has('Fortune #104')) add+=Game.cookiesPs*0.01;
+		if (Game.cookieUpgrades)
+		{
+			for (var iCookie in Game.cookieUpgrades)
+			{
+				var cookieUpgrade=Game.cookieUpgrades[iCookie];
+				if (cookieUpgrade.clickPower && Game.Has(cookieUpgrade.name)) add+=Game.cookiesPs*cookieUpgrade.clickPower*0.01;
+			}
+		}
+		if (Game.Has('Purrfect timing')) add+=Game.cookiesPs*0.01;
+		var mult=1;
+		
+		
+		if (Game.Has('Santa\'s helpers')) mult*=1.1;
+		if (Game.Has('Cookie egg')) mult*=1.1;
+		if (Game.Has('Halo gloves')) mult*=1.1;
+		if (Game.Has('Dragon claw')) mult*=1.03;
+		if (Game.Has('Firm handshake')) mult*=1.05;
+		if (Game.Has('Demonic hustle')) mult*=1.05;
+		
+		if (Game.Has('Aura gloves'))
+		{
+			mult*=1+0.05*Math.min(Game.Objects['Cursor'].level,Game.Has('Luminous gloves')?20:10);
+		}
+		
+		mult*=Game.eff('click');
+		//CC3: Trigger finger completion reward — +2% cookie click power
+		if (Game.Has('Scrolling adept')) mult*=1.02;
+		
+		if (Game.hasGod)
+		{
+			var godLvl=Game.hasGod('labor');
+			if (godLvl==1) mult*=1.15;
+			else if (godLvl==2) mult*=1.1;
+			else if (godLvl==3) mult*=1.05;
+		}
+		
+		for (var i in Game.buffs)
+		{
+			if (typeof Game.buffs[i].multClick != 'undefined') mult*=Game.buffs[i].multClick;
+		}
+		
+		//if (Game.hasAura('Dragon Cursor')) mult*=1.05;
+		mult*=1+Game.auraMult('Dragon Cursor')*0.05;
+		
+		var out=mult*Game.ComputeCps(1,Game.Has('Reinforced index finger')+Game.Has('Carpal tunnel prevention cream')+Game.Has('Ambidextrous'),add);
+		
+		out=Game.runModHookOnValue('cookiesPerClick',out);
+		
+		if (Game.hasBuff('Cursed finger')) out=Game.buffs['Cursed finger'].power;
+		return out;
+	}
+export function playCookieClickSound()
+	{
+		if (Game.prefs.cookiesound) PlaySound('snd/clickb'+(Game.cookieClickSound)+'.mp3',0.5);
+		else PlaySound('snd/click'+(Game.cookieClickSound)+'.mp3',0.5);
+		Game.cookieClickSound+=Math.floor(Math.random()*4)+1;
+		if (Game.cookieClickSound>7) Game.cookieClickSound-=7;
+	}
+export function ClickCookie(e?: Event | null,amount?: number)
+	{
+		var now=Date.now();
+		if (e) e.preventDefault();
+		if (Game.OnAscend || Game.AscendTimer>0 || Game.T<3 || now-Game.lastClick<1000/((e?(e as UIEvent).detail:1)===0?3:50)) {}
+		else
+		{
+			if (now-Game.lastClick<(1000/15) && Game.ascensionMode!=2)//CC3: Trigger finger — scroll clicks don't count as autoclicker clicking achievements
+			{
+				Game.autoclickerDetected+=Game.fps;
+				if (Game.autoclickerDetected>=Game.fps*5) Game.Win('Uncanny clicker');
+			}
+			Game.loseShimmeringVeil('click');
+			var amt:number=amount?amount:Game.computedMouseCps;
+			Game.Earn(amt);
+			Game.handmadeCookies+=amt;
+			if (Game.prefs.particles)
+			{
+				Game.particleAdd();
+				Game.particleAdd(Game.mouseX,Game.mouseY,Math.random()*4-2,Math.random()*-2-2,Math.random()*0.5+0.75,1,2);
+			}
+			if (Game.prefs.numbers) Game.particleAdd(Game.mouseX+Math.random()*8-4,Game.mouseY-8-4,0,-2,1,4,2,'','+'+Beautify(amt,1));
+			
+			Game.runModHook('click');
+			
+			Game.playCookieClickSound();
+			Game.cookieClicks++;
+			
+			if (Game.clicksThisSession==0) PlayCue('preplay');
+			Game.clicksThisSession++;
+			Game.lastClick=now;
+		}
+		Game.Click=0;
+	}
+export function GetMouseCoords(e?: MouseEvent | null)
+	{
+		var posx=0;
+		var posy=0;
+		//CC3: the legacy `window.event` fallback is a MouseEvent in the
+		//mousemove handlers that call this; the cast keeps the verbatim
+		//lazy-evaluation semantics of the original `if (!e) var e=window.event;`.
+		if (e==null) e=window.event as unknown as MouseEvent;
+		if (e==null) {posx=Game.mouseX;posy=Game.mouseY;} else {posx=e.clientX;posy=e.clientY;}
+		Game.mouseX=posx;
+		Game.mouseY=posy;
+		Game.mouseX2=posx-Game.l!.getBoundingClientRect().left;
+		Game.mouseY2=posy-Game.l!.getBoundingClientRect().top;
+	}
