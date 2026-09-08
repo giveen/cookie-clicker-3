@@ -68,6 +68,9 @@ export function declareVanillaChangelog(Game: EngineGame) {
 	Game.updateLog+=
 
 	'</div><div class="subsection update">'+
+	'<div class="title">08/09/2026 - heavenly icon fix</div>'+
+	'<div class="listing">&bull; fixed two heavenly upgrades rendering as empty circles in the ascend tree: Second helping and Angelic recipe pointed at blank cells of the icon sprite sheet — they now use the golden-cookie icon family like their sibling Blessed apron (all three +cookie-production rewards share the matching motif)</div>'+
+	'</div><div class="subsection update">'+
 	'<div class="title">08/09/2026 - faster language loading</div>'+
 	'<div class="listing">&bull; language files now download at startup, in parallel with the rest of the game, instead of one-after-another near the end of the boot — non-English players no longer pay for two language chunks back to back, so the first visit reaches a playable game sooner</div>'+
 	'</div><div class="subsection update">'+

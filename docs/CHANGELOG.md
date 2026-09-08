@@ -11,6 +11,14 @@ upstream Cookie Clicker 2.048 patch notes that the engine also displays
 (31/05/2022 back to 05/08/2013) are Orteil's, shown verbatim in the
 in-game log, and are not duplicated here.
 
+## 08/09/2026 - heavenly icon fix
+
+- fixed two heavenly upgrades rendering as empty circles in the ascend tree:
+  Second helping and Angelic recipe pointed at blank cells of the icon sprite
+  sheet — they now use the golden-cookie icon family like their sibling
+  Blessed apron (all three +cookie-production rewards share the matching
+  motif)
+
 ## 08/09/2026 - faster language loading
 
 - language files now download at startup, in parallel with the rest of the
