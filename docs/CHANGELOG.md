@@ -11,6 +11,47 @@ upstream Cookie Clicker 2.048 patch notes that the engine also displays
 (31/05/2022 back to 05/08/2013) are Orteil's, shown verbatim in the
 in-game log, and are not duplicated here.
 
+## 08/09/2026 - quieter reloads
+
+- the built-in extras (American Season, Casino, Decide Your Destiny) no longer
+  post an "X loaded!" notification every time the game starts — those fired on
+  every reload and read like a season activating; real season announcements
+  (Halloween, Christmas, Valentine's, etc.) still appear when a season is
+  actually running
+
+## 07/09/2026 - under the hood, and a crack fix
+
+- fixed the cracking cookie's "Cracked!" payoff banner repeating on every
+  crack cycle — it now announces once per prestige and resets on ascension
+- the game's main loop, drawing and logic now live in their own modules —
+  pure restructuring with no behavior changes, in preparation for future
+  updates
+
+## 06/09/2026 - faster first load
+
+- the game's content (buildings, upgrades, achievements) now streams in the
+  background instead of shipping in the initial download — the code your
+  browser must fetch and parse before the game is playable shrank by 39%
+  (807 to 494 KB), noticeably faster on slow connections; saves and gameplay
+  are unaffected
+- removed dead code from the legacy engine (an ES5 polyfill and unused CSS
+  rules)
+
+## 05/09/2026 - smoothness, speed and steadier panels
+
+- the game now draws on the display's vertical sync instead of inside the
+  logic tick, golden cookie shimmer layers are composited more cheaply, and
+  backgrounds paint with desynchronized canvases — steadier frame pacing,
+  especially with several minigame panels open
+- the minigame panel easing now stays anchored to your click even when the
+  page is scrolled to the bottom (Temple and Wizard tower panels used to
+  drift up to 5px)
+- scrolling animations use the browser's native scroll-driven animation
+  support where available (compositor-run, no scroll listeners), and
+  particles reuse memory instead of allocating fresh objects
+- fixed localized descriptions losing their formatted numbers (the %1
+  placeholders now keep their Beautified values)
+
 ## 04/09/2026 - daily crumb payoff feedback
 
 - the Daily crumb's Collect button now makes the reward land: closing the

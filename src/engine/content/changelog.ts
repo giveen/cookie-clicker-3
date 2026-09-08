@@ -68,6 +68,23 @@ export function declareVanillaChangelog(Game: EngineGame) {
 	Game.updateLog+=
 
 	'</div><div class="subsection update">'+
+	'<div class="title">08/09/2026 - quieter reloads</div>'+
+	'<div class="listing">&bull; the built-in extras no longer announce themselves on every reload — the "American Season loaded!", "Casino loaded!" and "Decide Your Destiny loaded!" toasts are gone ("American Season loaded!" was easy to mistake for the season actually activating); real season announcements (Valentine\'s Day, Halloween, Christmas, Easter, Business Day, American season) still appear, only when the season is genuinely active</div>'+
+	'</div><div class="subsection update">'+
+	'<div class="title">07/09/2026 - under the hood, and a crack fix</div>'+
+	'<div class="listing">&bull; fixed the cracking cookie\'s "Cracked!" payoff banner repeating on every crack cycle — it now announces once per prestige and resets on ascension</div>'+
+	'<div class="listing">&bull; the game\'s main loop, drawing and logic now live in their own modules — pure restructuring with no behavior changes, in preparation for future updates</div>'+
+	'</div><div class="subsection update">'+
+	'<div class="title">06/09/2026 - faster first load</div>'+
+	'<div class="listing">&bull; the game\'s content (buildings, upgrades, achievements) now streams in the background instead of shipping in the initial download — the code your browser must fetch and parse before the game is playable shrank by 39% (807 to 494&nbsp;KB), noticeably faster on slow connections; saves and gameplay are unaffected</div>'+
+	'<div class="listing">&bull; removed dead code from the legacy engine (an ES5 polyfill and unused CSS rules)</div>'+
+	'</div><div class="subsection update">'+
+	'<div class="title">05/09/2026 - smoothness, speed and steadier panels</div>'+
+	'<div class="listing">&bull; the game now draws on the display\'s vertical sync instead of inside the logic tick, golden cookie shimmer layers are composited more cheaply, and backgrounds paint with desynchronized canvases — steadier frame pacing, especially with several minigame panels open</div>'+
+	'<div class="listing">&bull; the minigame panel easing now stays anchored to your click even when the page is scrolled to the bottom (Temple and Wizard tower panels used to drift up to 5px)</div>'+
+	'<div class="listing">&bull; scrolling animations use the browser\'s native scroll-driven animation support where available (compositor-run, no scroll listeners), and particles reuse memory instead of allocating fresh objects</div>'+
+	'<div class="listing">&bull; fixed localized descriptions losing their formatted numbers (the %1 placeholders now keep their Beautified values)</div>'+
+	'</div><div class="subsection update">'+
 	'<div class="title">04/09/2026 - soundtracks and a music picker</div>'+
 	'<div class="listing">&bull; Settings now has a music section: pick between the original soundtrack and the new Towns set (7 tracks from the same composer, Bert Cole), and choose exactly which track plays from a dropdown — your soundtrack and track are remembered between sessions, and each soundtrack resumes its own last track</div>'+
 	'</div><div class="subsection update">'+
