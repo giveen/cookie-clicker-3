@@ -68,6 +68,9 @@ export function declareVanillaChangelog(Game: EngineGame) {
 	Game.updateLog+=
 
 	'</div><div class="subsection update">'+
+	'<div class="title">08/09/2026 - faster language loading</div>'+
+	'<div class="listing">&bull; language files now download at startup, in parallel with the rest of the game, instead of one-after-another near the end of the boot — non-English players no longer pay for two language chunks back to back, so the first visit reaches a playable game sooner</div>'+
+	'</div><div class="subsection update">'+
 	'<div class="title">08/09/2026 - quieter reloads</div>'+
 	'<div class="listing">&bull; the built-in extras no longer announce themselves on every reload — the "American Season loaded!", "Casino loaded!" and "Decide Your Destiny loaded!" toasts are gone ("American Season loaded!" was easy to mistake for the season actually activating); real season announcements (Valentine\'s Day, Halloween, Christmas, Easter, Business Day, American season) still appear, only when the season is genuinely active</div>'+
 	'</div><div class="subsection update">'+

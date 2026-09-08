@@ -3019,15 +3019,40 @@ const langModules = import.meta.glob<{ default: LanguageData }>(
 	'./engine/loc/*.ts',
 );
 
+/* CC3 perf: warm the language chunks at module-eval, not at the `load` event.
+ *
+ * The engine's boot tail waits for `window load` before asking for a language
+ * (see engine/main.ts), so without this the first visit pays the language
+ * chunk *after* the index chunk + every page image, strictly serially — and
+ * non-English players pay it TWICE (the EN fallback chunk, then their own).
+ * Starting both fetches here overlaps them with the rest of boot; by the time
+ * the engine asks, the chunks are usually already in flight or resolved.
+ *
+ * The loaders are memoized promise factories: every caller awaits the SAME
+ * in-flight promise, so the warm-up and the engine's later request dedupe to
+ * one network fetch per chunk (and rejections propagate to late callers too). */
+const langChunkReady: Record<string, Promise<void>> = {};
+const loadLangChunk = (file: string): Promise<void> =>
+	(langChunkReady[file] ||= langModules[`./engine/loc/${file}.ts`]().then((m) => {
+		const { id, name, strings } = m.default;
+		window.AddLanguage(id, name, strings);
+	}));
+// EN is the fallback language and is needed on every boot; the saved
+// preference is usually decided later in the boot tail, so warm it too
+// when it is readable now (best-effort — never break module eval).
+loadLangChunk('EN').catch(() => {});
+try {
+	const savedLang = localStorage.getItem('CookieClickerLang');
+	if (savedLang && savedLang !== 'EN') loadLangChunk(savedLang).catch(() => {});
+} catch { /* localStorage may be unavailable (private mode) — engine path handles it */ }
+
 window.loadLangModule = function (file, done, fail) {
 	const key = `./engine/loc/${file}.ts`;
 	if (!langModules[key]) {
 		if (fail) fail(new Error(`Unknown language module: ${file}`));
 		return;
 	}
-	langModules[key]().then((m) => {
-		const { id, name, strings } = m.default;
-		window.AddLanguage(id, name, strings);
+	loadLangChunk(file).then(() => {
 		done();
 	}).catch((err) => {
 		(fail || ((e) => console.error(e)))(err);

@@ -11,6 +11,13 @@ upstream Cookie Clicker 2.048 patch notes that the engine also displays
 (31/05/2022 back to 05/08/2013) are Orteil's, shown verbatim in the
 in-game log, and are not duplicated here.
 
+## 08/09/2026 - faster language loading
+
+- language files now download at startup, in parallel with the rest of the
+  game, instead of one-after-another near the end of the boot — non-English
+  players no longer pay for two language chunks back to back, so the first
+  visit reaches a playable game sooner
+
 ## 08/09/2026 - quieter reloads
 
 - the built-in extras (American Season, Casino, Decide Your Destiny) no longer
