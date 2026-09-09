@@ -649,6 +649,14 @@ function createEntity(type: string, subtype: string, dungeon: any, value?: any):
 				if (this.type === "monster" && by.type === "hero") {
 					this.dungeon.monstersKilledThisRun++;
 					playDungeonSfx('snd/squish1.mp3', 0.5); // monster defeated
+					// CC3 (Tier 1): bosses drop a relic bounty on death (scaling with
+					// depth), on top of the floor-clear relic the exit grants.
+					const diedMon = Monsters[this.subtype];
+					if (diedMon && diedMon.boss) {
+						const bossRelics = 2 + Math.floor(this.dungeon.level / 3) + (Math.random() < 0.5 ? 1 : 0);
+						this.dungeon.addRelics(bossRelics);
+						this.dungeon.Log(`<span style="color:#ffd;">${diedMon.name} dropped <b>${bossRelics}</b> relics!</span>`);
+					}
 					const m = Monsters[this.subtype];
 					if (m && m.loot && m.loot.cookies && (!m.loot.cookies.prob || Math.random() < m.loot.cookies.prob)) {
 						const entity = this.dungeon.AddEntity("item", "cookies", this.x, this.y);
@@ -816,19 +824,42 @@ function generateDungeonName(type: string): string {
 	return "Mysterious dungeon";
 }
 
-function dungeonLocationChain(map: DungeonGenMap, x: number, y: number): any[] {
-	const room = map.getRoom(x, y);
-	const chain: any[] = [];
-	if (room !== -1) { let r = room as RoomData; while (r.parent && r.parent !== -1) { chain.push(r); r = r.parent as RoomData; } }
-	chain.reverse(); return chain;
-}
-
-function dungeonLinkLocationChains(start: any[], end: any[]): any {
-	start = [...start].reverse(); end = [...end].reverse();
-	if (start[0]?.id === end[0]?.id) return start[start.length - 1];
-	for (const e of end) { if (start[0] === e.parent) return e; }
-	if (start.length > 1) return start[1];
-	return start[0];
+// CC3 (Tier 1): robust auto-explore pathfinding. BFS over walkable tiles
+// (floor/door/entrance/exit) from the hero to the exit. Entities (monsters,
+// breakable doors) are handled by the hero's Move() — it bumps into and fights
+// them — so the path only cares about the static map. Returns the step list
+// (excluding the start tile) or null if the exit is unreachable.
+function dungeonBFSPath(map: DungeonGenMap, sx: number, sy: number, tx: number, ty: number): [number, number][] | null {
+	const W = map.w, H = map.h;
+	const key = (x: number, y: number) => y * W + x;
+	const prev = new Map<number, [number, number]>();
+	const seen = new Set<number>([key(sx, sy)]);
+	const q: [number, number][] = [[sx, sy]];
+	while (q.length) {
+		const [x, y] = q.shift()!;
+		if (x === tx && y === ty) {
+			const path: [number, number][] = [];
+			let cx = x, cy = y;
+			while (!(cx === sx && cy === sy)) {
+				path.push([cx, cy]);
+				const p = prev.get(key(cx, cy))!;
+				cx = p[0]; cy = p[1];
+			}
+			path.reverse();
+			return path;
+		}
+		for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as [number, number][]) {
+			const nx = x + dx, ny = y + dy;
+			if (nx < 0 || ny < 0 || nx >= W || ny >= H) continue;
+			if (seen.has(key(nx, ny))) continue;
+			// isObstacle returns 0 for walkable tiles, 1 for walls/void, -1 OOB.
+			if (map.isObstacle(nx, ny) !== 0) continue;
+			seen.add(key(nx, ny));
+			prev.set(key(nx, ny), [x, y]);
+			q.push([nx, ny]);
+		}
+	}
+	return null;
 }
 
 /* ====================================================================== *
@@ -870,6 +901,10 @@ interface DungeonMinigame {
 	bestDepth: number;
 	bestCookies: number;
 	bestMonsters: number;
+	/* CC3 (Tier 1): which of the four defined heroes is active (persisted). */
+	selectedHero: number;
+	/* swap the active hero mid-delve (hero picker); re-enters at the entrance */
+	setHero: (idx: number) => void;
 }
 
 const M = {} as DungeonMinigame;
@@ -895,6 +930,8 @@ M.launch = function (this: DungeonMinigame) {
 		self.bestDepth = 0;
 		self.bestCookies = 0;
 		self.bestMonsters = 0;
+		// CC3 (Tier 1): active hero selection (load() restores the saved pick).
+		self.selectedHero = 0;
 		// Effective stack count for CpS/purchase lookups, plus the lazy migration
 		// of pre-stacking saves (only know about an upgrade via its main-save
 		// bought flag; M.load can run BEFORE that flag is restored, so a
@@ -975,6 +1012,10 @@ M.launch = function (this: DungeonMinigame) {
 .dungeonInfoRelics,.dungeonShopRelics{color:#ffd9a0;font-weight:bold;margin:4px 0 2px;}
 .dungeonShopRow{margin-top:3px;}
 .dungeonShopBtn{display:block;}
+.dungeonHeroPicker{position:absolute;left:160px;top:252px;display:flex;gap:4px;z-index:50;}
+.dungeonHeroChip{width:32px;height:32px;background-size:cover;background-position:center;opacity:.5;cursor:pointer;border:1px solid #5a4a2a;border-radius:3px;transition:opacity .1s,box-shadow .1s;}
+.dungeonHeroChip:hover{opacity:.85;}
+.dungeonHeroChip.selected{opacity:1;border-color:#ffd9a0;box-shadow:0 0 3px #ffd9a0;}
 `;
 			document.head.appendChild(style);
 		}
@@ -1144,6 +1185,15 @@ M.launch = function (this: DungeonMinigame) {
 			// (UpdateInfo) as well as on the full Draw() that buyUpgrade triggers.
 			str += `<div id="dungeonInfo${this.id}" class="dungeonCard dungeonInfoCard">${this.infoHTML()}</div>`;
 			str += `<div id="dungeonShop${this.id}" class="dungeonCard dungeonShopCard">${this.shopHTML()}</div>`;
+			// CC3 (Tier 1): hero picker — choose among the four defined heroes
+			// (distinct stats/dialogue). The selection persists via M.save/load.
+			let pickerStr = `<div class="dungeonHeroPicker">`;
+			for (let pi = 0; pi < DungeonHeroes.length; pi++) {
+				const h = DungeonHeroes[pi];
+				pickerStr += `<a class="dungeonHeroChip${pi === self.selectedHero ? ' selected' : ''}" title="${h.name}" style="background-image:url(img/${h.portrait}.webp);" onclick="g.ObjectsById[${this.id}].minigame.setHero(${pi});"></a>`;
+			}
+			pickerStr += `</div>`;
+			str += pickerStr;
 				const rowSpecial = l("rowSpecial" + this.id);
 				if (rowSpecial) rowSpecial.innerHTML = `<div style="width:100%;height:100%;z-index:10000;position:absolute;left:0px;top:0px;">${str}</div>`;
 
@@ -1184,6 +1234,22 @@ M.launch = function (this: DungeonMinigame) {
 			DrawButton: function () {
 				return `<div style="width:144px;height:144px;position:absolute;left:0px;bottom:0px;"><a class="specialButtonPic" style="background-image:url(img/${this.portalPic}.webp);" onclick="g.ObjectsById[${this.id}].setSpecial(1);"><div class="specialButtonText">Enter dungeons</div></a></div>`;
 			},
+			// CC3 (Tier 1): swap the active hero mid-delve (hero picker). Tears down
+			// the old hero entity and re-enters the chosen one at the entrance; the
+			// map, relics, and relic-stack progress are untouched.
+			setHero: function (idx: number) {
+				if (idx < 0 || idx >= DungeonHeroes.length) return;
+				self.selectedHero = idx;
+				if (this.heroEntity) this.heroEntity.Destroy();
+				DungeonHeroes[idx].EnterDungeon(this, this.map.entrance[0], this.map.entrance[1]);
+				this.Draw();
+			},
+			// CC3 (Tier 1): boss/loot relic grants route through here so the meta
+			// currency stays in one place (and persists via M.save).
+			addRelics: function (n: number) {
+				self.relics += n;
+				self.relicsEarnedTotal += n;
+			},
 			CompleteLevel: function () {
 				// Salvage relics from the cleared floor. The boss guards the exit,
 				// so reaching it means the floor's guardian fell — deeper floors
@@ -1194,13 +1260,14 @@ M.launch = function (this: DungeonMinigame) {
 				// CC3 (Tier 2): cap the depth so the number never runs away and the
 				// difficulty/reward curve plateaus instead of growing forever.
 				this.level = Math.min(this.level + 1, DUNGEON_MAX_LEVEL);
-				// CC3 (Tier 3): update lifetime bests.
+				// CC3 (Tier 3): update lifetime bests + selected-hero progression.
 				if (this.level > self.bestDepth) self.bestDepth = this.level;
+				DungeonHeroes[self.selectedHero].completedDungeons++;
 			if (this.monstersKilledThisRun > self.bestMonsters) self.bestMonsters = this.monstersKilledThisRun;
 				if (this.cookiesMadeThisRun > self.bestCookies) self.bestCookies = this.cookiesMadeThisRun;
 				PlaySound('snd/harvest2.mp3', 0.7); // CC3 (Tier 3): floor-clear chime
 				this.Generate();
-				if (this.hero) DungeonHeroes[0].EnterDungeon(this, this.map.entrance[0], this.map.entrance[1]);
+				if (this.hero) DungeonHeroes[self.selectedHero].EnterDungeon(this, this.map.entrance[0], this.map.entrance[1]);
 				this.Draw();
 			},
 			FailLevel: function () {
@@ -1213,7 +1280,7 @@ M.launch = function (this: DungeonMinigame) {
 				this.monstersKilledThisRun = 0;
 				this.level = 0;
 				this.Generate();
-				if (this.hero) DungeonHeroes[0].EnterDungeon(this, this.map.entrance[0], this.map.entrance[1]);
+				if (this.hero) DungeonHeroes[self.selectedHero].EnterDungeon(this, this.map.entrance[0], this.map.entrance[1]);
 				this.Draw();
 			},
 		} as any;
@@ -1225,7 +1292,7 @@ M.launch = function (this: DungeonMinigame) {
 		(window as any).DungeonHeroes = DungeonHeroes;
 
 		dungeon.Generate();
-		const hero = DungeonHeroes[0];
+		const hero = DungeonHeroes[self.selectedHero];
 		hero.EnterDungeon(dungeon, dungeon.map.entrance[0], dungeon.map.entrance[1]);
 		dungeon.Draw();
 		dungeon.UpdateLog();
@@ -1237,11 +1304,11 @@ M.launch = function (this: DungeonMinigame) {
 				const d = (parent as any).dungeon;
 				if (!d) return;
 				let control = false;
-				if (event.key === "ArrowLeft") { DungeonHeroes[0].Move(-1, 0); control = true; }
-				else if (event.key === "ArrowUp") { DungeonHeroes[0].Move(0, -1); control = true; }
-				else if (event.key === "ArrowRight") { DungeonHeroes[0].Move(1, 0); control = true; }
-				else if (event.key === "ArrowDown") { DungeonHeroes[0].Move(0, 1); control = true; }
-				else if (event.key === " ") { DungeonHeroes[0].Move(0, 0); control = true; }
+				if (event.key === "ArrowLeft") { DungeonHeroes[self.selectedHero].Move(-1, 0); control = true; }
+				else if (event.key === "ArrowUp") { DungeonHeroes[self.selectedHero].Move(0, -1); control = true; }
+				else if (event.key === "ArrowRight") { DungeonHeroes[self.selectedHero].Move(1, 0); control = true; }
+				else if (event.key === "ArrowDown") { DungeonHeroes[self.selectedHero].Move(0, 1); control = true; }
+				else if (event.key === " ") { DungeonHeroes[self.selectedHero].Move(0, 0); control = true; }
 				else if (event.key === "a" || event.key === "A") { d.auto = !d.auto; if (d.auto) { d.autoTimer = 0; d.autoWarmup = 0; } event.preventDefault(); }
 				if (control) { event.preventDefault(); d.autoTimer = g.fps * 10; d.autoWarmup = 5; }
 			});
@@ -1255,11 +1322,11 @@ M.launch = function (this: DungeonMinigame) {
 			const d = (parent as any).dungeon;
 			if (!d) return;
 			const dir = (this as HTMLInputElement).value;
-			if (dir === "west") DungeonHeroes[0].Move(-1, 0);
-			else if (dir === "east") DungeonHeroes[0].Move(1, 0);
-			else if (dir === "north") DungeonHeroes[0].Move(0, -1);
-			else if (dir === "south") DungeonHeroes[0].Move(0, 1);
-			else if (dir === "wait") DungeonHeroes[0].Move(0, 0);
+			if (dir === "west") DungeonHeroes[self.selectedHero].Move(-1, 0);
+			else if (dir === "east") DungeonHeroes[self.selectedHero].Move(1, 0);
+			else if (dir === "north") DungeonHeroes[self.selectedHero].Move(0, -1);
+			else if (dir === "south") DungeonHeroes[self.selectedHero].Move(0, 1);
+			else if (dir === "wait") DungeonHeroes[self.selectedHero].Move(0, 0);
 			d.autoTimer = g.fps * 10;
 			d.autoWarmup = 5;
 		});
@@ -1275,7 +1342,10 @@ M.save = function (this: DungeonMinigame): string {
 		if (!d || !d.hero) return "";
 		// Append the relic economy state after a '|' separator so the comma-
 		// separated dungeon fields (none of which contain commas) stay intact.
-		return `${d.level},${d.hero.name},${d.hero.x},${d.hero.y},${d.cookiesMadeThisRun},${d.monstersKilledThisRun},${d.hero.inDungeon}|${this.relics}|${this.upgradeStacks.join(':')}|${this.bestDepth}|${this.bestCookies}|${this.bestMonsters}`;
+		// Append the relic economy state after a '|' separator so the comma-
+		// separated dungeon fields (none of which contain commas) stay intact.
+		// Trailing fields: selected hero index + that hero's own saved progression.
+		return `${d.level},${d.hero.name},${d.hero.x},${d.hero.y},${d.cookiesMadeThisRun},${d.monstersKilledThisRun},${d.hero.inDungeon}|${this.relics}|${this.upgradeStacks.join(':')}|${this.bestDepth}|${this.bestCookies}|${this.bestMonsters}|${this.selectedHero}|${d.hero ? d.hero.save() : ''}`;
 };
 
 M.load = function (this: DungeonMinigame, str: string): boolean | undefined {
@@ -1283,7 +1353,10 @@ M.load = function (this: DungeonMinigame, str: string): boolean | undefined {
 		const d = (this.parent as any).dungeon;
 		if (!d) return undefined;
 		const parts = str.split(",");
-		d.level = parseInt(parts[0]);
+		// The delve (depth/hero position) intentionally resets on reload — only the
+		// meta-economy (relics, stacks, bests, hero choice) persists — so we no
+		// longer apply parts[0] as d.level (that left a level-0 map rendered as a
+		// depth-N+1 delve). The dungeon regenerates fresh at floor 1 on launch.
 		// The relic economy is appended after a '|' INSIDE parts[6] (the hero
 		// name carries no comma, so parts[6] is "inDungeon|relics|stacks");
 		// older saves without it (just the inDungeon number) leave
@@ -1309,8 +1382,15 @@ M.load = function (this: DungeonMinigame, str: string): boolean | undefined {
 			this.bestDepth = parseFloat(extra[3]) || 0;
 			this.bestCookies = parseFloat(extra[4]) || 0;
 			this.bestMonsters = parseFloat(extra[5]) || 0;
+			// CC3 (Tier 1): selected hero + that hero's persisted progression.
+			let sel = parseInt(extra[6]) || 0;
+			if (sel < 0 || sel >= DungeonHeroes.length) sel = 0;
+			this.selectedHero = sel;
+			if (extra[7]) DungeonHeroes[sel].load(extra[7]);
 		}
-		// The hero is always the first one for now
+		// Re-enter the persisted hero into the live dungeon (launch used the default
+		// index); this also carries the completedDungeons/etc. restored by the load above.
+		if (d && d.setHero) d.setHero(this.selectedHero);
 		return true;
 };
 
@@ -1325,7 +1405,7 @@ M.reset = function (this: DungeonMinigame, _hard?: boolean) {
 		// minigame resets and ascensions (only the per-run delve state above is wiped),
 		// so dungeon progress compounds across the whole save rather than per run.
 		d.Generate();
-		const hero = DungeonHeroes[0];
+		const hero = DungeonHeroes[this.selectedHero];
 		hero.inDungeon = -1;
 		hero.EnterDungeon(d, d.map.entrance[0], d.map.entrance[1]);
 		d.Draw();
@@ -1349,21 +1429,28 @@ M.logic = function (this: DungeonMinigame) {
 					if (hero.x === d.map.exit[0] && hero.y === d.map.exit[1]) {
 						d.Turn();
 					} else {
-						const chain = dungeonLocationChain(d.map, hero.x, hero.y);
-						const targetRoom = chain.length > 0
-							? dungeonLinkLocationChains(chain, dungeonLocationChain(d.map, d.map.exit[0], d.map.exit[1]))
-							: undefined;
-						const targetTile = (targetRoom && (targetRoom.gen === 0 || targetRoom.id === d.map.getRoom(hero.x, hero.y)?.id))
-							? [d.map.exit[0], d.map.exit[1]]
-							: (targetRoom ? targetRoom.door : [d.map.exit[0], d.map.exit[1]]);
-						hero.GoTo(targetTile[0], targetTile[1]);
-						if (hero.stuck) hero.Wander();
+						// CC3 (Tier 1): robust BFS-to-exit pathfinding replaces the
+						// fragile room-chain heuristic, so a floor can always be cleared.
+						// Step one tile along the path; bumping a monster/door en route
+						// is handled by the hero's Move() (it fights instead of moving).
+						const path = dungeonBFSPath(d.map, hero.x, hero.y, d.map.exit[0], d.map.exit[1]);
+						if (path && path.length) {
+							const [nx, ny] = path[0];
+							hero.GoTo(nx, ny);
+						} else {
+							hero.Wander();
+						}
 						if (d.hero) { d.hero.x = hero.x; d.hero.y = hero.y; }
 						d.Turn();
 					}
 				}
 			}
 		}
+};
+
+M.setHero = function (this: DungeonMinigame, idx: number) {
+	const d = (this.parent as any).dungeon;
+	if (d && d.setHero) d.setHero(idx);
 };
 
 M.draw = function (this: DungeonMinigame) {
