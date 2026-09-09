@@ -103,39 +103,52 @@ test('hero selection swaps the live hero and updates the minigame pick', async (
 	expect(placed.y).toBe(placed.ey);
 });
 
-test('auto-explore (BFS pathing) drives the hero to the exit and clears a floor', async ({ page }) => {
+test('auto-explore (BFS pathing) clears the early floors for a fresh, un-buffed hero', async ({ page }) => {
 	await boot(page);
 	await loadDungeon(page);
+	// No buffing: this is a balance assertion. A freshly unlocked Factory (amount 1)
+	// must not be blocked by an unbeatable boss on floor 1 — the hero should clear
+	// at least one floor and win fights along the way.
 	const res = await page.evaluate(() => {
 		const F = window.Game.Objects['Factory'];
 		const d = F.dungeon;
 		const M = F.minigame;
 		d.auto = true;
 		const startLevel = d.level;
-		let reached = false;
-		// Exercise the pathing, not the combat balance: keep the hero overwhelmingly
-		// strong so fights never block the walk to the exit. Each step re-applies the
-		// buff because CompleteLevel re-enters a fresh hero entity.
-		const buff = () => {
-			const s = d.heroEntity && d.heroEntity.stats;
-			if (s) {
-				s.might = 9999;
-				s.hp = 9999;
-				s.hpm = 9999;
-				s.guard = 9999;
-				s.dodge = 9999;
-			}
-		};
-		for (let i = 0; i < 8000 && !reached; i++) {
-			buff();
+		let cleared = false;
+		for (let i = 0; i < 12000 && !cleared; i++) {
 			d.autoTimer = 0; // force a step on this tick
 			M.logic();
-			if (d.level > startLevel) reached = true;
+			if (d.level > startLevel) cleared = true;
 		}
-		return { reached, startLevel, level: d.level, monsters: d.monstersKilledThisRun, cookies: d.cookiesMadeThisRun };
+		return { cleared, startLevel, level: d.level, monsters: d.monstersKilledThisRun, cookies: d.cookiesMadeThisRun };
 	});
-	expect(res.reached, `auto-explore never reached the exit (level stayed at ${res.level})`).toBe(true);
+	expect(res.cleared, `fresh hero never cleared a floor (level stayed at ${res.level})`).toBe(true);
 	expect(res.monsters).toBeGreaterThan(0);
+});
+
+test('boss-guarded floors are winnable once the factory is built up', async ({ page }) => {
+	await boot(page);
+	await loadDungeon(page);
+	const res = await page.evaluate(() => {
+		const F = window.Game.Objects['Factory'];
+		const d = F.dungeon;
+		const M = F.minigame;
+		F.amount = 500; // a built-up factory → a scaled-up hero
+		d.auto = true;
+		d.level = 5; // force a boss-guarded floor (bosses only spawn from level 5)
+		d.Generate();
+		M.setHero(0); // re-enter the hero at the entrance with the scaled stats
+		const startLevel = d.level;
+		let cleared = false;
+		for (let i = 0; i < 20000 && !cleared; i++) {
+			d.autoTimer = 0;
+			M.logic();
+			if (d.level > startLevel) { cleared = true; break; }
+		}
+		return { cleared, level: d.level };
+	});
+	expect(res.cleared, `boss floor not cleared even with a built-up factory (level ${res.level})`).toBe(true);
 });
 
 test('relic economy grants relics and the meta state round-trips through save/load', async ({ page }) => {

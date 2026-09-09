@@ -539,11 +539,11 @@ chirpy.quotes = { fight: "oh, hello <3" };
 defineMonster("Disgruntled worker", "disgruntledWorker", [1, 2], 4, { hp: 14, might: 5, guard: 5, speed: 6, dodge: 4, rarity: 0.6 }, basicLoot);
 defineMonster("Disgruntled overseer", "disgruntledOverseer", [1, 2], 7, { hp: 22, might: 7, guard: 5, speed: 6, dodge: 4, rarity: 0.5 }, basicLoot);
 defineMonster("Disgruntled cleaning lady", "disgruntledCleaningLady", [2, 2], 4, { hp: 13, might: 4, guard: 5, speed: 7, dodge: 6, rarity: 0.3 }, basicLoot);
-const sf = defineMonster("Sentient Furnace", "sentientFurnace", [0, 3], 0, { hp: 60, might: 14, guard: 12, speed: 4, dodge: 0, rarity: 1 }, bossLoot);
+const sf = defineMonster("Sentient Furnace", "sentientFurnace", [0, 3], 0, { hp: 60, might: 14, guard: 9, speed: 4, dodge: 0, rarity: 1 }, bossLoot);
 sf.onKill = () => { g.Win("Getting even with the oven"); };
 sf.AI = "static"; sf.boss = 1;
 sf.quotes = { fight: "YOU ARE NOT READY!", defeat: "OH... BURN." };
-const abp = defineMonster("Ascended Baking Pod", "ascendedBakingPod", [1, 3], 0, { hp: 60, might: 12, guard: 14, speed: 4, dodge: 0, rarity: 0.7 }, bossLoot);
+const abp = defineMonster("Ascended Baking Pod", "ascendedBakingPod", [1, 3], 0, { hp: 60, might: 12, guard: 10, speed: 4, dodge: 0, rarity: 0.7 }, bossLoot);
 abp.onKill = () => { g.Win("Now this is pod-smashing"); };
 abp.AI = "static"; abp.boss = 1;
 abp.quotes = { fight: "rrrrrrrise.", defeat: "blrglblg." };
@@ -711,9 +711,16 @@ function createEntity(type: string, subtype: string, dungeon: any, value?: any):
 		e.zIndex = 10; e.fighting = 0;
 	} else if (type === "hero") {
 		e.obstacle = 1;
-		for (const k in DungeonHeroes[0].stats) (e.stats as any)[k] = (DungeonHeroes[0].stats as any)[k];
+		// CC3 (Tier 3): build the hero entity from the *selected* hero's stats, not
+		// always hero 0 — so Chip/Crumb/Doe/Lucky play distinctly (Crumb is tanky,
+		// Doe is fast, Lucky is lucky) instead of everyone silently playing as Chip.
+		const heroDef = DungeonHeroes[(dungeon as any).selectedHero || 0];
+		for (const k in heroDef.stats) (e.stats as any)[k] = (heroDef.stats as any)[k];
 		e.zIndex = 100; e.fighting = 0;
-		const mult = Math.max(0, (g.Objects[dungeon.type].amount / 20 - 1));
+		// CC3 (Tier 3): scale the hero with the owning building's count so a larger
+		// factory yields a stronger delver. The old /20 divisor was far too harsh —
+		// the dungeon was effectively unwinnable until hundreds of Factories existed.
+		const mult = Math.max(0, (g.Objects[dungeon.type].amount / 10 - 1));
 		e.stats.hpm += Math.ceil(mult * 2); e.stats.hp = e.stats.hpm; e.stats.might += mult; e.stats.guard += mult; e.stats.speed += mult; e.stats.dodge += mult;
 	} else if (type === "destructible") {
 		e.zIndex = 15; e.life = 3; e.pic = subtype === "door" ? [0, 7] : [Math.floor(Math.random() * 4 + 2), 7];
@@ -1031,6 +1038,7 @@ M.launch = function (this: DungeonMinigame) {
 			hero: null as any,
 			currentOpponent: null as any,
 			level: 0,
+			selectedHero: self.selectedHero,
 			auto: true,
 			autoTimer: 0,
 			autoWarmup: 5,
@@ -1126,11 +1134,18 @@ M.launch = function (this: DungeonMinigame) {
 				this.map.str = this.map.getStr();
 
 				const exitTile = this.map.exit;
-				const candidates: string[] = [];
-				for (const boss of BossMonsters) if (boss.level <= (1 + this.level) && Math.random() < (boss.stats.rarity || 1)) candidates.push(boss.name);
-				const bossName = candidates.length > 0 ? choose(candidates) : choose(BossMonsters).name;
-				this.AddEntity("monster", bossName, exitTile[0], exitTile[1]);
-				if (this.map.isFloor(exitTile[0], exitTile[1]) !== -1) this.map.removeFreeTile(exitTile[0], exitTile[1]);
+				// CC3 (Tier 3): bosses only guard the exit from a deeper floor onward
+				// (BOSS_MIN_LEVEL). A freshly unlocked dungeon (Factory at level 1) was
+				// otherwise blocked by an unbeatable guardian at the exit on floor 1, so
+				// early floors are monster-only and let the player build up relics/hero.
+				const BOSS_MIN_LEVEL = 5;
+				if (this.level >= BOSS_MIN_LEVEL) {
+					const candidates: string[] = [];
+					for (const boss of BossMonsters) if (boss.level <= (1 + this.level) && Math.random() < (boss.stats.rarity || 1)) candidates.push(boss.name);
+					const bossName = candidates.length > 0 ? choose(candidates) : choose(BossMonsters).name;
+					this.AddEntity("monster", bossName, exitTile[0], exitTile[1]);
+					if (this.map.isFloor(exitTile[0], exitTile[1]) !== -1) this.map.removeFreeTile(exitTile[0], exitTile[1]);
+				}
 
 				const spawnCount = Math.ceil(this.map.freeTiles.length * 0.7);
 				for (let i = 0; i < spawnCount; i++) {
@@ -1243,6 +1258,7 @@ M.launch = function (this: DungeonMinigame) {
 			setHero: function (idx: number) {
 				if (idx < 0 || idx >= DungeonHeroes.length) return;
 				self.selectedHero = idx;
+				this.selectedHero = idx; // keep the dungeon's own pick in sync (entity stats derive from it)
 				if (this.heroEntity) this.heroEntity.Destroy();
 				DungeonHeroes[idx].EnterDungeon(this, this.map.entrance[0], this.map.entrance[1]);
 				this.Draw();

@@ -74,6 +74,7 @@ export function declareVanillaChangelog(Game: EngineGame) {
 	'<div class="listing">&bull; auto-explore reliably paths your hero to the exit with breadth-first search, capped by a throttle so a full delve runs itself without freezing the tab — a visible "AUTO" badge shows when it\'s on</div>'+
 	'<div class="listing">&bull; bosses drop relic caches that feed a persistent meta-currency (relics survive ascensions), spent on six relic upgrades that grow your hero and your cookie yield</div>'+
 	'<div class="listing">&bull; the dungeon tracks your best depth, cookies and monsters per run, and plays combat sound effects as you fight</div>'+
+	'<div class="listing">&bull; rebalanced the delve so a freshly unlocked Factory isn\'t blocked by an unbeatable guardian on the first floor — bosses now guard deeper floors and your hero scales with your factory count for a smoother climb</div>'+
 	'</div><div class="subsection update">'+
 	'<div class="title">08/09/2026 - heavenly icon fix</div>'+
 	'<div class="listing">&bull; fixed two heavenly upgrades rendering as empty circles in the ascend tree: Second helping and Angelic recipe pointed at blank cells of the icon sprite sheet — they now use the golden-cookie icon family like their sibling Blessed apron (all three +cookie-production rewards share the matching motif)</div>'+
