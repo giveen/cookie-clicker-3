@@ -3070,6 +3070,7 @@ const minigameModules: Record<string, () => Promise<unknown>> = {
 	'minigamePantheon.js': () => import('./engine/minigamePantheon'),
 	'minigameCatColony.js': () => import('./engine/minigameCatColony'),
 	'minigameGrandmaSittingRoom.js': () => import('./engine/minigameGrandmaSittingRoom'),
+	'minigameDungeon.js': () => import('./engine/minigameDungeon'),
 	// CC3 extras mod (extras/casino.ts): the mod's code arrives in the
 	// deferred extras chunk (window.cc3ContentReady, awaited before
 	// launch) — this no-op module stands in for the original's remote

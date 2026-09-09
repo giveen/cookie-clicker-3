@@ -319,7 +319,7 @@ export function UpdateMenu()
 		
 		var achievementsStr='';
 		var pools: any={
-			'dungeon':(EN?'<b>Dungeon achievements</b> <small>(Not technically achievable yet.)</small>':'<b>???</b>'),
+			'dungeon':(EN?'<b>Dungeon achievements</b> <small>(Earned by delving the Factory dungeon.)</small>':'<b>???</b>'),
 			'shadow':'<b>'+loc("Shadow achievements")+'</b> <small>('+loc("These are feats that are either unfair or difficult to attain. They do not give milk.")+')</small>'
 		};
 		for (var key in achievements)

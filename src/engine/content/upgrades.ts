@@ -2123,6 +2123,36 @@ export function declareVanillaUpgrades(Game: EngineGame) {
 			sittingRoomUpgradeObj.buildingTie=Game.Objects['Grandma'];
 		}
 
+		// CC3 Dungeon minigame rewards: REPEATABLE upgrades bought with Relics from
+		// inside the dungeon panel (stacks in minigameDungeon.ts M.upgradeStacks;
+		// the main-save bought flag is only set on the first stack, via
+		// Game.Upgrades[name].earn(), for save continuity), never through the cookie
+		// store — the cookie price here is unused and kept at 0 for clarity. Icons
+		// crop the Factory icon (img/factoryIcon.webp) via the standard
+		// [col,row,path,size] icon form — no new art. relicsPrice is a
+		// minigame-only field the dungeon shop reads; the flat price never changes,
+		// every stack costs the same and adds the full per-stack effect (dungeonAdd =
+		// per-factory CpS, dungeonMult = per-stack ×1.02 multiplier), so the six
+		// rows are the dungeon's endless relic sink.
+		var dungeonUpgrades=[
+			{name:'Reinforced plating',desc:'Factories gain <b>+0.5 CpS each</b> (per stack).',relics:20,dungeonAdd:0.5,icon:'factoryIcon.webp'},
+			{name:'Conveyor optimization',desc:'Factories gain <b>+1 CpS each</b> (per stack).',relics:50,dungeonAdd:1,icon:'factoryIcon.webp'},
+			{name:'Assembly-line doctrine',desc:'Factories gain <b>+2% CpS</b> (per stack).',relics:100,dungeonMult:1,icon:'factoryIcon.webp'},
+			{name:'Quality assurance',desc:'Factories gain <b>+1 CpS each</b> (per stack).',relics:250,dungeonAdd:1,icon:'factoryIcon.webp'},
+			{name:'Overtime shifts',desc:'Factories gain <b>+2% CpS</b> (per stack).',relics:500,dungeonMult:1,icon:'factoryIcon.webp'},
+			{name:'Dungeon core reactor',desc:'Factories gain <b>+2 CpS each</b> (per stack).',relics:1000,dungeonAdd:2,icon:'factoryIcon.webp'}
+		];
+		order=358;
+		for (var dungeonUpgradeIndex=0;dungeonUpgradeIndex<dungeonUpgrades.length;dungeonUpgradeIndex++)
+		{
+			var dungeonUpgrade=dungeonUpgrades[dungeonUpgradeIndex];
+			var dungeonUpgradeObj=new Game.Upgrade(dungeonUpgrade.name,dungeonUpgrade.desc+'<q>Bought with relics salvaged from the dungeon, not with cookies.</q>',0,[0,0,'img/'+dungeonUpgrade.icon,64]);
+			if (dungeonUpgrade.dungeonAdd) dungeonUpgradeObj.dungeonAdd=dungeonUpgrade.dungeonAdd;
+			if (dungeonUpgrade.dungeonMult) dungeonUpgradeObj.dungeonMult=dungeonUpgrade.dungeonMult;
+			dungeonUpgradeObj.relicsPrice=dungeonUpgrade.relics;
+			dungeonUpgradeObj.buildingTie=Game.Objects['Factory'];
+		}
+
 		// Astral Reliquary: a themed heavenly sub-branch off 'Distilled essence of
 		// redoubled luck'. Declared here, after every vanilla Game.Upgrade() call,
 		// so these ids land past the vanilla upgrade ids (max ~805) instead of
@@ -2215,6 +2245,17 @@ export function declareVanillaUpgrades(Game: EngineGame) {
 		new Game.Upgrade('Golden heart',loc("Golden cookie effects last <b>%1% longer</b> and appear <b>%2% more often</b>.",[15,5])+'<q>Who needs the sight of cookies when you can feel them in your heart?</q>',25,[27,6]);Game.last.pool='prestige';Game.last.parents=['Legacy'];Game.last.showIf=function(){return Game.HasAchiev('Golden heart');};
 		new Game.Upgrade('Unity',loc("CpS <b>+%1%</b> per 100 buildings of your most-owned type.",1)+'<q>One glass, one dough, one vision.</q>',50,[13,0]);Game.last.pool='prestige';Game.last.parents=['Legacy'];Game.last.showIf=function(){return Game.HasAchiev('Unity');};
 		new Game.Upgrade('Minimalist',loc("CpS <b>+%1%</b> per 100 upgrades owned permanently.",2)+'<q>Less is more. More is also more. But less is more-ier.</q>',75,[14,0]);Game.last.pool='prestige';Game.last.parents=['Legacy'];Game.last.showIf=function(){return Game.HasAchiev('Minimalist');};
+
+		// CC3: The Deep Delve — a themed heavenly sub-branch off 'Synergies Vol. II'
+		// for the Dungeon (Factory minigame). Flat Factory CpS bonuses, mirroring the
+		// Nine Lives cat branch, wired in content/buildings/factory.ts via Game.Has
+		// checks. Positions are derived automatically from the parents DAG, so no
+		// manual coordinates are needed here.
+		order=23000;
+		new Game.Upgrade('The deep delve',"Factories gain <b>+5% CpS</b>."+'<q>Every step down is a step toward the cookies.</q>',5000000,[0,0,'img/factoryIcon.webp',64]);Game.last.pool='prestige';Game.last.parents=['Synergies Vol. II'];
+		new Game.Upgrade('Subterranean forge',"Factories gain <b>+10% CpS</b>."+'<q>The deeper the forge, the hotter the cookies.</q>',15000000,[0,0,'img/factoryIcon.webp',64]);Game.last.pool='prestige';Game.last.parents=['The deep delve'];
+		new Game.Upgrade('Eternal labyrinth',"Factories gain <b>+15% CpS</b>."+'<q>You have mapped every wall. The walls have mapped you back.</q>',45000000,[0,0,'img/factoryIcon.webp',64]);Game.last.pool='prestige';Game.last.parents=['Subterranean forge'];
+		new Game.Upgrade('Master of the maze',"Factories gain <b>+20% CpS</b>."+'<q>There is no exit. There is only production.</q>',135000000,[0,0,'img/factoryIcon.webp',64]);Game.last.pool='prestige';Game.last.parents=['Eternal labyrinth'];
 
 		//end of upgrades
 
