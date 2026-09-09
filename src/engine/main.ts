@@ -2073,7 +2073,12 @@ Game.Launch=function()
 		Game.ComputeCps=ComputeCps;//CC3 rewrite (phase 4, slice 1): moved verbatim to systems/economy.ts; same Game slot, same Init position.
 		
 		Game.isMinigameReady=function(me: Building)
- 		{return !!(me.minigameUrl && me.minigameLoaded && me.level>0);}
+ 		{
+			// CC3: the Factory Dungeon is gated behind Factory level 50 so the delve
+			// isn't available the instant the first Factory is bought.
+			if (me.name==='Factory' && me.level<50) return false;
+			return !!(me.minigameUrl && me.minigameLoaded && me.level>0);
+		}
 		Game.scriptBindings=[];
 		Game.showedScriptLoadError=false;
 		Game.LoadMinigames=function()//load scripts for each minigame
@@ -2081,7 +2086,9 @@ Game.Launch=function()
 			for (var i in Game.Objects)
 			{
 				const me=Game.Objects[i];
-				if (me.minigameUrl && me.level>0 && !me.minigameLoaded && !me.minigameLoading && !l('minigameScript-'+me.id))
+				// CC3: the Factory Dungeon only loads once the Factory reaches level 50.
+				const minigameMinLevel = me.name==='Factory' ? 50 : 1;
+				if (me.minigameUrl && me.level>=minigameMinLevel && !me.minigameLoaded && !me.minigameLoading && !l('minigameScript-'+me.id))
 				{
 					me.minigameLoading=true;
 					//we're only loading the minigame scripts that aren't loaded yet and which have enough building level

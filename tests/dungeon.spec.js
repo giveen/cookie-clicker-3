@@ -38,7 +38,7 @@ async function loadDungeon(page) {
 		f.unlocked = 1;
 		f.bought = 1;
 		f.highest = 1;
-		f.level = 1;
+		f.level = 50; // the Factory Dungeon is gated behind Factory level 50 (CC3)
 		G.recalculateGains = 1;
 		if (G.LoadMinigames) G.LoadMinigames();
 	});
@@ -51,6 +51,25 @@ async function loadDungeon(page) {
 		{ timeout: 30_000 },
 	);
 }
+
+test('Factory Dungeon is gated behind Factory level 50', async ({ page }) => {
+	await boot(page);
+	// Drive Game.isMinigameReady directly with the prerequisites satisfied so we
+	// isolate the level gate (no async script-loading timing in the assertion).
+	const res = await page.evaluate(() => {
+		const G = window.Game;
+		const f = G.Objects['Factory'];
+		f.minigameUrl = 'minigameDungeon.js';
+		f.minigameLoaded = true;
+		const check = (lvl) => {
+			f.level = lvl;
+			return G.isMinigameReady(f);
+		};
+		return { lockedAt1: check(1), unlockedAt50: check(50) };
+	});
+	expect(res.lockedAt1, 'dungeon should NOT be ready at Factory level 1').toBe(false);
+	expect(res.unlockedAt50, 'dungeon should be ready at Factory level 50').toBe(true);
+});
 
 test('dungeon minigame loads with a hero, map, entrance and exit', async ({ page }) => {
 	await boot(page);

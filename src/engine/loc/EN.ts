@@ -974,6 +974,7 @@ export default { id: "EN", name: "english", strings: {
 	"Granting <b>+%1% %2 CpS</b>.": "/",
 	"Click to level up for %1.": "/",
 	"Levelling up this building unlocks a minigame.": "/",
+	"Reach level 50 to unlock the dungeon minigame.": "/",
 	"level up your %1": "/",
 	"Mute": "/",
 	"Minimize this building": "/",
