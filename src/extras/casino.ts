@@ -867,7 +867,7 @@
 			//***********************************
 			let str = '';
 			str += `<style>
-			#casinoBG{background:url(img/shadedBorders.png), url(img/BGcasino.jpg); background-size:100% 100%, auto; position:absolute; left:0px; right:0px; top:0px; bottom:16px;}
+			#casinoBG{background:url(img/shadedBorders.webp), url(img/BGcasino.jpg); background-size:100% 100%, auto; position:absolute; left:0px; right:0px; top:0px; bottom:16px;}
 			#casinoContent{position:relative; box-sizing:border-box; padding:4px 24px; height:450px;}
 			#casinoSidebar{text-align:center; margin:0px; padding:0px; position:absolute; left:4px; top:4px; bottom:4px; right:65%; overflow-y:auto; overflow-x:hidden; box-shadow:8px 0px 8px rgba(0,0,0,0.5);}
 			#casinoSidebar .listing{text-align:left;}
