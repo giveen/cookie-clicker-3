@@ -68,6 +68,13 @@ export function declareVanillaChangelog(Game: EngineGame) {
 	Game.updateLog+=
 
 	'</div><div class="subsection update">'+
+	'<div class="title">08/09/2026 - Factory Dungeon minigame</div>'+
+	'<div class="listing">&bull; added the Factory Dungeon: a turn-based delve where your hero fights monsters and grabs cookies on the way to the exit — the deeper you go, the richer the haul</div>'+
+	'<div class="listing">&bull; choose from four heroes (Chip, Crumb, Doe, Lucky), each with their own stats and dialogue, and switch between them anytime from the dungeon panel</div>'+
+	'<div class="listing">&bull; auto-explore reliably paths your hero to the exit with breadth-first search, capped by a throttle so a full delve runs itself without freezing the tab — a visible "AUTO" badge shows when it\'s on</div>'+
+	'<div class="listing">&bull; bosses drop relic caches that feed a persistent meta-currency (relics survive ascensions), spent on six relic upgrades that grow your hero and your cookie yield</div>'+
+	'<div class="listing">&bull; the dungeon tracks your best depth, cookies and monsters per run, and plays combat sound effects as you fight</div>'+
+	'</div><div class="subsection update">'+
 	'<div class="title">08/09/2026 - heavenly icon fix</div>'+
 	'<div class="listing">&bull; fixed two heavenly upgrades rendering as empty circles in the ascend tree: Second helping and Angelic recipe pointed at blank cells of the icon sprite sheet — they now use the golden-cookie icon family like their sibling Blessed apron (all three +cookie-production rewards share the matching motif)</div>'+
 	'</div><div class="subsection update">'+

@@ -11,6 +11,14 @@ upstream Cookie Clicker 2.048 patch notes that the engine also displays
 (31/05/2022 back to 05/08/2013) are Orteil's, shown verbatim in the
 in-game log, and are not duplicated here.
 
+## 08/09/2026 - Factory Dungeon minigame
+
+- added the Factory Dungeon: a turn-based delve where your hero fights monsters and grabs cookies on the way to the exit — the deeper you go, the richer the haul
+- choose from four heroes (Chip, Crumb, Doe, Lucky), each with their own stats and dialogue, and switch between them anytime from the dungeon panel
+- auto-explore reliably paths your hero to the exit with breadth-first search, capped by a throttle so a full delve runs itself without freezing the tab — a visible "AUTO" badge shows when it's on
+- bosses drop relic caches that feed a persistent meta-currency (relics survive ascensions), spent on six relic upgrades that grow your hero and your cookie yield
+- the dungeon tracks your best depth, cookies and monsters per run, and plays combat sound effects as you fight
+
 ## 08/09/2026 - heavenly icon fix
 
 - fixed two heavenly upgrades rendering as empty circles in the ascend tree:

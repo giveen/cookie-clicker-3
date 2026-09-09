@@ -1016,6 +1016,7 @@ M.launch = function (this: DungeonMinigame) {
 .dungeonHeroChip{width:32px;height:32px;background-size:cover;background-position:center;opacity:.5;cursor:pointer;border:1px solid #5a4a2a;border-radius:3px;transition:opacity .1s,box-shadow .1s;}
 .dungeonHeroChip:hover{opacity:.85;}
 .dungeonHeroChip.selected{opacity:1;border-color:#ffd9a0;box-shadow:0 0 3px #ffd9a0;}
+.dungeonAutoBadge{position:absolute;left:160px;top:230px;z-index:60;display:none;padding:2px 8px;border-radius:10px;background:#2a6e3a;color:#bfffce;font-weight:bold;font-size:11px;letter-spacing:1px;box-shadow:0 0 6px #2a6e3a;border:1px solid #4caf6a;}
 `;
 			document.head.appendChild(style);
 		}
@@ -1053,22 +1054,22 @@ M.launch = function (this: DungeonMinigame) {
 				if (el) el.innerHTML = str;
 			},
 			infoHTML: function () {
-				return `<div class="dungeonCardTitle">Delve status</div>` +
-					`<div class="dungeonInfoRow"><span>Depth</span><b>${this.level + 1}</b><span class="dungeonInfoBest">best ${self.bestDepth}</span></div>` +
-					`<div class="dungeonInfoRow"><span>Cookies</span><b>${Beautify(this.cookiesMadeThisRun)}</b><span class="dungeonInfoBest">best ${Beautify(self.bestCookies)}</span></div>` +
-					`<div class="dungeonInfoRow"><span>Monsters</span><b>${Beautify(this.monstersKilledThisRun)}</b><span class="dungeonInfoBest">best ${Beautify(self.bestMonsters)}</span></div>` +
-					`<div class="dungeonInfoRelics">Relics: <b>${Beautify(self.relics)}</b></div>`;
+				return `<div class="dungeonCardTitle">${loc('Delve status')}</div>` +
+					`<div class="dungeonInfoRow"><span>${loc('Depth')}</span><b>${this.level + 1}</b><span class="dungeonInfoBest">${loc('best')} ${self.bestDepth}</span></div>` +
+					`<div class="dungeonInfoRow"><span>${loc('Cookies')}</span><b>${Beautify(this.cookiesMadeThisRun)}</b><span class="dungeonInfoBest">${loc('best')} ${Beautify(self.bestCookies)}</span></div>` +
+					`<div class="dungeonInfoRow"><span>${loc('Monsters')}</span><b>${Beautify(this.monstersKilledThisRun)}</b><span class="dungeonInfoBest">${loc('best')} ${Beautify(self.bestMonsters)}</span></div>` +
+					`<div class="dungeonInfoRelics">${loc('Relics:')} <b>${Beautify(self.relics)}</b></div>`;
 			},
 			shopHTML: function () {
-				let s = `<div class="dungeonCardTitle">Relic workshop</div>`;
-				s += `<div class="dungeonShopRelics">Relics: <b>${Beautify(self.relics)}</b></div>`;
+				let s = `<div class="dungeonCardTitle">${loc('Relic workshop')}</div>`;
+				s += `<div class="dungeonShopRelics">${loc('Relics:')} <b>${Beautify(self.relics)}</b></div>`;
 				for (let si = 0; si < self.upgradeNames.length; si++) {
 					const uname = self.upgradeNames[si];
 					const u = g.Upgrades[uname];
 					const price = u ? (u.relicsPrice || 0) : 0;
 					const stacks = self.effectiveStacks(uname);
 					const canBuy = self.relics >= price;
-					s += `<div class="dungeonShopRow"><a class="dungeonShopBtn" style="color:${canBuy ? '#9f9' : '#777'};cursor:${canBuy ? 'pointer' : 'default'};text-decoration:none;" onclick="(g.ObjectsById[${this.id}].minigame.buyUpgrade('${uname}'));">${uname} ×${stacks} — ${price} relics</a></div>`;
+					s += `<div class="dungeonShopRow"><a class="dungeonShopBtn" style="color:${canBuy ? '#9f9' : '#777'};cursor:${canBuy ? 'pointer' : 'default'};text-decoration:none;" onclick="(g.ObjectsById[${this.id}].minigame.buyUpgrade('${uname}'));">${uname} ×${stacks} — ${price} ${loc('relics')}</a></div>`;
 				}
 				return s;
 			},
@@ -1175,7 +1176,8 @@ M.launch = function (this: DungeonMinigame) {
 					`<a class="control middle" onclick="document.getElementById('dungeonP${this.id}').value='wait';document.getElementById('dungeonP${this.id}').dispatchEvent(new Event('change',{bubbles:true}));"></a><br>` +
 					`</div>`;
 				str += `<div style="position:absolute;left:${9 * 16 + 16 + 48 * 3}px;bottom:16px;height:100%;">` +
-					`<div class="dungeonName"><a onclick="g.ObjectsById[${this.id}].setSpecial(0);">Exit</a> - <span class="title" style="font-size:12px;">${this.name}</span> lvl.${this.level + 1}</div>` +
+					`<div class="dungeonName"><a onclick="g.ObjectsById[${this.id}].setSpecial(0);">${loc('Exit')}</a> - <span class="title" style="font-size:12px;">${this.name}</span> lvl.${this.level + 1}</div>` +
+					`<div id="dungeonAuto${this.id}" class="dungeonAutoBadge" style="display:${this.auto ? 'block' : 'none'}">${loc('AUTO')}</div>` +
 					`<div id="heroSlot${this.id}" class="mobSlot"><div id="picHero${this.id}" class="mobPic"></div><div id="nameHero${this.id}" class="title mobName"></div><div class="hpmBar"><div id="hpHero${this.id}" class="hpBar"></div></div></div>` +
 					`<div id="monsterSlot${this.id}" class="mobSlot" style="left:128px;"><div id="picMonster${this.id}" class="mobPic"></div><div id="nameMonster${this.id}" class="title mobName"></div><div class="hpmBar"><div id="hpMonster${this.id}" class="hpBar"></div></div></div>` +
 					`</div>` +
@@ -1210,6 +1212,7 @@ M.launch = function (this: DungeonMinigame) {
 				if (mc) { mc.style.left = (x * 16) + "px"; mc.style.top = (y * 16) + "px"; }
 				const mi = l("mapitems" + this.id);
 				if (mi) mi.innerHTML = this.DrawEntities();
+				const ab = l("dungeonAuto" + this.id); if (ab) ab.style.display = this.auto ? "block" : "none";
 			},
 			RedrawMap: function () { this.map.str = this.map.getStr(); this.Draw(); },
 			Turn: function () {
@@ -1232,7 +1235,7 @@ M.launch = function (this: DungeonMinigame) {
 				if (this.hero && this.hero.x === this.map.exit[0] && this.hero.y === this.map.exit[1]) this.CompleteLevel();
 			},
 			DrawButton: function () {
-				return `<div style="width:144px;height:144px;position:absolute;left:0px;bottom:0px;"><a class="specialButtonPic" style="background-image:url(img/${this.portalPic}.webp);" onclick="g.ObjectsById[${this.id}].setSpecial(1);"><div class="specialButtonText">Enter dungeons</div></a></div>`;
+				return `<div style="width:144px;height:144px;position:absolute;left:0px;bottom:0px;"><a class="specialButtonPic" style="background-image:url(img/${this.portalPic}.webp);" onclick="g.ObjectsById[${this.id}].setSpecial(1);"><div class="specialButtonText">${loc('Enter dungeons')}</div></a></div>`;
 			},
 			// CC3 (Tier 1): swap the active hero mid-delve (hero picker). Tears down
 			// the old hero entity and re-enters the chosen one at the entrance; the

@@ -3427,7 +3427,18 @@ export default { id: "EN", name: "english", strings: {
 	"click and hold a building to buy it over and over": "/",
 
 	"Soundtrack": "/",
-	"Track": "/"
+	"Track": "/",
+
+	"Delve status": "/",
+	"Relic workshop": "/",
+	"Relics:": "/",
+	"Enter dungeons": "/",
+	"AUTO": "/",
+	"Depth": "/",
+	"Monsters": "/",
+	"Exit": "/",
+	"best": "/",
+	"relics": "/"
 
 }
 } satisfies LanguageData;
