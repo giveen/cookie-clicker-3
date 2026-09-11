@@ -1059,7 +1059,6 @@ M.launch = function (this: DungeonMinigame) {
 			auto: true,
 			autoTimer: 0,
 			autoWarmup: 5,
-			portalPic: "dungeonFactory",
 			cookiesMadeThisRun: 0,
 			monstersKilledThisRun: 0,
 			heroEntity: null as any,
@@ -1094,7 +1093,7 @@ M.launch = function (this: DungeonMinigame) {
 					const price = u ? (u.relicsPrice || 0) : 0;
 					const stacks = self.effectiveStacks(uname);
 					const canBuy = self.relics >= price;
-					s += `<div class="dungeonShopRow"><a class="dungeonShopBtn" style="color:${canBuy ? '#9f9' : '#777'};cursor:${canBuy ? 'pointer' : 'default'};text-decoration:none;" onclick="(g.ObjectsById[${this.id}].minigame.buyUpgrade('${uname}'));">${uname} ×${stacks} — ${price} ${loc('relics')}</a></div>`;
+					s += `<div class="dungeonShopRow"><a class="dungeonShopBtn" style="color:${canBuy ? '#9f9' : '#777'};cursor:${canBuy ? 'pointer' : 'default'};text-decoration:none;" onclick="(Game.ObjectsById[${this.id}].minigame.buyUpgrade('${uname}'))">${uname} ×${stacks} — ${price} ${loc('relics')}</a></div>`;
 				}
 				return s;
 			},
@@ -1209,7 +1208,7 @@ M.launch = function (this: DungeonMinigame) {
 					`<a class="control middle" onclick="document.getElementById('dungeonP${this.id}').value='wait';document.getElementById('dungeonP${this.id}').dispatchEvent(new Event('change',{bubbles:true}));"></a><br>` +
 					`</div>`;
 				str += `<div style="position:absolute;left:${9 * 16 + 16 + 48 * 3}px;top:0px;bottom:16px;">` +
-					`<div class="dungeonName"><a onclick="g.ObjectsById[${this.id}].setSpecial(0);">${loc('Exit')}</a> - <span class="title" style="font-size:12px;">${this.name}</span> lvl.${this.level + 1}</div>` +
+					`<div class="dungeonName"><a onclick="Game.ObjectsById[${this.id}].switchMinigame(0,1);">${loc('Exit')}</a> - <span class="title" style="font-size:12px;">${this.name}</span> lvl.${this.level + 1}</div>` +
 					`<div id="dungeonAuto${this.id}" class="dungeonAutoBadge" style="display:${this.auto ? 'block' : 'none'}">${loc('AUTO')}</div>` +
 					`<div id="heroSlot${this.id}" class="mobSlot"><div id="picHero${this.id}" class="mobPic"></div><div id="nameHero${this.id}" class="title mobName"></div><div class="hpmBar"><div id="hpHero${this.id}" class="hpBar"></div></div></div>` +
 					`<div id="monsterSlot${this.id}" class="mobSlot" style="left:128px;"><div id="picMonster${this.id}" class="mobPic"></div><div id="nameMonster${this.id}" class="title mobName"></div><div class="hpmBar"><div id="hpMonster${this.id}" class="hpBar"></div></div></div>` +
@@ -1225,7 +1224,7 @@ M.launch = function (this: DungeonMinigame) {
 			let pickerStr = `<div class="dungeonHeroPicker">`;
 			for (let pi = 0; pi < DungeonHeroes.length; pi++) {
 				const h = DungeonHeroes[pi];
-				pickerStr += `<a class="dungeonHeroChip${pi === self.selectedHero ? ' selected' : ''}" title="${h.name}" style="background-image:url(img/${h.portrait}.webp);" onclick="g.ObjectsById[${this.id}].minigame.setHero(${pi});"></a>`;
+				pickerStr += `<a class="dungeonHeroChip${pi === self.selectedHero ? ' selected' : ''}" title="${h.name}" style="background-image:url(img/${h.portrait}.webp);" onclick="Game.ObjectsById[${this.id}].minigame.setHero(${pi});"></a>`;
 			}
 			pickerStr += `</div>`;
 			str += pickerStr;
@@ -1267,9 +1266,9 @@ M.launch = function (this: DungeonMinigame) {
 			this.UpdateInfo();
 				if (this.hero && this.hero.x === this.map.exit[0] && this.hero.y === this.map.exit[1]) this.CompleteLevel();
 			},
-			DrawButton: function () {
-				return `<div style="width:144px;height:144px;position:absolute;left:0px;bottom:0px;"><a class="specialButtonPic" style="background-image:url(img/${this.portalPic}.webp);" onclick="g.ObjectsById[${this.id}].setSpecial(1);"><div class="specialButtonText">${loc('Enter dungeons')}</div></a></div>`;
-			},
+			// CC2's "Enter dungeons" button (DrawButton/portalPic) is not part of the
+			// CC3 row layout — the minigame is opened from the row's productMinigameButton,
+			// like every other minigame.
 			// CC3 (Tier 1): swap the active hero mid-delve (hero picker). Tears down
 			// the old hero entity and re-enters the chosen one at the entrance; the
 			// map, relics, and relic-stack progress are untouched.
