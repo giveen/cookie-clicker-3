@@ -10,7 +10,7 @@
  */
 
 import type { Building, Game as EngineGame } from "./types";
-import { Beautify } from "./utils/format";
+import { Beautify, DISPLAYABLE_MAX } from "./utils/format";
 
 /* ====================================================================== *
  *  HELPERS                                                                *
@@ -688,7 +688,14 @@ function createEntity(type: string, subtype: string, dungeon: any, value?: any):
 					// count*50 formula before the first gain recalculation.
 					const rawCps = g.Objects[this.dungeon.type].storedCps;
 					const cps = (typeof rawCps === "number" ? rawCps : 0) || g.Objects[this.dungeon.type].amount * 50;
-					const value = Math.ceil(ent.value * Math.max(1, cps) * (1 + Math.random() * (this.stats.luck / 20)));
+					// CC3 (P0): the reward scales with the Factory's actual CpS — on an
+					// endgame save that product can exceed the float range, which pushed
+					// the cookie balance to true Infinity: the top counter rendered
+					// "Infinity" and WriteSave stored the literal "Infinity", corrupting
+					// the save. Cap at the highest displayable number (Earn additionally
+					// clamps), so a pickup can never overflow the ledger.
+					let value = Math.min(Math.ceil(ent.value * Math.max(1, cps) * (1 + Math.random() * (this.stats.luck / 20))), DISPLAYABLE_MAX);
+					if (!Number.isFinite(value)) value = 0;
 					if (value > 0) { this.dungeon.Log(`<span style="color:#9f9;">Found <b>${Beautify(value)}</b> cookie${value === 1 ? "" : "s"}!</span>`); this.dungeon.cookiesMadeThisRun += value; g.Earn(value); }
 					ent.Destroy();
 				}
