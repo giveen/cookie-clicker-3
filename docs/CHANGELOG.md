@@ -11,6 +11,10 @@ upstream Cookie Clicker 2.048 patch notes that the engine also displays
 (31/05/2022 back to 05/08/2013) are Orteil's, shown verbatim in the
 in-game log, and are not duplicated here.
 
+## 11/09/2026 - Factory Dungeon panel fix
+
+- fixed the Factory Dungeon panel staying a 24-pixel sliver when opened — the board now fills the panel like every other minigame: the map, control pad, combat log, delve-status card and relic workshop all sit inside the panel, with the control-pad buttons stacked in their proper spots instead of lying on top of each other
+
 ## 08/09/2026 - Factory Dungeon minigame
 
 - added the Factory Dungeon: a turn-based delve where your hero fights monsters and grabs cookies on the way to the exit — the deeper you go, the richer the haul

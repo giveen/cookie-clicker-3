@@ -67,6 +67,9 @@ export function declareVanillaChangelog(Game: EngineGame) {
 	
 	Game.updateLog+=
 
+	'</div><div class="subsection update">' +
+	'<div class="title">11/09/2026 - the Factory Dungeon panel opens at full size</div>' +
+	'<div class="listing">&bull; fixed the Factory Dungeon panel staying a 24-pixel sliver when opened — the board now fills the panel like every other minigame: the map, control pad, combat log, delve-status card and relic workshop all sit inside the panel, with the control-pad buttons stacked in their proper spots instead of lying on top of each other</div>' +
 	'</div><div class="subsection update">'+
 	'<div class="title">08/09/2026 - Factory Dungeon minigame</div>'+
 	'<div class="listing">&bull; added the Factory Dungeon: a turn-based delve where your hero fights monsters and grabs cookies on the way to the exit — the deeper you go, the richer the haul</div>'+
