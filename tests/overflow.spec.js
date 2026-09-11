@@ -27,10 +27,6 @@ const BOOT = { timeout: 30_000 };
 // entries, so the cap is 1000^99 = 1e297. Beyond it, Beautify renders the
 // literal "Infinity".
 const CAP = 1e297;
-// LoadSave only accepts the engine's base64 export format; this mirrors its
-// utf8_to_b64 for ASCII save strings (the exact encoding WriteSave(1) emits).
-const toExportCode = (s) => btoa(unescape(encodeURIComponent(s)));
-const fromExportCode = (s) => decodeURIComponent(escape(atob(s)));
 
 async function boot(page) {
 	await page.goto('/?debug=1', { waitUntil: 'load' });
