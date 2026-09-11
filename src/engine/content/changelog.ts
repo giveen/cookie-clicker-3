@@ -68,6 +68,9 @@ export function declareVanillaChangelog(Game: EngineGame) {
 	Game.updateLog+=
 
 	'</div><div class="subsection update">' +
+	'<div class="title">11/09/2026 - the Factory Dungeon buttons actually work when you click them</div>' +
+	'<div class="listing">&bull; fixed the Factory Dungeon panel\'s Exit link, hero-picker buttons and relic workshop buy buttons doing nothing when clicked (their click handlers pointed at a game internal that isn\'t available to page-level buttons — clicking threw an error instead of acting). The Exit link now closes the panel, the hero chips switch your hero, and the relic buttons spend your relics as intended</div>' +
+	'</div><div class="subsection update">' +
 	'<div class="title">11/09/2026 - the Factory Dungeon panel opens at full size</div>' +
 	'<div class="listing">&bull; fixed the Factory Dungeon panel staying a 24-pixel sliver when opened — the board now fills the panel like every other minigame: the map, control pad, combat log, delve-status card and relic workshop all sit inside the panel, with the control-pad buttons stacked in their proper spots instead of lying on top of each other</div>' +
 	'</div><div class="subsection update">'+
