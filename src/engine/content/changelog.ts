@@ -68,6 +68,9 @@ export function declareVanillaChangelog(Game: EngineGame) {
 	Game.updateLog+=
 
 	'</div><div class="subsection update">' +
+	'<div class="title">11/09/2026 - the cookie counter can no longer turn into "Infinity" (and it repairs saves that already did)</div>' +
+	'<div class="listing">&bull; fixed a serious bug that could hit very large saves: a Factory Dungeon cookie pickup was scaled by your factory\'s production, and the product could overflow the largest number the game can represent — the top counter then displayed "Infinity", purchases stopped doing anything, and the damage was written into your save, so re-importing it kept it broken. Cookie counts are now clamped at the largest number the game can display, rewards that aren\'t real numbers are refused outright, and a save that already contains the damage self-repairs on load: your counter comes back as a huge but genuine number and the next autosave rewrites the file clean</div>' +
+	'</div><div class="subsection update">' +
 	'<div class="title">11/09/2026 - the Factory Dungeon buttons actually work when you click them</div>' +
 	'<div class="listing">&bull; fixed the Factory Dungeon panel\'s Exit link, hero-picker buttons and relic workshop buy buttons doing nothing when clicked (their click handlers pointed at a game internal that isn\'t available to page-level buttons — clicking threw an error instead of acting). The Exit link now closes the panel, the hero chips switch your hero, and the relic buttons spend your relics as intended</div>' +
 	'</div><div class="subsection update">' +
