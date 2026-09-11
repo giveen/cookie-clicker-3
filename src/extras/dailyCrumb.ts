@@ -128,9 +128,9 @@ import { clampCookies } from '../engine/systems/economy';
 
 	function grantWeekly(Game: EngineGame, lines: string[]): void {
 		for (let i = 0; i < WEEKLY_GOLDENS; i++) new Game.shimmer('golden');
-	const amt = Math.max(MIN_CRUMB_COOKIES, (Game.cookiesPs || 0) * 60 * WEEKLY_MINUTES);
-	Game.cookies = clampCookies(Game.cookies + amt);
-	Game.cookiesEarned = clampCookies(Game.cookiesEarned + amt);
+		const amt = Math.max(MIN_CRUMB_COOKIES, (Game.cookiesPs || 0) * 60 * WEEKLY_MINUTES);
+		Game.cookies = clampCookies(Game.cookies + amt);
+		Game.cookiesEarned = clampCookies(Game.cookiesEarned + amt);
 		lines.push(loc('Weekly crumb: %1 golden cookies + %2 cookies', [String(WEEKLY_GOLDENS), Beautify(amt)]));
 	}
 
