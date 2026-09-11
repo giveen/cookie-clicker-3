@@ -2073,10 +2073,13 @@ Game.Launch=function()
 		Game.ComputeCps=ComputeCps;//CC3 rewrite (phase 4, slice 1): moved verbatim to systems/economy.ts; same Game slot, same Init position.
 		
 		Game.isMinigameReady=function(me: Building)
- 		{
-			// CC3: the Factory Dungeon is gated behind Factory level 50 so the delve
-			// isn't available the instant the first Factory is bought.
-			if (me.name==='Factory' && me.level<50) return false;
+		{
+			// CC3: the Factory Dungeon unlocks once the player owns 50 Factories —
+			// the CC2 rule ("you need 50 factories to unlock them"), restated in the
+			// CC3 changelog. The gate checks `amount`, not `level`: `level` is the
+			// sugar-lump level, which buying Factories never advances, so a
+			// level-based gate kept the dungeon hidden from players who own 50+.
+			if (me.name==='Factory') return !!(me.minigameUrl && me.minigameLoaded && me.amount>=50);
 			return !!(me.minigameUrl && me.minigameLoaded && me.level>0);
 		}
 		Game.scriptBindings=[];
@@ -2086,13 +2089,15 @@ Game.Launch=function()
 			for (var i in Game.Objects)
 			{
 				const me=Game.Objects[i];
-				// CC3: the Factory Dungeon only loads once the Factory reaches level 50.
-				const minigameMinLevel = me.name==='Factory' ? 50 : 1;
-				if (me.minigameUrl && me.level>=minigameMinLevel && !me.minigameLoaded && !me.minigameLoading && !l('minigameScript-'+me.id))
+				// CC3: the Factory Dungeon only loads once the player owns 50
+				// Factories (see isMinigameReady); the other minigames load once
+				// their building has been levelled up to at least 1.
+				const minigameUnlocked = me.name==='Factory' ? me.amount>=50 : me.level>=1;
+				if (me.minigameUrl && minigameUnlocked && !me.minigameLoaded && !me.minigameLoading && !l('minigameScript-'+me.id))
 				{
 					me.minigameLoading=true;
-					//we're only loading the minigame scripts that aren't loaded yet and which have enough building level
-					//we call this function on building level up and on load
+					//we're only loading the minigame scripts that aren't loaded yet and which are unlocked
+					//we call this function on building level up, on load, and every game tick (Logic)
 					//console.log('Loading script '+me.minigameUrl+'...');
 					// CC3: minigame scripts are ES modules resolved by the entry point
 window.loadMinigameModule!(me.minigameUrl).then(function(){

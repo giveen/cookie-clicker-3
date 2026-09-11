@@ -1135,9 +1135,10 @@ M.launch = function (this: DungeonMinigame) {
 
 				const exitTile = this.map.exit;
 				// CC3 (Tier 3): bosses only guard the exit from a deeper floor onward
-				// (BOSS_MIN_LEVEL). A freshly unlocked dungeon (Factory at level 1) was
-				// otherwise blocked by an unbeatable guardian at the exit on floor 1, so
-				// early floors are monster-only and let the player build up relics/hero.
+			// (BOSS_MIN_LEVEL). A freshly unlocked dungeon (the 50-Factory unlock
+			// point) was otherwise blocked by an unbeatable guardian at the exit
+			// on floor 1, so early floors are monster-only and let the player
+			// build up relics/hero.
 				const BOSS_MIN_LEVEL = 5;
 				if (this.level >= BOSS_MIN_LEVEL) {
 					const candidates: string[] = [];

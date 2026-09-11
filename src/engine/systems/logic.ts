@@ -140,6 +140,12 @@ export function Logic()
 			Game.doLumps();
 			
 			//minigames
+			//CC3: poll the lazy minigame loader every tick (the CC2 2.048 Update loop
+			//did) so a minigame that just met its unlock condition — the Factory
+			//Dungeon hitting 50 owned Factories mid-session — loads and shows up
+			//without a page reload, level-up or save import. Cheap: already-loaded
+			//and not-unlocked buildings short-circuit on flag checks.
+			Game.LoadMinigames();
 			for (var iKey in Game.Objects)
 			{
 				var me=Game.Objects[iKey];

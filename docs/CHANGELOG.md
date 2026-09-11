@@ -18,6 +18,7 @@ in-game log, and are not duplicated here.
 - auto-explore reliably paths your hero to the exit with breadth-first search, capped by a throttle so a full delve runs itself without freezing the tab — a visible "AUTO" badge shows when it's on
 - bosses drop relic caches that feed a persistent meta-currency (relics survive ascensions), spent on six relic upgrades that grow your hero and your cookie yield
 - the dungeon tracks your best depth, cookies and monsters per run, and plays combat sound effects as you fight
+- the Factory Dungeon now unlocks once you reach 50 Factories (it used to be available from the very first one), so the delve arrives as a proper mid-game goal
 
 ## 08/09/2026 - heavenly icon fix
 

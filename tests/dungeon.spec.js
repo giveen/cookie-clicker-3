@@ -1,7 +1,7 @@
 // Factory Dungeon minigame — functional coverage (Tier 2).
 //
 // Boots the production build in headless Chromium, force-loads the Factory
-// minigame (it unlocks at Factory level 1), and asserts the dungeon behaves:
+// minigame (it unlocks once you own 50 Factories), and asserts the dungeon behaves:
 //   1. the minigame loads with a hero, generated map, entrance and exit;
 //   2. hero selection swaps the live hero and persists on the minigame;
 //   3. auto-explore (BFS pathing, throttled) actually drives the hero to the
@@ -28,17 +28,18 @@ async function boot(page) {
 	await page.waitForFunction(() => window.Game && window.Game.ready === 1, null, BOOT);
 }
 
-/** Force the Factory minigame to load: unlock the building, then LoadMinigames. */
+/** Force the Factory minigame to load: give it the unlock threshold, then LoadMinigames. */
 async function loadDungeon(page) {
 	await page.evaluate(() => {
 		const G = window.Game;
 		G.cookies += 1e15;
 		const f = G.Objects['Factory'];
-		f.amount = 1;
+		// the Factory Dungeon is gated behind OWING 50 Factories (CC3) — not the
+		// sugar-lump level, which buying Factories never advances.
+		f.amount = 50;
 		f.unlocked = 1;
-		f.bought = 1;
-		f.highest = 1;
-		f.level = 50; // the Factory Dungeon is gated behind Factory level 50 (CC3)
+		f.bought = 50;
+		f.highest = 50;
 		G.recalculateGains = 1;
 		if (G.LoadMinigames) G.LoadMinigames();
 	});
@@ -52,23 +53,52 @@ async function loadDungeon(page) {
 	);
 }
 
-test('Factory Dungeon is gated behind Factory level 50', async ({ page }) => {
+test('Factory Dungeon is gated behind owning 50 Factories', async ({ page }) => {
 	await boot(page);
 	// Drive Game.isMinigameReady directly with the prerequisites satisfied so we
-	// isolate the level gate (no async script-loading timing in the assertion).
+	// isolate the ownership gate (no async script-loading timing in the assertion).
+	// level is pinned to 0 so a regression to a sugar-lump-level gate fails here
+	// (a level-only gate would keep the dungeon locked at 50 owned Factories).
 	const res = await page.evaluate(() => {
 		const G = window.Game;
 		const f = G.Objects['Factory'];
 		f.minigameUrl = 'minigameDungeon.js';
 		f.minigameLoaded = true;
-		const check = (lvl) => {
-			f.level = lvl;
+		f.level = 0;
+		const check = (n) => {
+			f.amount = n;
 			return G.isMinigameReady(f);
 		};
-		return { lockedAt1: check(1), unlockedAt50: check(50) };
+		return { lockedAt1: check(1), lockedAt49: check(49), unlockedAt50: check(50) };
 	});
-	expect(res.lockedAt1, 'dungeon should NOT be ready at Factory level 1').toBe(false);
-	expect(res.unlockedAt50, 'dungeon should be ready at Factory level 50').toBe(true);
+	expect(res.lockedAt1, 'dungeon should NOT be ready with 1 Factory').toBe(false);
+	expect(res.lockedAt49, 'dungeon should NOT be ready with 49 Factories').toBe(false);
+	expect(res.unlockedAt50, 'dungeon should be ready with 50 Factories').toBe(true);
+});
+
+test('the dungeon loads in-session once the 50th Factory is owned (no reload, no manual load)', async ({ page }) => {
+	await boot(page);
+	// Reach the unlock threshold the way a player would: own 50 Factories.
+	// Deliberately do NOT call Game.LoadMinigames() — the engine's per-tick poll
+	// in Logic() must notice and load the dungeon on its own.
+	await page.evaluate(() => {
+		const G = window.Game;
+		const f = G.Objects['Factory'];
+		G.cookies += 1e15;
+		f.amount = 50;
+		f.unlocked = 1;
+		f.bought = 50;
+		f.highest = 50;
+		G.recalculateGains = 1;
+	});
+	await page.waitForFunction(
+		() => {
+			const f = window.Game.Objects['Factory'];
+			return !!(f && f.minigameLoaded && f.minigame && f.dungeon && f.dungeon.hero);
+		},
+		null,
+		{ timeout: 30_000 },
+	);
 });
 
 test('dungeon minigame loads with a hero, map, entrance and exit', async ({ page }) => {
@@ -125,9 +155,10 @@ test('hero selection swaps the live hero and updates the minigame pick', async (
 test('auto-explore (BFS pathing) clears the early floors for a fresh, un-buffed hero', async ({ page }) => {
 	await boot(page);
 	await loadDungeon(page);
-	// No buffing: this is a balance assertion. A freshly unlocked Factory (amount 1)
-	// must not be blocked by an unbeatable boss on floor 1 — the hero should clear
-	// at least one floor and win fights along the way.
+	// No buffing: this is a balance assertion. A freshly unlocked Factory (50
+	// Factories — the unlock threshold, the minimum a player can have here)
+	// must not be blocked by an unbeatable boss on floor 1 — the hero should
+	// clear at least one floor and win fights along the way.
 	const res = await page.evaluate(() => {
 		const F = window.Game.Objects['Factory'];
 		const d = F.dungeon;
