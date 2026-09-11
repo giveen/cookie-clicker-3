@@ -8,7 +8,11 @@
 //      exit and clears a floor (level increases);
 //   4. the relic economy grants relics (boss/loot path) and save/load round-trips
 //      relics + the selected hero;
-//   5. the visible auto-explore indicator badge reflects the auto state.
+//   5. the visible auto-explore indicator badge reflects the auto state;
+//   6. the panel's inline onclick handlers (Exit link, hero-picker chips,
+//      relic-workshop buy buttons) execute without ReferenceErrors — they run
+//      in the global scope, so they must reference the global `Game`, not a
+//      module-local.
 //
 // Each test re-boots fresh so state never leaks between them.
 // Run: npx playwright test tests/dungeon.spec.js
@@ -329,4 +333,82 @@ test('expanded panel has the full-size layout: in-flow wrapper, board inside the
 	expect(closed.onMinigame, 'panel flagged closed').toBeFalsy();
 	expect(closed.panelDisplay, 'panel hidden when closed').toBe('none');
 	expect(closed.rowH, 'row back to the canvas height, not the panel height').toBeLessThan(300);
+});
+
+test('panel inline handlers (Exit link, hero chips, relic buy) run without reference errors', async ({ page }) => {
+	await boot(page);
+	await loadDungeon(page);
+	// Inline onclick attributes compile to GLOBAL-scope functions in the page:
+	// they can only reach `window.Game`, never a module-local alias. A handler
+	// that references anything else (e.g. the minigame's private `g`) throws a
+	// ReferenceError the moment a real user clicks it — exactly what happened
+	// to the Exit link, hero chips and relic-workshop buttons before the fix.
+	const errors = [];
+	page.on('pageerror', (e) => errors.push(String(e)));
+	page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
+
+	await page.evaluate(() => {
+		const F = window.Game.Objects['Factory'];
+		F.switchMinigame(1);
+		F.refresh();
+	});
+	// loadDungeon's 1e15-cookie seed cascades into an achievement-crate flood in
+	// the #notes overlay, which sits over the panel and intercepts clicks. Clear
+	// them the way a user would (the same call the notes panel's own x uses),
+	// right before each interaction — more crates can still arrive between them.
+	const clearNotes = () => page.evaluate(() => window.Game.CloseNotes());
+
+	// (a) hero-picker chip -> minigame.setHero
+	await clearNotes();
+	const chips = page.locator('.dungeonHeroChip');
+	expect(await chips.count(), 'four hero chips in the panel').toBe(4);
+	await chips.nth(1).click();
+	const hero = await page.evaluate(() => window.Game.Objects['Factory'].minigame.selectedHero);
+	expect(hero, 'hero chip click applied (no ReferenceError)').toBe(1);
+
+	// (b) relic-workshop buy button -> minigame.buyUpgrade
+	await page.evaluate(() => {
+		const M = window.Game.Objects['Factory'].minigame;
+		M.relics = 500;
+		M.draw(); // redraw the shop so the row is rendered buyable
+	});
+	const before = await page.evaluate(() => {
+		const M = window.Game.Objects['Factory'].minigame;
+		return { name: M.upgradeNames[0], stacks: M.effectiveStacks(M.upgradeNames[0]), relics: M.relics };
+	});
+	await clearNotes();
+	await page.locator('.dungeonShopBtn').first().click();
+	const after = await page.evaluate(() => {
+		const M = window.Game.Objects['Factory'].minigame;
+		return { name: M.upgradeNames[0], stacks: M.effectiveStacks(M.upgradeNames[0]), relics: M.relics };
+	});
+	expect(after.stacks, 'relic buy applied a stack').toBe(before.stacks + 1);
+	expect(after.relics, 'relic buy spent relics').toBeLessThan(before.relics);
+
+	// (c) Exit link -> switchMinigame(0,1): flips the flag instantly; the
+	// user-click path closes ANIMATED (~180ms). The close animation removes the
+	// row's class up-front (keeping the panel in flow via inline styles), so
+	// the class is NOT a done-signal — wait for the panel to actually collapse.
+	await clearNotes();
+	await page.locator('#dungeonContent .dungeonName a').first().click();
+	const fid = await page.evaluate(() => window.Game.Objects['Factory'].id);
+	await page.waitForFunction((pid) => {
+		const F = window.Game.Objects['Factory'];
+		if (F.onMinigame) return false;
+		const el = document.getElementById('dungeonContent');
+		if (!el) return true;
+		return el.getBoundingClientRect().height < 10; // collapsed (CSS display:none or zero height)
+	}, fid, { timeout: 15_000 });
+	const closed = await page.evaluate((id) => {
+		const F = window.Game.Objects['Factory'];
+		const el = document.getElementById('dungeonContent');
+		return {
+			onMinigame: F.onMinigame,
+			panelGone: !el || el.getBoundingClientRect().height < 10 || getComputedStyle(el).display === 'none',
+		};
+	}, fid);
+	expect(closed.onMinigame, 'Exit link closed the panel').toBeFalsy();
+	expect(closed.panelGone, 'panel collapsed after the animated close').toBe(true);
+
+	expect(errors, 'no uncaught errors from any inline handler').toEqual([]);
 });
