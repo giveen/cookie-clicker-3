@@ -22,8 +22,15 @@
 import { test, expect } from '@playwright/test';
 
 const BOOT = { timeout: 30_000 };
-// Largest displayable number (utils/format.ts: 1000^(min(table lengths)-1)).
-const CAP = 1e270;
+// Largest displayable number: utils/format.ts computes 1000^(min(formatLong,
+// formatShort).length-1) — both suffix tables have 90 extended + 10 base
+// entries, so the cap is 1000^99 = 1e297. Beyond it, Beautify renders the
+// literal "Infinity".
+const CAP = 1e297;
+// LoadSave only accepts the engine's base64 export format; this mirrors its
+// utf8_to_b64 for ASCII save strings (the exact encoding WriteSave(1) emits).
+const toExportCode = (s) => btoa(unescape(encodeURIComponent(s)));
+const fromExportCode = (s) => decodeURIComponent(escape(atob(s)));
 
 async function boot(page) {
 	await page.goto('/?debug=1', { waitUntil: 'load' });
@@ -114,15 +121,17 @@ test('a save written after overflow is clean and re-imports', async ({ page }) =
 		G.cookies = 1e200;
 		G.Earn(1e90); // 1e290 is past the cap — the ledger must clamp it
 	});
-	const code = await page.evaluate(() => window.Game.WriteSave(1));
+	// WriteSave(2) is the uncompressed string: a literal "Infinity" in it is
+	// exactly the corruption signature the broken builds produced.
+	const code = await page.evaluate(() => window.Game.WriteSave(2));
 	expect(typeof code).toBe('string');
 	expect(code.length).toBeGreaterThan(100);
 	expect(code, 'save must not contain the Infinity literal').not.toContain('Infinity');
-	const res = await page.evaluate((c) => {
+	const res = await page.evaluate(({ code }) => {
 		const G = window.Game;
-		const ok = G.ImportSaveCode(c);
+		const ok = G.ImportSaveCode(btoa(unescape(encodeURIComponent(code))));
 		return { ok, c: G.cookies, e: G.cookiesEarned };
-	}, code);
+	}, { code });
 	expect(res.ok, 'the clean save imports').toBe(true);
 	expect(Number.isFinite(res.c)).toBe(true);
 	expect(res.c).toBeGreaterThan(0);
@@ -133,7 +142,8 @@ test('a save poisoned with the literal "Infinity" self-heals on import', async (
 	await boot(page);
 	const res = await page.evaluate(() => {
 		const G = window.Game;
-		const parts = G.WriteSave(1).split('|');
+		const raw = G.WriteSave(2); // uncompressed string
+		const parts = raw.split('|');
 		const run = parts[2].split(';');
 		// Corrupt it exactly the way the broken builds wrote it: parseFloat
 		// turns the literal "Infinity" back into float Infinity on import.
@@ -141,7 +151,8 @@ test('a save poisoned with the literal "Infinity" self-heals on import', async (
 		run[1] = 'Infinity'; // cookiesEarned
 		run[8] = 'Infinity'; // cookiesReset
 		parts[2] = run.join(';');
-		const ok = G.ImportSaveCode(parts.join('|'));
+		const poisoned = btoa(unescape(encodeURIComponent(parts.join('|'))));
+		const ok = G.ImportSaveCode(poisoned);
 		return { ok, cookies: G.cookies, earned: G.cookiesEarned, reset: G.cookiesReset };
 	});
 	expect(res.ok, 'a poisoned save still imports (not rejected)').toBe(true);
@@ -184,6 +195,6 @@ test('a dungeon pickup scaled by endgame factory CpS cannot overflow the ledger'
 	await page.waitForTimeout(500);
 	const label = await page.locator('#cookieAmount').first().textContent();
 	expect(label).not.toMatch(/infinite/i);
-	const code = await page.evaluate(() => window.Game.WriteSave(1));
+	const code = await page.evaluate(() => window.Game.WriteSave(2));
 	expect(code, 'the save stays clean under the stress').not.toContain('Infinity');
 });
