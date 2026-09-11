@@ -1213,7 +1213,10 @@
 		oddsUp.pool = 'prestige';
 		oddsUp.posX = 38;
 		oddsUp.posY = -188;
-		oddsUp.parents = [];
+		// CC3: attach to 'Legacy' like every other prestige upgrade — the init-time
+		// rule that does this for base upgrades has already run by the time mods
+		// register, so left empty this node would float detached from the tree.
+		oddsUp.parents = G.Upgrades['Legacy'] ? [G.Upgrades['Legacy']] : [];
 		oddsUp.showIf = function () {
 			return G.HasAchiev('Card shark');
 		};

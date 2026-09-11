@@ -1186,3 +1186,116 @@ test('heavenly presets: auto/branch/generations/grid arrange the tree, reset res
 	expect(r.activeIsAuto).toBe(true);
 	await assertNoUncaughtErrors(page);
 });
+test('heavenly tree: every prestige upgrade is rooted at Legacy; "By branch" stacks each family topologically', async ({ page }) => {
+	await boot(page, '&qa');
+	const r = await page.evaluate(() => {
+		const G = window.Game;
+		// in-set parent adjacency, mirroring the layout engine's buildGraph
+		const inSet = new Set(G.PrestigeUpgrades.map((u) => u.id));
+		const linked = (u) => (u.parents || []).filter((p) => p && p !== -1 && inSet.has(p.id) && p.id !== u.id);
+		const legacy = G.Upgrades['Legacy'];
+		const total = G.PrestigeUpgrades.length;
+
+		const unreachable = () => {
+			const kids = {};
+			for (const u of G.PrestigeUpgrades) for (const p of linked(u)) (kids[p.id] = kids[p.id] || []).push(u.id);
+			const seen = new Set([legacy.id]);
+			const stack = [legacy.id];
+			while (stack.length) {
+				const id = stack.pop();
+				for (const c of kids[id] || [])
+					if (!seen.has(c)) {
+						seen.add(c);
+						stack.push(c);
+					}
+			}
+			return G.PrestigeUpgrades.filter((u) => !seen.has(u.id)).map((u) => u.name);
+		};
+
+		// (a) post-boot: no floating islands anywhere (catches late-registered
+		// upgrades that escape the init-time 'Legacy' rule, e.g. casino's odds)
+		const islands = unreachable();
+
+		// (b) "By branch": within each family column the founder sits on top and
+		// no child lands above a same-column parent
+		G.ApplyHeavenlyPreset('branch');
+		const pos = {};
+		for (const u of G.PrestigeUpgrades) pos[u.id] = [u.posX, u.posY];
+		const sameColumn = (a, b) => Math.abs(pos[a][0] - pos[b][0]) < 100; // BRANCH_GAP/2
+		const rank = {};
+		const rankOf = (x) => {
+			if (rank[x] !== undefined) return rank[x];
+			let r = 0;
+			for (const p of linked(G.UpgradesById[x])) r = Math.max(r, rankOf(p.id) + 1);
+			return (rank[x] = r);
+		};
+		const founder = (id) => {
+			const roots = new Set();
+			const seen = new Set();
+			const stack = [id];
+			while (stack.length) {
+				const x = stack.pop();
+				if (seen.has(x)) continue;
+				seen.add(x);
+				if (rankOf(x) === 1) {
+					roots.add(x);
+					continue;
+				}
+				for (const p of linked(G.UpgradesById[x])) stack.push(p.id);
+			}
+			return roots.size ? Math.min(...roots) : id;
+		};
+		const columns = {};
+		for (const u of G.PrestigeUpgrades) (columns[founder(u.id)] = columns[founder(u.id)] || []).push(u.id);
+		const notOnTop = [];
+		const childAboveParent = [];
+		for (const f in columns) {
+			const ids = columns[f];
+			const minY = Math.min(...ids.map((id) => pos[id][1]));
+			if (pos[+f][1] !== minY) notOnTop.push(G.UpgradesById[+f].name);
+			for (const id of ids)
+				for (const p of linked(G.UpgradesById[id]))
+					if (sameColumn(id, p.id) && pos[id][1] <= pos[p.id][1])
+						childAboveParent.push(G.UpgradesById[id].name + ' !above ' + p.name);
+		}
+
+		// (c) late-arrival guard: a prestige upgrade pushed after init with no
+		// parents must be attached to Legacy by the re-sync and render its link,
+		// never an island
+		const probe = new G.Upgrade('CC3QA rootless probe', 'regression probe', 1, legacy.icon);
+		probe.pool = 'prestige';
+		probe.posX = 0;
+		probe.posY = 0;
+		probe.parents = [];
+		G.PrestigeUpgrades.push(probe);
+		G.DebuggingPrestige = true;
+		G.OnAscend = 1;
+		G.BuildAscendTree();
+		const probeRooted = (probe.parents || []).some((p) => p && p.name === 'Legacy');
+		const probeLink = !!document.getElementById('heavenlyLink' + probe.id + '-0');
+		const probeIsland = unreachable().includes(probe.name);
+		G.PrestigeUpgrades.pop();
+
+		return {
+			islands,
+			notOnTop,
+			childAboveParent,
+			columnCount: Object.keys(columns).length,
+			total,
+			probeRooted,
+			probeLink,
+			probeIsland,
+			oddsRooted: (G.Upgrades['Actually, do tell me the odds'] || { parents: [] }).parents.some((p) => p && p.name === 'Legacy'),
+		};
+	});
+	expect(r.islands, 'floating islands: ' + r.islands.join(', ')).toEqual([]);
+	expect(r.notOnTop, 'column founders not on top: ' + r.notOnTop.join(', ')).toEqual([]);
+	expect(r.childAboveParent, 'children above parents: ' + r.childAboveParent.join(', ')).toEqual([]);
+	expect(r.columnCount).toBeGreaterThan(1);
+	expect(r.total).toBeGreaterThan(100);
+	expect(r.probeRooted).toBe(true);
+	expect(r.probeLink).toBe(true);
+	expect(r.probeIsland).toBe(false);
+	expect(r.oddsRooted).toBe(true); // casino's late-registered heavenly upgrade hangs off the tree
+	await assertNoUncaughtErrors(page);
+});

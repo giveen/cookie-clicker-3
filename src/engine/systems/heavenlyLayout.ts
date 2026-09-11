@@ -241,7 +241,12 @@ function layoutBranch(g: Graph, rankMemo: Record<number, number>): Record<number
 	}
 	const positions: Record<number, [number, number]> = {};
 	for (const f of branchIds) {
-		const ids = (branchNodes[f] || []).slice().sort((a: number, b: number) => a - b);
+		// Order the column topologically — a member's depth below the founder is
+		// its rank minus the founder's rank — so parents sit above children.
+		// (Sorting by id instead scattered a family down the column, dropping a
+		// child thousands of pixels below its parent.)
+		const depth = (id: number) => rankMemo[id] - rankMemo[f];
+		const ids = (branchNodes[f] || []).slice().sort((a: number, b: number) => depth(a) - depth(b) || a - b);
 		const bx = branchIndex[f] * BRANCH_GAP;
 		ids.forEach((id, i) => {
 			const stagger = (i % 2 === 0 ? 1 : -1) * (8 + 4 * Math.min(i, 4));
@@ -298,17 +303,6 @@ export function applyHeavenlyPreset(this: any, presetId: string) {
 }
 
 /**
- * Re-derive the heavenly layout if prestige upgrades were added after init.
- * Mods (casino, destiny, american season...) register their own prestige
- * upgrades by pushing into Game.PrestigeUpgrades once the base engine layout
- * has already run, so those never appear in the init-time defaults. When the
- * defaults no longer cover every prestige upgrade this recomputes the full
- * Sugiyama layout, refreshes _heavenlyLayoutDefaults, and re-applies any
- * player ArrangeLayout overrides on top (drags survive a re-layout). Cheap
- * no-op (a size comparison) when the defaults are already complete.
- * Returns true when a re-sync actually happened.
- */
-/**
  * Fold prestige upgrades that appeared after the base-engine layout ran into
  * the layout bookkeeping WITHOUT moving them. Mods (casino, destiny, american
  * season...) register their own heavenly upgrades by pushing into
@@ -318,15 +312,33 @@ export function applyHeavenlyPreset(this: any, presetId: string) {
  * Reset target) and in Game.UpgradePositions (the debug copy/export map),
  * leaving their positions untouched. The "auto" preset is the explicit way to
  * re-derive a clean full-tree layout over mod upgrades too.
+ *
+ * It also re-applies, for late arrivals, the init-time rule that a prestige
+ * upgrade with no parent inside the prestige set attaches to 'Legacy' (see
+ * main.ts): base upgrades get that in Init, but an upgrade pushed by a mod
+ * afterwards (or whose parents all live outside the prestige set) would
+ * otherwise float as a detached island — unlinked, unreachable from the root,
+ * and layer 0 in every derived layout.
  * Cheap no-op when the defaults already cover every prestige upgrade.
  * Returns true when upgrades were added to the bookkeeping.
  */
 export function syncHeavenlyLayoutIfStale(this: any): boolean {
 	const Game = this || (typeof window !== "undefined" ? (window as any).Game : null);
 	if (!Game) return false;
+	const legacy = (Game.Upgrades || {})["Legacy"];
+	const inSet: Record<number, boolean> = {};
+	for (const u of Game.PrestigeUpgrades || []) inSet[u.id] = true;
 	const defaults = Game._heavenlyLayoutDefaults || (Game._heavenlyLayoutDefaults = {});
 	let added = 0;
 	for (const u of Game.PrestigeUpgrades || []) {
+		if (legacy && u.name !== "Legacy") {
+			// Rootless-node guard (idempotent): attach any prestige upgrade whose
+			// parents are all missing or outside the prestige set to Legacy so it
+			// can never render as a floating island in the tree.
+			const ps = u.parents || (u.parents = []);
+			const linked = ps.some((p: any) => p && p !== -1 && inSet[p.id] && p.id !== u.id);
+			if (!linked && ps.indexOf(legacy) === -1) ps.push(legacy);
+		}
 		if (defaults[u.id] === undefined) {
 			defaults[u.id] = [u.posX, u.posY];
 			added++;
