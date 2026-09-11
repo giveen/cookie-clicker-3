@@ -255,3 +255,78 @@ test('visible auto-explore indicator reflects the auto state', async ({ page }) 
 	const off = await page.evaluate((id) => document.getElementById(id).style.display, badgeId);
 	expect(off).toBe('none');
 });
+
+test('expanded panel has the full-size layout: in-flow wrapper, board inside the panel, no stacked controls', async ({ page }) => {
+	await boot(page);
+	await loadDungeon(page);
+	// Open the panel through the instant path (the one save-restore uses); the
+	// animated user-click path tweens to the same natural height measured here.
+	await page.evaluate(() => {
+		const F = window.Game.Objects['Factory'];
+		F.switchMinigame(1);
+		F.refresh();
+	});
+	const geo = await page.evaluate(() => {
+		const f = window.Game.Objects['Factory'];
+		const l = (id) => document.getElementById(id);
+		const r = (el) => {
+			if (!el) return null;
+			const b = el.getBoundingClientRect();
+			return { top: b.top, left: b.left, right: b.right, bottom: b.bottom, w: b.width, h: b.height };
+		};
+		const wrap = l('dungeonContent');
+		const panel = r(l('rowSpecial' + f.id));
+		const inPanel = (x) => !!x && !!panel && x.top >= panel.top - 1 && x.left >= panel.left - 1 && x.right <= panel.right + 1 && x.bottom <= panel.bottom + 1;
+		const map = r(l('map' + f.id));
+		const log = r(l('dungeonLog' + f.id));
+		const info = r(l('dungeonInfo' + f.id));
+		const shop = r(l('dungeonShop' + f.id));
+		return {
+			onMinigame: f.onMinigame,
+			panel,
+			wrap: r(wrap),
+			wrapPosition: wrap ? getComputedStyle(wrap).position : null,
+			mapInside: inPanel(map),
+			logInside: inPanel(log),
+			infoInside: inPanel(info),
+			shopInside: inPanel(shop),
+			exitInside: wrap ? inPanel(r(wrap.querySelector('.dungeonName'))) : false,
+			// The relic workshop must not cover the delve-status card above it.
+			infoShopGap: info && shop ? shop.top - info.bottom : null,
+			// All five D-pad buttons must occupy distinct positions (the legacy
+			// collapse pinned them all on top of each other).
+			controlTops: wrap ? [...wrap.querySelectorAll('.control')].map((c) => Math.round(c.getBoundingClientRect().top)) : null,
+			logSitsOnBottomEdge: panel && log ? Math.abs(log.bottom - panel.bottom) <= 2 : false,
+		};
+	});
+	// onMinigame can be the truthy number 1 (switchMinigame(1) from the QA/save-restore path), so assert truthiness, not strict boolean.
+	expect(geo.onMinigame, 'panel should be open').toBeTruthy();
+	// The regression being guarded against: the legacy absolute wrapper left the
+	// panel at its 24px min-height. A usable dungeon needs the full board —
+	// at least 3x the collapsed 128px canvas row.
+	expect(geo.panel.h, 'panel height').toBeGreaterThanOrEqual(360);
+	expect(geo.wrap.h, 'in-flow wrapper fills the panel').toBeCloseTo(geo.panel.h, 0);
+	expect(geo.wrapPosition, 'wrapper must be the positioned containing block').toBe('relative');
+	expect(geo.mapInside, 'map is inside the panel').toBe(true);
+	expect(geo.logInside, 'log is inside the panel').toBe(true);
+	expect(geo.logSitsOnBottomEdge, 'log pinned to the panel bottom edge').toBe(true);
+	expect(geo.infoInside, 'delve-status card is inside the panel').toBe(true);
+	expect(geo.shopInside, 'relic workshop is inside the panel').toBe(true);
+	expect(geo.exitInside, 'exit/level header is inside the panel').toBe(true);
+	expect(geo.infoShopGap, 'relic workshop does not overlap the delve-status card').toBeGreaterThanOrEqual(0);
+	const tops = geo.controlTops || [];
+	expect(tops.length, 'five D-pad buttons present').toBe(5);
+	expect(new Set(tops).size, 'D-pad buttons occupy distinct rows').toBe(5);
+
+	// Closing collapses the row back to its fixed-height canvas form.
+	await page.evaluate(() => window.Game.Objects['Factory'].switchMinigame(0));
+	const closed = await page.evaluate(() => {
+		const f = window.Game.Objects['Factory'];
+		const p = document.getElementById('rowSpecial' + f.id);
+		const row = document.getElementById('row' + f.id);
+		return { onMinigame: f.onMinigame, panelDisplay: getComputedStyle(p).display, rowH: row.getBoundingClientRect().height };
+	});
+	expect(closed.onMinigame, 'panel flagged closed').toBeFalsy();
+	expect(closed.panelDisplay, 'panel hidden when closed').toBe('none');
+	expect(closed.rowH, 'row back to the canvas height, not the panel height').toBeLessThan(300);
+});
