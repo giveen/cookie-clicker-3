@@ -48,6 +48,12 @@ for (var i in suffixes)
 	}
 }
 formatShort[10]='Dc';
+// CC3 P0 (overflow fix): the largest number the UI can display honestly. Both
+// suffix tables end at 1000^(len-1); beyond that, formatEveryThirdPower()
+// falls back to the literal "Infinity". The cookie economy clamps balances
+// at this value, so the ledger can never leave the displayable range and
+// (therefore) can never serialize the literal "Infinity" into a save string.
+export const DISPLAYABLE_MAX = Math.pow(1000, Math.min(formatLong.length, formatShort.length) - 1);
 
 
 export var numberFormatters=
