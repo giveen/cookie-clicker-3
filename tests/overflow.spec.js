@@ -143,10 +143,13 @@ test('a save poisoned with the literal "Infinity" self-heals on import', async (
 		const run = parts[2].split(';');
 		// Corrupt it exactly the way the broken builds wrote it: parseFloat
 		// turns the literal "Infinity" back into float Infinity on import.
-		run[0] = 'Infinity'; // cookies
-		run[1] = 'Infinity'; // cookiesEarned
-		run[8] = 'Infinity'; // cookiesReset
-		parts[2] = run.join(';');
+		// (section 4 = the "misc game data" block: [0]=cookies, [1]=cookiesEarned,
+		// [8]=cookiesReset — WriteSave/LoadSave agree on these indices.)
+		const misc = parts[4].split(';');
+		misc[0] = 'Infinity'; // cookies
+		misc[1] = 'Infinity'; // cookiesEarned
+		misc[8] = 'Infinity'; // cookiesReset
+		parts[4] = misc.join(';');
 		const poisoned = btoa(unescape(encodeURIComponent(parts.join('|'))));
 		const ok = G.ImportSaveCode(poisoned);
 		return { ok, cookies: G.cookies, earned: G.cookiesEarned, reset: G.cookiesReset };
