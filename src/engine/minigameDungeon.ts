@@ -990,6 +990,15 @@ M.launch = function (this: DungeonMinigame) {
 			style.id = "dungeonStyle";
 			style.textContent = `
 #dungeonLog .new{color:#ff0;}
+/* CC3: the panel wrapper follows the convention every other minigame uses
+   (#casinoContent, #gardenContent, #colonyContent...): an in-flow, position:relative
+   container with an explicit height. The legacy CC2 wrapper was position:absolute;
+   height:100% — out of flow — so the .rowSpecial panel (min-height:24px only)
+   never grew past a 24px sliver and the expand animation tweened it to that,
+   leaving the whole board (map, controls, cards) rendered against the .row
+   instead of the panel. With this in-flow wrapper the panel's natural height is
+   400px and every absolutely-positioned child below resolves against it. */
+#dungeonContent{position:relative;width:100%;height:400px;box-sizing:border-box;}
 .dungeonLog{font-size:11px;width:${9 * 16}px;height:72px;overflow-y:scroll;position:absolute;bottom:0px;left:0px;background:rgba(0,0,0,0.5);}
 .dungeonLog div{width:100%;}
 .map{overflow:hidden;position:absolute;left:0px;top:0px;border:2px solid #000;background:#000;margin:0px;}
@@ -1002,15 +1011,23 @@ M.launch = function (this: DungeonMinigame) {
 #hpMonster{background:#f00;}
 .dungeonName{font-size:11px;text-align:center;white-space:nowrap;margin:8px 0px;}
 .control{width:48px;height:48px;display:block;background:url(img/dungeonPictos.webp);background-size:144px 144px;cursor:pointer;position:absolute;}
+/* CC2 stacked the D-pad vertically with <br>s between the (non-positioned)
+   anchors; the port made them position:absolute, which collapsed all five
+   onto the same pixel — only the last one was reachable. Restore the 48px
+   vertical steps. */
 .control.west{background-position:0px 0px;top:0px;left:0px;}
-.control.east{background-position:-48px 0px;top:0px;left:0px;}
-.control.north{background-position:0px -48px;top:0px;left:0px;}
-.control.south{background-position:-48px -48px;top:0px;left:0px;}
-.control.middle{background-position:-96px 0px;top:0px;left:0px;}
+.control.east{background-position:-48px 0px;top:48px;left:0px;}
+.control.north{background-position:0px -48px;top:96px;left:0px;}
+.control.south{background-position:-48px -48px;top:144px;left:0px;}
+.control.middle{background-position:-96px 0px;top:192px;left:0px;}
 .thing{width:16px;height:16px;position:absolute;background:url(img/dungeonItems.webp);}
-.dungeonCard{position:absolute;width:144px;background:#15101f;border:1px solid #5a4a2a;border-color:#dfbc9a #875526 #a44e36 #dfbc9a;border-radius:4px;box-shadow:0px 0px 1px 2px rgba(0,0,0,0.5),0px 2px 4px rgba(0,0,0,0.4),0px 0px 2px 2px rgba(0,0,0,0.5) inset;padding:6px 8px;font-size:11px;color:#ddd;line-height:1.35;}
+.dungeonCard{position:absolute;width:176px;background:#15101f;border:1px solid #5a4a2a;border-color:#dfbc9a #875526 #a44e36 #dfbc9a;border-radius:4px;box-shadow:0px 0px 1px 2px rgba(0,0,0,0.5),0px 2px 4px rgba(0,0,0,0.4),0px 0px 2px 2px rgba(0,0,0,0.5) inset;padding:6px 8px;font-size:11px;color:#ddd;line-height:1.35;}
 .dungeonInfoCard{left:304px;top:128px;}
-.dungeonShopCard{left:304px;top:208px;}
+/* The shop card's content is text-driven (row wrapping varies with the relic
+   count and font metrics), so pin it to the panel's bottom edge and let it
+   scroll internally instead of growing the panel or overflowing it. top:240px
+   clears the delve-status card (top:128px + ~105px of content). */
+.dungeonShopCard{left:304px;top:240px;bottom:8px;overflow-y:auto;overflow-x:hidden;}
 .dungeonCardTitle{font-weight:bold;color:#ffd9a0;font-size:10px;letter-spacing:.5px;text-transform:uppercase;margin-bottom:4px;border-bottom:1px solid #5a4a2a;padding-bottom:3px;}
 .dungeonInfoRow{display:flex;justify-content:space-between;align-items:baseline;gap:6px;margin:2px 0;}
 .dungeonInfoRow span:first-child{color:#bba;}
@@ -1191,7 +1208,7 @@ M.launch = function (this: DungeonMinigame) {
 					`<a class="control south" onclick="document.getElementById('dungeonP${this.id}').value='south';document.getElementById('dungeonP${this.id}').dispatchEvent(new Event('change',{bubbles:true}));"></a><br>` +
 					`<a class="control middle" onclick="document.getElementById('dungeonP${this.id}').value='wait';document.getElementById('dungeonP${this.id}').dispatchEvent(new Event('change',{bubbles:true}));"></a><br>` +
 					`</div>`;
-				str += `<div style="position:absolute;left:${9 * 16 + 16 + 48 * 3}px;bottom:16px;height:100%;">` +
+				str += `<div style="position:absolute;left:${9 * 16 + 16 + 48 * 3}px;top:0px;bottom:16px;">` +
 					`<div class="dungeonName"><a onclick="g.ObjectsById[${this.id}].setSpecial(0);">${loc('Exit')}</a> - <span class="title" style="font-size:12px;">${this.name}</span> lvl.${this.level + 1}</div>` +
 					`<div id="dungeonAuto${this.id}" class="dungeonAutoBadge" style="display:${this.auto ? 'block' : 'none'}">${loc('AUTO')}</div>` +
 					`<div id="heroSlot${this.id}" class="mobSlot"><div id="picHero${this.id}" class="mobPic"></div><div id="nameHero${this.id}" class="title mobName"></div><div class="hpmBar"><div id="hpHero${this.id}" class="hpBar"></div></div></div>` +
@@ -1213,7 +1230,7 @@ M.launch = function (this: DungeonMinigame) {
 			pickerStr += `</div>`;
 			str += pickerStr;
 				const rowSpecial = l("rowSpecial" + this.id);
-				if (rowSpecial) rowSpecial.innerHTML = `<div style="width:100%;height:100%;z-index:10000;position:absolute;left:0px;top:0px;">${str}</div>`;
+				if (rowSpecial) rowSpecial.innerHTML = `<div id="dungeonContent">${str}</div>`;
 
 				const picHero = l("picHero" + this.id);
 				if (picHero) picHero.style.backgroundImage = `url(img/${this.hero.portrait}.webp)`;
