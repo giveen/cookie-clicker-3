@@ -28,6 +28,7 @@
  * successful main-slot write so the rolling backup history tracks every save.
  */
 import { CaptureSave } from './backup';
+import { clampCookies } from './economy';
 
 export function ExportSave()
 		{
@@ -506,6 +507,23 @@ export function LoadSave(data?: any,ignoreVersionIssues?: any)
 						Game.fortuneCPS=spl[50]?parseInt(spl[50]):0;
 						Game.cookiesPsRawHighest=spl[51]?parseFloat(spl[51]):0;
 						Game.volumeMusic=spl[52]?parseInt(spl[52]):50;
+						// CC3 P0: a save written while a bug pushed the ledger to float
+						// Infinity holds the literal "Infinity" in its monetary fields
+						// (parseFloat re-imports it as Infinity, so the damage was
+						// self-perpetuating: the counter showed "Infinity", purchases
+						// were no-ops, and every re-save rewrote the corruption). Clamp
+						// every monetary field so a poisoned save self-heals on load
+						// and the next autosave rewrites the file clean.
+						Game.cookies=clampCookies(Game.cookies);
+						Game.cookiesEarned=clampCookies(Game.cookiesEarned);
+						Game.handmadeCookies=clampCookies(Game.handmadeCookies);
+						Game.cookiesReset=clampCookies(Game.cookiesReset);
+						Game.cookiesSucked=clampCookies(Game.cookiesSucked);
+						Game.prestige=clampCookies(Game.prestige);
+						Game.heavenlyChips=clampCookies(Game.heavenlyChips);
+						Game.heavenlyChipsSpent=clampCookies(Game.heavenlyChipsSpent);
+						Game.heavenlyCookies=clampCookies(Game.heavenlyCookies);
+						Game.cookiesPsRawHighest=clampCookies(Game.cookiesPsRawHighest);
 						
 						spl=str[5].split(';');//buildings
 						Game.BuildingsOwned=0;
