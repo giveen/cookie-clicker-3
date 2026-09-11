@@ -36,6 +36,7 @@
  * so these render correctly until a translator adds them.
  */
 import type { Game as EngineGame } from '../engine/types';
+import { clampCookies } from '../engine/systems/economy';
 
 (function () {
 	if (window.__cc3DailyCrumb) return;
@@ -95,8 +96,8 @@ import type { Game as EngineGame } from '../engine/types';
 		switch (r.kind) {
 			case 'cookies-min': {
 				const amt = Math.max(MIN_CRUMB_COOKIES, cps * 60 * r.amount);
-				Game.cookies += amt;
-				Game.cookiesEarned += amt;
+				Game.cookies = clampCookies(Game.cookies + amt);
+				Game.cookiesEarned = clampCookies(Game.cookiesEarned + amt);
 				lines.push(loc('%1 of production: %2 cookies', ['~' + r.amount + ' min', Beautify(amt)]));
 				break;
 			}
@@ -111,8 +112,8 @@ import type { Game as EngineGame } from '../engine/types';
 					lines.push('+1 ' + loc("sugar lump"));
 				} else {
 					const amt = Math.max(MIN_CRUMB_COOKIES, cps * 60 * 10);
-					Game.cookies += amt;
-					Game.cookiesEarned += amt;
+					Game.cookies = clampCookies(Game.cookies + amt);
+					Game.cookiesEarned = clampCookies(Game.cookiesEarned + amt);
 					lines.push(loc('%1 of production: %2 cookies', ['~10 min', Beautify(amt)]));
 				}
 				break;
@@ -127,9 +128,9 @@ import type { Game as EngineGame } from '../engine/types';
 
 	function grantWeekly(Game: EngineGame, lines: string[]): void {
 		for (let i = 0; i < WEEKLY_GOLDENS; i++) new Game.shimmer('golden');
-		const amt = Math.max(MIN_CRUMB_COOKIES, (Game.cookiesPs || 0) * 60 * WEEKLY_MINUTES);
-		Game.cookies += amt;
-		Game.cookiesEarned += amt;
+	const amt = Math.max(MIN_CRUMB_COOKIES, (Game.cookiesPs || 0) * 60 * WEEKLY_MINUTES);
+	Game.cookies = clampCookies(Game.cookies + amt);
+	Game.cookiesEarned = clampCookies(Game.cookiesEarned + amt);
 		lines.push(loc('Weekly crumb: %1 golden cookies + %2 cookies', [String(WEEKLY_GOLDENS), Beautify(amt)]));
 	}
 
