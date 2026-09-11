@@ -116,19 +116,36 @@ ECONOMY WRAPPERS (Phase 7, slice 2)
 // they are now typed exports and the engine keeps the same Game.X = X slots
 // at the exact original Init positions.
 
+import { DISPLAYABLE_MAX } from '../utils/format';
+
+// The cookie ledger must stay finite: float Infinity renders as "Infinity"
+// on the top counter, makes every purchase a no-op (Infinity - price is
+// still Infinity), and serializes the literal "Infinity" into save strings,
+// which re-imports as Infinity — corrupting the save forever. The cap is
+// the highest number the UI can display (format.ts); a balance at the cap
+// plus any finite amount is still a finite float, so the clamp is stable.
+export function clampCookies(v: number)
+	{
+		if (!Number.isFinite(v)) return (Number.isNaN(v) || v < 0) ? 0 : DISPLAYABLE_MAX;
+		if (v > DISPLAYABLE_MAX) return DISPLAYABLE_MAX;
+		return v;
+	}
 export function Earn(howmuch: number)
 	{
-		Game.cookies+=howmuch;
-		Game.cookiesEarned+=howmuch;
+		if (!Number.isFinite(howmuch)) return;// a non-finite reward must not poison the ledger
+		Game.cookies=clampCookies(Game.cookies+howmuch);
+		Game.cookiesEarned=clampCookies(Game.cookiesEarned+howmuch);
 	}
 export function Spend(howmuch: number)
 	{
-		Game.cookies-=howmuch;
+		if (!Number.isFinite(howmuch)) return;
+		Game.cookies=clampCookies(Game.cookies-howmuch);
 	}
 export function Dissolve(howmuch: number)
 	{
-		Game.cookies-=howmuch;
-		Game.cookiesEarned-=howmuch;
+		if (!Number.isFinite(howmuch)) return;
+		Game.cookies=clampCookies(Game.cookies-howmuch);
+		Game.cookiesEarned=clampCookies(Game.cookiesEarned-howmuch);
 		Game.cookies=Math.max(0,Game.cookies);
 		Game.cookiesEarned=Math.max(0,Game.cookiesEarned);
 	}
