@@ -11,6 +11,11 @@ upstream Cookie Clicker 2.048 patch notes that the engine also displays
 (31/05/2022 back to 05/08/2013) are Orteil's, shown verbatim in the
 in-game log, and are not duplicated here.
 
+## 11/09/2026 - save corruption fix (the "Infinity" counter)
+
+- **fixed (urgent)**: on very large saves a Factory Dungeon cookie pickup could push the cookie counter past the largest representable number — the counter then displayed "Infinity", purchases stopped doing anything, and the damage was written into the save itself, so re-importing the save kept it broken
+- cookie counts are now clamped at the largest number the game can display (1e270), rewards that are not real numbers are refused outright, and a save that already contains "Infinity" self-repairs on load: the counter comes back as a huge but genuine number and the next autosave rewrites the file clean
+
 ## 11/09/2026 - Factory Dungeon click fix
 
 - fixed the Factory Dungeon panel's Exit link, hero-picker buttons and relic workshop buy buttons doing nothing when clicked (their click handlers pointed at a game internal that isn't available to page-level buttons — clicking threw an error instead of acting). The Exit link now closes the panel, the hero chips switch your hero, and the relic buttons spend your relics as intended
