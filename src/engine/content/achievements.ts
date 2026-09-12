@@ -1,6 +1,6 @@
 /**
- * content/achievements.ts — the 501 vanilla achievement declarations
- * (192 `new Game.Achievement`, 252 `Game.TieredAchievement`, 57
+ * content/achievements.ts — the 630 achievement declarations
+ * (211 `new Game.Achievement`, 266 `Game.TieredAchievement`, 61
  * `Game.ProductionAchievement`), plus the 46 `Game.BankAchievement` and
  * 46 `Game.CpsAchievement` calls, ported verbatim from the 2.048 engine
  * (engine/main.ts, the ACHIEVEMENTS block inside Game.Init): the same

@@ -2137,8 +2137,9 @@ window.loadMinigameModule!(me.minigameUrl).then(function(){
 			return 1;
 		}
 		
-		// CC3 rewrite: the 19 vanilla building declarations now live in the
-		// typed content layer (content/buildings.ts) — same new Game.Object
+		// CC3 rewrite: the building declarations (19 vanilla + the
+		// CC3-exclusive Cats) now live in the typed content layer
+		// (content/buildings/) — same new Game.Object
 		// calls, same order, same closures; only the file moved.
 		vanillaContent!.declareVanillaBuildings(Game);//CC3: deferred chunk — resolved by the vanillaContentReady gate before Init runs
 		
@@ -2395,7 +2396,7 @@ window.loadMinigameModule!(me.minigameUrl).then(function(){
 		
 		//define upgrades
 		//WARNING : do NOT add new upgrades in between, this breaks the saves. Add them at the end !
-		// CC3 rewrite (slice 3): the 786 vanilla upgrade declarations now live
+		// CC3 rewrite (slice 3): the 842 upgrade declarations now live
 		// in the typed content layer (content/upgrades.ts). They run at this
 		// exact point in Init, so declaration order (and every id, save slot
 		// and Game.last hand-off) is unchanged.
@@ -2668,8 +2669,8 @@ window.loadMinigameModule!(me.minigameUrl).then(function(){
 		Game.AchievementsById={};
 		Game.AchievementsN=0;
 		Game.AchievementsOwned=0;
-		// CC3 rewrite (slice 4): the achievement ctors/factories and the 501
-		// vanilla achievement declarations now live in the typed content layer
+		// CC3 rewrite (slice 4): the achievement ctors/factories and the 630
+		// achievement declarations now live in the typed content layer
 		// (content/achievements.ts). They run at this exact point in Init, so
 		// declaration order (and every id, save slot and Game.last hand-off)
 		// is unchanged; the order bookkeeping inherits the slice-3
@@ -2725,7 +2726,7 @@ window.loadMinigameModule!(me.minigameUrl).then(function(){
 		*/
 		
 		//base buffs
-		declareVanillaBuffs();//CC3 rewrite (phase 6, slice 3): the 26 vanilla buff declarations moved verbatim to systems/buffs.ts; run at the same Init position so Game.vanilla is already 1 when the archetype ctor stamps each type.
+		declareVanillaBuffs();//CC3 rewrite (phase 6, slice 3): the 28 buff declarations moved verbatim to systems/buffs.ts; run at the same Init position so Game.vanilla is already 1 when the archetype ctor stamps each type.
 		
 		//end of buffs
 		

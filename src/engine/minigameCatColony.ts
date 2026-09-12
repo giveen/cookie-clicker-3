@@ -4,7 +4,7 @@
  * `M` object hung off the parent building, `M.launch` building `M.init` /
  * `M.save` / `M.load` / `M.reset` / `M.logic` / `M.draw`, no imports — every
  * helper (`l`, `Pic`, `AddEvent`, `PlaySound`, `Beautify`, `loc`, `Game`)
- * resolves through src/globals.d.ts exactly like the other four minigames.
+ * resolves through src/globals.d.ts exactly like the other minigames.
  *
  * Concept: dispatch idle colony cats on timed expeditions; they come home
  * with Treats (a minigame-local currency) or, occasionally, a scuffle that

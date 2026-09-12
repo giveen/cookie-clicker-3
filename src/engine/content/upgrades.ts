@@ -1,6 +1,7 @@
 /**
- * content/upgrades.ts — the 786 vanilla upgrade declarations (231 direct,
- * 271 tiered, 34 synergy, 17 grandma, 233 cookie).
+ * content/upgrades.ts — the 842 upgrade declarations (285 direct,
+ * 271 tiered, 35 synergy, 17 grandma, 234 cookie), including the
+ * CC3-added cat synergy and cat-colony blocks at the end.
  *
  * Ported verbatim from the 2.048 engine (engine/main.ts, the
  * //define upgrades block inside Game.Init): the same constructor calls
@@ -29,7 +30,7 @@
  */
 import type { Game as EngineGame } from '../types';
 
-/** Declare the 786 vanilla upgrades (and their per-upgrade extras) on Game. */
+/** Declare the upgrades (and their per-upgrade extras) on Game. */
 export function declareVanillaUpgrades(Game: EngineGame) {
 		var strCookieProductionMultiplierPlus=loc("Cookie production multiplier <b>+%1%</b>.",'[x]');
 		var getStrCookieProductionMultiplierPlus=function(x: any)

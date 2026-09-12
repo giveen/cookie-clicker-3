@@ -33,7 +33,7 @@
 	const EE_LOG_BASE = 10;
 	const EE_OFFSET = 8;
 
-	/* The 12 Doctrine nodes. parents[] references node ids to build the DAG.
+	/* The 13 Doctrine nodes. parents[] references node ids to build the DAG.
 	 * Icon slots are *existing* art from the icons.webp sprite sheet —
 	 * see the asset audit for rationale. */
 	const DOCTRINE = [

@@ -4,7 +4,7 @@
  * The 2.048 engine defined the buff lifecycle functions (`gainBuff`,
  * `hasBuff`, `updateBuffs`, `killBuff`, `killBuffs`), the `buffType`
  * archetype ctor, the archetype registry (`buffTypes` / `buffTypesByName` /
- * `buffTypesN`), and the 26 vanilla buff declarations inside `Game.Init`.
+ * `buffTypesN`), and the 28 buff declarations inside `Game.Init`.
  * They are now typed exports; the engine keeps the same `Game.X = X` slots
  * at the exact original Init positions, so every `Game.gainBuff(…)` call
  * site (golden-cookie chain, grimoire, market, ascend, content/upgrades)
@@ -14,7 +14,7 @@
  * (`Game.buffTypes` / `Game.buffTypesByName`) from Init, so the save
  * loader's `Game.buffTypes[id]` lookups behave exactly as before. The
  * archetype ctor still stamps `this.vanilla=Game.vanilla` — which is why
- * the 26 declarations run via `declareVanillaBuffs()` at the original
+ * the 28 declarations run via `declareVanillaBuffs()` at the original
  * Init position (after `Game.vanilla=1`): buff save/load is keyed on
  * `type.vanilla`, and mod buffs registered after `Game.vanilla=0` (in
  * `Game.launchMods`) must be stamped 0, exactly as in 2.048.
@@ -161,7 +161,7 @@ other parameters :
 */
 
 //base buffs
-export function declareVanillaBuffs()//CC3 rewrite (phase 6, slice 3): the 26 vanilla buff declarations, run from Init at the original declaration position so Game.vanilla is already 1 when the archetype ctor stamps each type.
+export function declareVanillaBuffs()//CC3 rewrite (phase 6, slice 3): the 28 buff declarations, run from Init at the original declaration position so Game.vanilla is already 1 when the archetype ctor stamps each type.
 {
 	new BuffType('frenzy',function(time: any,pow: any)
 	{

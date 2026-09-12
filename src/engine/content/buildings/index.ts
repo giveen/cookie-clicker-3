@@ -40,7 +40,7 @@ import { declareCortexBaker } from "./cortexbaker";
 import { declareCats } from "./cats";
 import { makeStackDraw } from "./stackDraw";
 
-/** Declare the 20 vanilla buildings (and their per-building extras) on Game. */
+/** Declare the 20 buildings (19 vanilla + the CC3-exclusive Cats, and their per-building extras) on Game. */
 export function declareVanillaBuildings(Game: EngineGame) {
 	declareCursor(Game);
 	declareGrandma(Game);

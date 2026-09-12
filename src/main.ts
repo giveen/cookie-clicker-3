@@ -605,7 +605,7 @@ if (debugSurface && params.get('qa') === 'binverter') {
 			let pass = true;
 			const chk = (label: string, cond: boolean) => { lines.push((cond ? 'PASS: ' : 'FAIL: ') + label); if (!cond) pass = false; };
 
-			// 1. declaration + store/canvas DOM (vanilla now has 20 buildings, id 0-19, so the inverter is id 20)
+			// 1. declaration + store/canvas DOM (there are now 20 buildings, id 0-19, so the inverter is id 20)
 			chk('building declared as id 20', me.id === 20);
 			chk('store row #product' + me.id + ' present', !!document.getElementById('product' + me.id));
 			chk('store icon #productIcon' + me.id + ' present', !!document.getElementById('productIcon' + me.id));
