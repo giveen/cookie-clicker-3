@@ -769,8 +769,11 @@ function defineHero(name: string, pic: string, portrait: string, icon: [number, 
 			if (!dungeon) return;
 			if (this.dialogue[what]) dungeon.Log(`${this.name} : "<span style="color:#99f;">${choose(this.dialogue[what].split("|"))}</span>"`);
 		},
-		save: function () { return `${this.inDungeon},${this.completedDungeons},${this.gear.armor},${this.gear.weapon}`; },
-		load: function (data) { const p = data.split(","); this.inDungeon = parseInt(p[0]); this.completedDungeons = parseInt(p[1]); this.gear.armor = parseInt(p[2]); this.gear.weapon = parseInt(p[3]); },
+		// ':' — not ',' — because this string gets embedded, unescaped, inside
+		// M.save()'s own comma-separated fields (see below); a comma here would
+		// shift every field after it.
+		save: function () { return `${this.inDungeon}:${this.completedDungeons}:${this.gear.armor}:${this.gear.weapon}`; },
+		load: function (data) { const p = data.split(":"); this.inDungeon = parseInt(p[0]); this.completedDungeons = parseInt(p[1]); this.gear.armor = parseInt(p[2]); this.gear.weapon = parseInt(p[3]); },
 	};
 	DungeonHeroes.push(hr);
 	return hr;
@@ -1383,12 +1386,17 @@ M.init = function (this: DungeonMinigame, _div: HTMLElement) {
 M.save = function (this: DungeonMinigame): string {
 		const d = (this.parent as any).dungeon;
 		if (!d || !d.hero) return "";
-		// Append the relic economy state after a '|' separator so the comma-
+		// Append the relic economy state after a '~' separator so the comma-
 		// separated dungeon fields (none of which contain commas) stay intact.
-		// Append the relic economy state after a '|' separator so the comma-
-		// separated dungeon fields (none of which contain commas) stay intact.
+		// '~' — not '|' — because this whole string is itself embedded as one
+		// comma-field inside a building's save row, which is in turn embedded
+		// inside the main save's own '|'-delimited top-level sections; a raw
+		// '|' here silently corrupted the entire save (every section after
+		// the buildings list — prestige, heavenly chips, achievements,
+		// upgrades, buffs, mod data — would shift out of place the moment
+		// this minigame had any state to save).
 		// Trailing fields: selected hero index + that hero's own saved progression.
-		return `${d.level},${d.hero.name},${d.hero.x},${d.hero.y},${d.cookiesMadeThisRun},${d.monstersKilledThisRun},${d.hero.inDungeon}|${this.relics}|${this.upgradeStacks.join(':')}|${this.bestDepth}|${this.bestCookies}|${this.bestMonsters}|${this.selectedHero}|${d.hero ? d.hero.save() : ''}`;
+		return `${d.level},${d.hero.name},${d.hero.x},${d.hero.y},${d.cookiesMadeThisRun},${d.monstersKilledThisRun},${d.hero.inDungeon}~${this.relics}~${this.upgradeStacks.join(':')}~${this.bestDepth}~${this.bestCookies}~${this.bestMonsters}~${this.selectedHero}~${d.hero ? d.hero.save() : ''}`;
 };
 
 M.load = function (this: DungeonMinigame, str: string): boolean | undefined {
@@ -1400,13 +1408,13 @@ M.load = function (this: DungeonMinigame, str: string): boolean | undefined {
 		// meta-economy (relics, stacks, bests, hero choice) persists — so we no
 		// longer apply parts[0] as d.level (that left a level-0 map rendered as a
 		// depth-N+1 delve). The dungeon regenerates fresh at floor 1 on launch.
-		// The relic economy is appended after a '|' INSIDE parts[6] (the hero
-		// name carries no comma, so parts[6] is "inDungeon|relics|stacks");
-		// older saves without it (just the inDungeon number) leave
-		// relics/stacks at their launch defaults.
+		// The relic economy is appended after a '~' INSIDE parts[6] (the hero
+		// name carries no comma, so parts[6] is "inDungeon~relics~stacks~...");
+		// older saves without it (just the inDungeon number, or a pre-fix save
+		// that used '|' here) leave relics/stacks at their launch defaults.
 		if (parts.length >= 7 && parts[6])
 		{
-			const extra = parts[6].split("|");
+			const extra = parts[6].split("~");
 			this.relics = parseFloat(extra[1]) || 0;
 			if (extra[2])
 			{

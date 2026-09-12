@@ -68,6 +68,9 @@ export function declareVanillaChangelog(Game: EngineGame) {
 	Game.updateLog+=
 
 	'</div><div class="subsection update">' +
+	'<div class="title">12/09/2026 - fixed a second save-corrupting bug in the Factory Dungeon</div>' +
+	'<div class="listing">&bull; fixed a bug where playing the Factory Dungeon could corrupt your whole save: the dungeon\'s internal save data used the same separator character as the save file\'s own top-level format, so as soon as you had any dungeon progress, saving could scramble everything that came after it in the file — your cookie count, heavenly chips, achievements and upgrades could all come back wrong or reset on the next load. The dungeon now uses a separator that can\'t collide with the save format, so this can\'t happen anymore</div>' +
+	'</div><div class="subsection update">' +
 	'<div class="title">11/09/2026 - the cookie counter can no longer turn into "Infinity" (and it repairs saves that already did)</div>' +
 	'<div class="listing">&bull; fixed a serious bug that could hit very large saves: a Factory Dungeon cookie pickup was scaled by your factory\'s production, and the product could overflow the largest number the game can represent — the top counter then displayed "Infinity", purchases stopped doing anything, and the damage was written into your save, so re-importing it kept it broken. Cookie counts are now clamped at the largest number the game can display, rewards that aren\'t real numbers are refused outright, and a save that already contains the damage self-repairs on load: your counter comes back as a huge but genuine number and the next autosave rewrites the file clean</div>' +
 	'</div><div class="subsection update">' +

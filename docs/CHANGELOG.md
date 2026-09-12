@@ -11,6 +11,10 @@ upstream Cookie Clicker 2.048 patch notes that the engine also displays
 (31/05/2022 back to 05/08/2013) are Orteil's, shown verbatim in the
 in-game log, and are not duplicated here.
 
+## 12/09/2026 - fixed a second save-corrupting bug in the Factory Dungeon
+
+- fixed a bug where playing the Factory Dungeon could corrupt your whole save: the dungeon's internal save data used the same separator character (`|`) as the save file's own top-level format, so as soon as you had any dungeon progress, saving could scramble everything that came after it in the file — your cookie count, heavenly chips, achievements and upgrades could all come back wrong or reset on the next load. The dungeon now uses a separator that can't collide with the save format, so this can't happen anymore
+
 ## 11/09/2026 - save corruption fix (the "Infinity" counter)
 
 - **fixed (urgent)**: on very large saves a Factory Dungeon cookie pickup could push the cookie counter past the largest representable number — the counter then displayed "Infinity", purchases stopped doing anything, and the damage was written into the save itself, so re-importing the save kept it broken
