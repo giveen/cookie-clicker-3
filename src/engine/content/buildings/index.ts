@@ -18,27 +18,27 @@
  * below without checking save compatibility.
  */
 import type { Game as EngineGame } from "../../types";
-import { declareCursor } from "./cursor";
-import { declareGrandma } from "./grandma";
-import { declareFarm } from "./farm";
-import { declareMine } from "./mine";
-import { declareFactory } from "./factory";
-import { declareBank } from "./bank";
-import { declareTemple } from "./temple";
-import { declareWizardTower } from "./wizardtower";
-import { declareShipment } from "./shipment";
 import { declareAlchemyLab } from "./alchemylab";
-import { declarePortal } from "./portal";
-import { declareTimeMachine } from "./timemachine";
 import { declareAntimatterCondenser } from "./antimattercondenser";
-import { declarePrism } from "./prism";
-import { declareChancemaker } from "./chancemaker";
-import { declareFractalEngine } from "./fractalengine";
-import { declareJavascriptConsole } from "./javascriptconsole";
-import { declareIdleverse } from "./idleverse";
-import { declareCortexBaker } from "./cortexbaker";
+import { declareBank } from "./bank";
 import { declareCats } from "./cats";
+import { declareChancemaker } from "./chancemaker";
+import { declareCortexBaker } from "./cortexbaker";
+import { declareCursor } from "./cursor";
+import { declareFactory } from "./factory";
+import { declareFarm } from "./farm";
+import { declareFractalEngine } from "./fractalengine";
+import { declareGrandma } from "./grandma";
+import { declareIdleverse } from "./idleverse";
+import { declareJavascriptConsole } from "./javascriptconsole";
+import { declareMine } from "./mine";
+import { declarePortal } from "./portal";
+import { declarePrism } from "./prism";
+import { declareShipment } from "./shipment";
 import { makeStackDraw } from "./stackDraw";
+import { declareTemple } from "./temple";
+import { declareTimeMachine } from "./timemachine";
+import { declareWizardTower } from "./wizardtower";
 
 /** Declare the 20 buildings (19 vanilla + the CC3-exclusive Cats, and their per-building extras) on Game. */
 export function declareVanillaBuildings(Game: EngineGame) {

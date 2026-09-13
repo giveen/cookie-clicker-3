@@ -25,8 +25,8 @@ interface GrimoireSpell {
 	/* cast skips the spell counters (gambler's fever dream re-casts) */
 	passthrough?: boolean;
 	descFunc?: () => string;
-	win: () => number | void;
-	fail?: () => number | void;
+	win: () => number | undefined;
+	fail?: () => number | undefined;
 	/* adjusts the base fail chance before the roll (hand of fate) */
 	failFunc?: (fail: number) => number;
 }
@@ -599,6 +599,7 @@ M.launch=function(this: GrimoireMinigame)
 	}
 	M.init(l('rowSpecial'+M.parent.id)!);
 }
+
 /* CC3: explicit module marker — at runtime these files are always ESM modules
  * (Vite bundles them as such), and this keeps their top-level var/function
  * declarations out of the TS global scope. Zero runtime effect. */

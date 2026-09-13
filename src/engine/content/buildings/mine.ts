@@ -7,7 +7,7 @@
  * follows the declaration.
  */
 import type { Building, Game as EngineGame } from "../../types";
-import { stackPosition, stackDims, STACK_TARGET_H } from "./stackDraw";
+import { STACK_TARGET_H, stackDims, stackPosition } from "./stackDraw";
 
 /** Declare the Mine building on Game. */
 export function declareMine(Game: EngineGame) {

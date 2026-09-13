@@ -877,7 +877,7 @@ M.launch=function(this: MarketMinigame)
 			it.vals=[it.val,it.val-it.d];
 			it.dur=parseInt(itData[3]);
 			it.stock=parseInt(itData[4]);
-			it.hidden=parseInt(itData[5])?true:false;
+			it.hidden=!!parseInt(itData[5]);
 			it.active=false;
 			it.last=parseInt((itData[6]||0) as string);
 			if (it.building.highest>0) it.active=true;
@@ -1162,7 +1162,7 @@ M.launch=function(this: MarketMinigame)
 		{
 			if (M.lastTickDrawn<M.ticks-1) M.toRedraw=2;
 			M.lastTickDrawn=M.ticks;
-			M.drawGraph(M.toRedraw==2?true:false);
+			M.drawGraph(!!(M.toRedraw==2));
 			
 			for (var i=0;i<M.goodsById.length;i++)
 			{
@@ -1225,6 +1225,7 @@ M.launch=function(this: MarketMinigame)
 	}
 	M.init(l('rowSpecial'+M.parent.id));
 }
+
 /* CC3: explicit module marker — at runtime these files are always ESM modules
  * (Vite bundles them as such), and this keeps their top-level var/function
  * declarations out of the TS global scope. Zero runtime effect. */

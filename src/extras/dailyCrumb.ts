@@ -35,8 +35,9 @@
  * %N params into the source text of ids missing from the language tables,
  * so these render correctly until a translator adds them.
  */
-import type { Game as EngineGame } from '../engine/types';
+
 import { clampCookies } from '../engine/systems/economy';
+import type { Game as EngineGame } from '../engine/types';
 
 (function () {
 	if (window.__cc3DailyCrumb) return;

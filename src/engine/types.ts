@@ -16,19 +16,20 @@
  *    maps, ad-hoc mod properties). Named members are typed and checked; the
  *    index signature only covers what the engine really treats dynamically.
  */
-import type { Building as BuildingClass } from './core/building';
-import type {
-	Upgrade as UpgradeClass,
-	TieredUpgrade as TieredUpgradeFn,
-	SynergyUpgrade as SynergyUpgradeFn,
-} from './core/upgrade';
+
 import type {
 	Achievement as AchievementClass,
-	TieredAchievement as TieredAchievementFn,
-	ProductionAchievement as ProductionAchievementFn,
 	BankAchievement as BankAchievementFn,
 	CpsAchievement as CpsAchievementFn,
+	ProductionAchievement as ProductionAchievementFn,
+	TieredAchievement as TieredAchievementFn,
 } from './core/achievement';
+import type { Building as BuildingClass } from './core/building';
+import type {
+	SynergyUpgrade as SynergyUpgradeFn,
+	TieredUpgrade as TieredUpgradeFn,
+	Upgrade as UpgradeClass,
+} from './core/upgrade';
 
 /* ====================================================================== */
 /* Language data (src/engine/loc/*.ts)                                    */

@@ -16,8 +16,8 @@ import type {
 	BeautifyFn,
 	Cc3AnimStats,
 	Game as GameSurface,
-	LocFn,
 	LocalizeContentFn,
+	LocFn,
 	PlaySoundFn,
 } from './engine/types';
 

@@ -7,7 +7,7 @@
  * follows the declaration.
  */
 import type { Building, Game as EngineGame } from "../../types";
-import { stackPosition, stackDims, STACK_TARGET_H } from "./stackDraw";
+import { STACK_TARGET_H, stackDims, stackPosition } from "./stackDraw";
 
 /** Declare the Farm building on Game. */
 export function declareFarm(Game: EngineGame) {

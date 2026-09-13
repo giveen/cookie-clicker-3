@@ -617,6 +617,7 @@ M.launch = function (this: SittingRoomMinigame) {
 
 	M.init(l('rowSpecial' + M.parent.id)!);
 };
+
 /* CC3: explicit module marker — at runtime these files are always ESM modules
  * (Vite bundles them as such), and this keeps their top-level var/function
  * declarations out of the TS global scope. Zero runtime effect. */
