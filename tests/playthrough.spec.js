@@ -10,7 +10,7 @@
 // Explicit extra, not part of the default gate: `npm test` / CI are scoped
 // to tests/qa.spec.js. Run with `npx playwright test tests/playthrough.spec.js`
 // (the webServer provides the :4173 preview).
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 const BOOT = { timeout: 30_000 };
 
@@ -51,7 +51,6 @@ test('playthrough: cookie, store, golden cookie, menu, ticker, save/reload', asy
 	expect(st.display.length).toBeGreaterThan(0);
 
 	// ---- 2. buy buildings from the store (seed cookies to skip the grind) ----
-	const before = await page.evaluate(() => ({ cookies: Game.cookies, cps: Game.cookiesPs }));
 	await page.evaluate(() => { Game.cookies = 1e6; });
 	await page.locator('#product0').click(); // Cursor
 	await page.locator('#product1').click(); // Grandma
