@@ -769,8 +769,10 @@ function defineHero(name: string, pic: string, portrait: string, icon: [number, 
 			if (!dungeon) return;
 			if (this.dialogue[what]) dungeon.Log(`${this.name} : "<span style="color:#99f;">${choose(this.dialogue[what].split("|"))}</span>"`);
 		},
-		save: function () { return `${this.inDungeon},${this.completedDungeons},${this.gear.armor},${this.gear.weapon}`; },
-		load: function (data) { const p = data.split(","); this.inDungeon = parseInt(p[0]); this.completedDungeons = parseInt(p[1]); this.gear.armor = parseInt(p[2]); this.gear.weapon = parseInt(p[3]); },
+		// ":" here, not "," -- this string gets embedded as one field inside
+		// M.save()'s own comma-free output (see below).
+		save: function () { return `${this.inDungeon}:${this.completedDungeons}:${this.gear.armor}:${this.gear.weapon}`; },
+		load: function (data) { const p = data.split(":"); this.inDungeon = parseInt(p[0]); this.completedDungeons = parseInt(p[1]); this.gear.armor = parseInt(p[2]); this.gear.weapon = parseInt(p[3]); },
 	};
 	DungeonHeroes.push(hr);
 	return hr;
@@ -1383,53 +1385,48 @@ M.init = function (this: DungeonMinigame, _div: HTMLElement) {
 M.save = function (this: DungeonMinigame): string {
 		const d = (this.parent as any).dungeon;
 		if (!d || !d.hero) return "";
-		// Append the relic economy state after a '|' separator so the comma-
-		// separated dungeon fields (none of which contain commas) stay intact.
-		// Append the relic economy state after a '|' separator so the comma-
-		// separated dungeon fields (none of which contain commas) stay intact.
-		// Trailing fields: selected hero index + that hero's own saved progression.
-		return `${d.level},${d.hero.name},${d.hero.x},${d.hero.y},${d.cookiesMadeThisRun},${d.monstersKilledThisRun},${d.hero.inDungeon}|${this.relics}|${this.upgradeStacks.join(':')}|${this.bestDepth}|${this.bestCookies}|${this.bestMonsters}|${this.selectedHero}|${d.hero ? d.hero.save() : ''}`;
+		// output cannot use "," ";" or "|" -- those are the outer save format's own
+		// field separators (building fields are comma-joined, save sections are
+		// pipe-joined), so a minigame save containing them shreds every field
+		// that follows it once the whole save gets split back apart on load.
+		// Every other minigame in this codebase follows this same scheme:
+		// fields joined with " ", lists joined with ":".
+		return [d.level, d.hero.name, d.hero.x, d.hero.y, d.cookiesMadeThisRun, d.monstersKilledThisRun, d.hero.inDungeon,
+			this.relics, this.upgradeStacks.join(':'), this.bestDepth, this.bestCookies, this.bestMonsters,
+			this.selectedHero, d.hero.save()].join(' ');
 };
 
 M.load = function (this: DungeonMinigame, str: string): boolean | undefined {
 		if (!str) return undefined;
 		const d = (this.parent as any).dungeon;
 		if (!d) return undefined;
-		const parts = str.split(",");
-		// The delve (depth/hero position) intentionally resets on reload — only the
-		// meta-economy (relics, stacks, bests, hero choice) persists — so we no
-		// longer apply parts[0] as d.level (that left a level-0 map rendered as a
-		// depth-N+1 delve). The dungeon regenerates fresh at floor 1 on launch.
-		// The relic economy is appended after a '|' INSIDE parts[6] (the hero
-		// name carries no comma, so parts[6] is "inDungeon|relics|stacks");
-		// older saves without it (just the inDungeon number) leave
-		// relics/stacks at their launch defaults.
-		if (parts.length >= 7 && parts[6])
+		const parts = str.split(" ");
+		// parts[0..6] are the delve state (level/hero position/etc); it
+		// intentionally resets on reload (a level-0 map rendered as a
+		// depth-N+1 delve otherwise), so the dungeon regenerates fresh at
+		// floor 1 on launch and only parts[7] onward are read here.
+		if (parts.length >= 14 && parts[7])
 		{
-			const extra = parts[6].split("|");
-			this.relics = parseFloat(extra[1]) || 0;
-			if (extra[2])
+			this.relics = parseFloat(parts[7]) || 0;
+			const stackParts = parts[8].split(":");
+			for (let s = 0; s < this.upgradeStacks.length; s++) this.upgradeStacks[s] = Math.floor(parseFloat(stackParts[s] || 0) || 0);
+			// Lazy migration: a one-time-bought upgrade (main-save bought flag)
+			// with a 0 stack self-migrates to 1 on first effectiveStacks() call,
+			// so just ensure the flag and stacks agree after load.
+			for (let u = 0; u < this.upgradeNames.length; u++)
 			{
-				const stackParts = extra[2].split(":");
-				for (let s = 0; s < this.upgradeStacks.length; s++) this.upgradeStacks[s] = Math.floor(parseFloat(stackParts[s] || 0) || 0);
-				// Lazy migration: a one-time-bought upgrade (main-save bought flag)
-				// with a 0 stack self-migrates to 1 on first effectiveStacks() call,
-				// so just ensure the flag and stacks agree after load.
-				for (let u = 0; u < this.upgradeNames.length; u++)
-				{
-					const mUp = g.Upgrades[this.upgradeNames[u]];
-					if (mUp && mUp.bought && this.upgradeStacks[u] < 1) this.upgradeStacks[u] = 1;
-				}
+				const mUp = g.Upgrades[this.upgradeNames[u]];
+				if (mUp && mUp.bought && this.upgradeStacks[u] < 1) this.upgradeStacks[u] = 1;
 			}
-			// CC3 (Tier 3): lifetime bests (extra[3]/extra[4]/extra[5]); default to 0.
-			this.bestDepth = parseFloat(extra[3]) || 0;
-			this.bestCookies = parseFloat(extra[4]) || 0;
-			this.bestMonsters = parseFloat(extra[5]) || 0;
+			// CC3 (Tier 3): lifetime bests; default to 0.
+			this.bestDepth = parseFloat(parts[9]) || 0;
+			this.bestCookies = parseFloat(parts[10]) || 0;
+			this.bestMonsters = parseFloat(parts[11]) || 0;
 			// CC3 (Tier 1): selected hero + that hero's persisted progression.
-			let sel = parseInt(extra[6]) || 0;
+			let sel = parseInt(parts[12]) || 0;
 			if (sel < 0 || sel >= DungeonHeroes.length) sel = 0;
 			this.selectedHero = sel;
-			if (extra[7]) DungeonHeroes[sel].load(extra[7]);
+			if (parts[13]) DungeonHeroes[sel].load(parts[13]);
 		}
 		// Re-enter the persisted hero into the live dungeon (launch used the default
 		// index); this also carries the completedDungeons/etc. restored by the load above.
