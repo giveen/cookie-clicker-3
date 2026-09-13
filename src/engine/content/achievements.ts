@@ -38,8 +38,9 @@
  *    TieredAchievement is only ever called with building tiers, and every
  *    numeric tier defines achievUnlock — compile-erased, runtime-identical.
  */
+
+import { Achievement, BankAchievement, CpsAchievement, ProductionAchievement, TieredAchievement } from '../core/achievement';
 import type { Game as EngineGame } from '../types';
-import { Achievement, TieredAchievement, ProductionAchievement, BankAchievement, CpsAchievement } from '../core/achievement';
 
 /** Declare the 501 vanilla achievements (and their bookkeeping) on Game. */
 export function declareVanillaAchievements(Game: EngineGame) {

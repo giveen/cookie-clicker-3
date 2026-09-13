@@ -36,14 +36,14 @@ export function bakeryNameSet(what: any)
 {
 	try
 	{
-		var exp=new RegExp('[^\'\\-_0-9 \\p{L}]','gu');
+		var exp=/[^'\-_0-9 \p{L}]/gu;
 		Game.bakeryName=what.replace(exp,' ');
 		//Game.bakeryName=what.replace(/[^'\-_0-9 \p{L}]/gu,' ');
 		Game.bakeryName=Game.bakeryName.trim().substring(0,28);
 	}
 	catch(e)
 	{
-		var exp=new RegExp('\W+','g');
+		var exp=/\W+/g;
 		Game.bakeryName=what.replace(exp,' ');
 		//Game.bakeryName=what.replace(/\W+/g,' ');
 		Game.bakeryName=Game.bakeryName.substring(0,28);

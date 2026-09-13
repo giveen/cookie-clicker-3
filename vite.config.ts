@@ -1,7 +1,7 @@
-import { defineConfig, type Plugin } from 'vite';
 import { createHash } from 'node:crypto';
 import { readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { defineConfig, type Plugin } from 'vite';
 
 // The engine's CSS references public assets as `url(img/…)` (root-relative).
 // Vite emits the bundled CSS into `dist/assets/`, which shifts the base for
