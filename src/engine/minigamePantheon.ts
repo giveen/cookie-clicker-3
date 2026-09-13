@@ -455,7 +455,7 @@ M.launch=function(this: PantheonMinigame)
 			str+='<div id="templeSlots">';
 			for (var i in M.slot)
 			{
-				str+='<div class="ready templeGod templeGod'+(parseInt(i)%4)+' templeSlot titleFont" id="templeSlot'+i+'" '+Game.getDynamicTooltip('Game.ObjectsById['+M.parent.id+'].minigame.slotTooltip('+i+')','this')+'><div class="usesIcon shadowFilter templeGem templeGem'+(parseInt(i)+1)+'"></div></div>';
+				str+='<div class="ready templeGod templeGod'+(parseInt(i, 10)%4)+' templeSlot titleFont" id="templeSlot'+i+'" '+Game.getDynamicTooltip('Game.ObjectsById['+M.parent.id+'].minigame.slotTooltip('+i+')','this')+'><div class="usesIcon shadowFilter templeGem templeGem'+(parseInt(i, 10)+1)+'"></div></div>';
 			}
 			str+='</div>';
 			str+='<div id="templeInfo"><div '+Game.getDynamicTooltip('Game.ObjectsById['+M.parent.id+'].minigame.refillTooltip','this')+' id="templeLumpRefill" class="usesIcon shadowFilter lumpRefill" style="left:-6px;top:-10px;background-position:'+(-29*48)+'px '+(-14*48)+'px;"></div><div id="templeSwaps" '+Game.getTooltip('<div style="padding:8px;width:350px;font-size:11px;text-align:center;">Each time you slot a spirit, you use up one worship swap.<div class="line"></div>If you have 2 swaps left, the next one will refill after 1 hour.<br>If you have 1 swap left, the next one will refill after 4 hours.<br>If you have 0 swaps left, you will get one after 16 hours.<div class="line"></div>Unslotting a spirit costs no swaps.</div>')+'>-</div></div>';
@@ -512,7 +512,7 @@ M.launch=function(this: PantheonMinigame)
 		{str+=parseFloat(M.slot[i])+'/';}
 		str=str.slice(0,-1);
 		str+=' '+parseFloat(M.swaps)+' '+parseFloat(M.swapT);
-		str+=' '+parseInt(M.parent.onMinigame?'1':'0');
+		str+=' '+parseInt(M.parent.onMinigame?'1':'0', 10);
 		return str;
 	}
 	M.load=function(str: string)
@@ -534,7 +534,7 @@ M.launch=function(this: PantheonMinigame)
 			}
 		M.swaps=parseFloat(spl[i++]||3);
 		M.swapT=parseFloat(spl[i++]||Date.now());
-		var on=parseInt(spl[i++]||0);if (on && Game.ascensionMode!=1) M.parent.switchMinigame(1);
+		var on=parseInt(spl[i++]||0, 10);if (on && Game.ascensionMode!=1) M.parent.switchMinigame(1);
 		return;
 	}
 	M.reset=function()

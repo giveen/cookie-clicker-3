@@ -86,7 +86,22 @@ risks behavior", never "the finding is uninteresting". The big ones:
   `src/engine/main.ts` sits on the `Date.now` polyfill: the shim
   *defines* `Date.now`, so its body must use the
   `new Date().getTime()` fallback.
+
 - CSS/HTML rules (`noUnknownProperty`, `useGenericFontNames`,
   `noEmptyBlock`, `useValidAnchor`, …): frozen ported stylesheet/markup
   (KHTML vendor prefixes, Georgia/Comic Sans stacks, placeholder rules,
   JS-driven anchors without `href`).
+
+## The one rule pinned to error: `useParseIntRadix`
+
+It is enabled at `error` severity (above its `info` default) because an
+unradixed `parseInt` is a real mis-parse risk (hex-prefixed strings
+parse as base-16), and the fix is mechanical: the 229 unradixed sites
+from the verbatim port are now `parseInt(x, 10)` (2026-09-12). Its
+autofix is marked *unsafe* — Biome cannot prove an argument is not
+hex — so applying it needs `npx biome check --write --unsafe .`;
+with the rest of the repo lint-clean that applies only this rule's
+fixes, but review the diff afterward (every change must be exactly a
+`, 10` inside one `parseInt` call). The intentional base-16/base-2
+parses in `utils/encoding.ts` already carry their radix and are
+unaffected.

@@ -158,8 +158,13 @@
 				/* 1300+ block-scoped var/function declarations; moving them
 				   changes hoisting */
 				"noInnerDeclarations": "off",
-				/* verbatim 2.048 parseInt/hoisting patterns */
-				"useParseIntRadix": "off",
+				/* useParseIntRadix (on since 2026-09-12): the 229 unradixed
+				   parseInt sites from the verbatim port were fixed to
+				   parseInt(x, 10) in the same change — decimal-only,
+				   behavior-identical, and it stops the debt at the source.
+				   The intentional base-16/base-2 parses in
+				   utils/encoding.ts already carry their radix. */
+				"useParseIntRadix": "error",
 				"noInvalidUseBeforeDeclaration": "off",
 				/* the game intentionally deals in
 				   >Number.MAX_SAFE_INTEGER cookie counts

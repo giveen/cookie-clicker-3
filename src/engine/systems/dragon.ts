@@ -119,7 +119,7 @@ export function SelectDragonAura(slot: any, update: any)
 	var str='';
 	for (var i in Game.dragonAuras)
 	{
-		if (Game.dragonLevel>=parseInt(i)+4)
+		if (Game.dragonLevel>=parseInt(i, 10)+4)
 		{
 			var icon=Game.dragonAuras[i].pic;
 			if ((i as any)==0 || i!=otherAura) str+='<div class="crate enabled'+((i as any)==Game.SelectingDragonAura?' highlighted':'')+'" style="opacity:1;float:none;display:inline-block;'+writeIcon(icon)+'" '+Game.clickStr+'="PlaySound(\'snd/tick.mp3\');Game.SetDragonAura('+i+','+slot+');" onMouseOut="Game.DescribeDragonAura('+Game.SelectingDragonAura+');" onMouseOver="Game.DescribeDragonAura('+i+');"'+

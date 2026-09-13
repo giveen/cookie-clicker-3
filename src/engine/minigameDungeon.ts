@@ -770,7 +770,7 @@ function defineHero(name: string, pic: string, portrait: string, icon: [number, 
 			if (this.dialogue[what]) dungeon.Log(`${this.name} : "<span style="color:#99f;">${choose(this.dialogue[what].split("|"))}</span>"`);
 		},
 		save: function () { return `${this.inDungeon},${this.completedDungeons},${this.gear.armor},${this.gear.weapon}`; },
-		load: function (data) { const p = data.split(","); this.inDungeon = parseInt(p[0]); this.completedDungeons = parseInt(p[1]); this.gear.armor = parseInt(p[2]); this.gear.weapon = parseInt(p[3]); },
+		load: function (data) { const p = data.split(","); this.inDungeon = parseInt(p[0], 10); this.completedDungeons = parseInt(p[1], 10); this.gear.armor = parseInt(p[2], 10); this.gear.weapon = parseInt(p[3], 10); },
 	};
 	DungeonHeroes.push(hr);
 	return hr;
@@ -1426,7 +1426,7 @@ M.load = function (this: DungeonMinigame, str: string): boolean | undefined {
 			this.bestCookies = parseFloat(extra[4]) || 0;
 			this.bestMonsters = parseFloat(extra[5]) || 0;
 			// CC3 (Tier 1): selected hero + that hero's persisted progression.
-			let sel = parseInt(extra[6]) || 0;
+			let sel = parseInt(extra[6], 10) || 0;
 			if (sel < 0 || sel >= DungeonHeroes.length) sel = 0;
 			this.selectedHero = sel;
 			if (extra[7]) DungeonHeroes[sel].load(extra[7]);
