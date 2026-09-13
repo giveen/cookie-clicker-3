@@ -1,5 +1,5 @@
 // TEMPORARY probe: trace what zeroes Game.cookies after a poisoned import.
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 const BOOT = { timeout: 30_000 };
 

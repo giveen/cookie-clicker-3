@@ -1,5 +1,5 @@
 // Deeper diagnostic: Cat upgrade unlock timing and store visibility
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 const BOOT = { timeout: 30_000 };
 

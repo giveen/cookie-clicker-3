@@ -16,7 +16,7 @@
 //
 // Each test re-boots fresh so state never leaks between them.
 // Run: npx playwright test tests/dungeon.spec.js
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 const BOOT = { timeout: 30_000 };
 
@@ -392,14 +392,14 @@ test('panel inline handlers (Exit link, hero chips, relic buy) run without refer
 	await clearNotes();
 	await page.locator('#dungeonContent .dungeonName a').first().click();
 	const fid = await page.evaluate(() => window.Game.Objects['Factory'].id);
-	await page.waitForFunction((pid) => {
+	await page.waitForFunction((_pid) => {
 		const F = window.Game.Objects['Factory'];
 		if (F.onMinigame) return false;
 		const el = document.getElementById('dungeonContent');
 		if (!el) return true;
 		return el.getBoundingClientRect().height < 10; // collapsed (CSS display:none or zero height)
 	}, fid, { timeout: 15_000 });
-	const closed = await page.evaluate((id) => {
+	const closed = await page.evaluate((_id) => {
 		const F = window.Game.Objects['Factory'];
 		const el = document.getElementById('dungeonContent');
 		return {

@@ -6,7 +6,7 @@
 // release touchend swallowed (no double-buy of the final tap).
 // Chromium-only on purpose: the probe dispatches TouchEvent, which the
 // desktop Firefox/WebKit builds in this repo don't provide.
-import { test, expect, devices } from '@playwright/test';
+import { devices, expect, test } from '@playwright/test';
 
 const BOOT = { timeout: 60_000 };
 
@@ -65,6 +65,6 @@ test('touch: detection arms and hold-to-buy repeat-buys from a store row', async
 		el.dispatchEvent(new TouchEvent('touchend', { touches: [], targetTouches: [], changedTouches: [touch], bubbles: true, cancelable: true }));
 	});
 	// repeats bought, and the release touchend was swallowed (no extra buy)
-	expect(await page.evaluate((b) => Game.Objects['Cursor'].amount, before)).toBe(before + 3);
+	expect(await page.evaluate((_b) => Game.Objects['Cursor'].amount, before)).toBe(before + 3);
 	expect(errors).toEqual([]);
 });

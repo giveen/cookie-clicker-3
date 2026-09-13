@@ -19,7 +19,7 @@
 //      push the ledger past the cap.
 //
 // Run: npx playwright test tests/overflow.spec.js
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 const BOOT = { timeout: 30_000 };
 // Largest displayable number: utils/format.ts computes 1000^(min(formatLong,
@@ -140,7 +140,6 @@ test('a save poisoned with the literal "Infinity" self-heals on import', async (
 		const G = window.Game;
 		const raw = G.WriteSave(2); // uncompressed string
 		const parts = raw.split('|');
-		const run = parts[2].split(';');
 		// Corrupt it exactly the way the broken builds wrote it: parseFloat
 		// turns the literal "Infinity" back into float Infinity on import.
 		// (section 4 = the "misc game data" block: [0]=cookies, [1]=cookiesEarned,

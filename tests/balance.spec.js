@@ -12,10 +12,11 @@
 //
 // Run:          npx playwright test tests/balance.spec.js
 // Regenerate:   BALANCE_UPDATE=1 npx playwright test tests/balance.spec.js
-import { test, expect } from '@playwright/test';
+
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { expect, test } from '@playwright/test';
 
 const BASELINE = path.join(path.dirname(fileURLToPath(import.meta.url)), 'balance-baseline.json');
 const BOOT = { timeout: 30_000 };
@@ -51,7 +52,7 @@ test('balance: no new warnings against the committed baseline', async ({ page })
 	let baseline;
 	try {
 		baseline = JSON.parse(fs.readFileSync(BASELINE, 'utf8'));
-	} catch (err) {
+	} catch {
 		throw new Error(`balance baseline missing or unreadable (${BASELINE}) — generate it with BALANCE_UPDATE=1 npx playwright test tests/balance.spec.js`);
 	}
 	const newWarnings = current.warnings.filter((w) => !baseline.warnings.includes(w));

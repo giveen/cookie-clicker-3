@@ -24,7 +24,7 @@
 // these gate order-of-magnitude regressions, not precise frame budgets. The
 // measured values are logged on every run — tighten the constants against
 // those numbers before treating a failure as a real regression.
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 // Load profile: 4 minigame buildings (Farm/Bank/Temple/Wizard tower) at this
 // level, Garden open — the probe's sampling window runs with all of that live.

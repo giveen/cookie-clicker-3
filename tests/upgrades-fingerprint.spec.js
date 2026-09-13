@@ -14,10 +14,11 @@
 //
 // Run:          npx playwright test tests/upgrades-fingerprint.spec.js
 // Regenerate:   UPGRADES_UPDATE=1 npx playwright test tests/upgrades-fingerprint.spec.js
-import { test, expect } from '@playwright/test';
+
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { expect, test } from '@playwright/test';
 
 const BASELINE = path.join(path.dirname(fileURLToPath(import.meta.url)), 'upgrades-baseline.json');
 const BOOT = { timeout: 30_000 };
@@ -69,7 +70,7 @@ test('upgrades: registration fingerprint matches the committed baseline', async 
 	let baseline;
 	try {
 		baseline = JSON.parse(fs.readFileSync(BASELINE, 'utf8'));
-	} catch (err) {
+	} catch {
 		throw new Error(`upgrades baseline missing or unreadable (${BASELINE}) — generate it with UPGRADES_UPDATE=1 npx playwright test tests/upgrades-fingerprint.spec.js`);
 	}
 	if (current.count !== baseline.count) {
