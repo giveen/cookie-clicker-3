@@ -24,9 +24,17 @@ export function ToggleSpecialMenu(on: any)
 		var frame=0;
 		if (Game.specialTab=='santa') {pic='santa.webp';frame=Game.santaLevel;}
 		else if (Game.specialTab=='dragon') {pic='dragon.webp?v='+Game.version;frame=Game.dragonLevels[Game.dragonLevel].pic;}
+		else if (Game.specialTab=='cow') {pic='Cow.png?v='+Game.version;frame=0;}
 		else {pic='dragon.webp?v='+Game.version;frame=4;}
 		
-		var str='<div id="specialPic" '+Game.clickStr+'="Game.ClickSpecialPic();" style="'+((Game.specialTab=='dragon' && Game.dragonLevel>=4 && Game.Has('Pet the dragon'))?'cursor:pointer;':'')+'position:absolute;left:-16px;top:-64px;width:96px;height:96px;background:url(img/'+pic+');background-position:'+(-frame*96)+'px 0px;filter:drop-shadow(0px 3px 2px #000);-webkit-filter:drop-shadow(0px 3px 2px #000);"></div>';
+		//CC3: the cow is a single 64x64 sprite, not a 96x96 frame strip —
+		//center it and scale it in place as it grows (stage 0 = 48px, stage
+		//11 = 96px) so the growth is visible without new assets.
+		var picStyle;
+		if (Game.specialTab=='cow') picStyle='background:url(img/'+pic+');background-repeat:no-repeat;background-position:center;background-size:96px 96px;transform:scale('+(0.5+Game.cowLevel/22)+');';
+		else picStyle='background:url(img/'+pic+');background-position:'+(-frame*96)+'px 0px;';
+		
+		var str='<div id="specialPic" '+Game.clickStr+'="Game.ClickSpecialPic();" style="'+((Game.specialTab=='dragon' && Game.dragonLevel>=4 && Game.Has('Pet the dragon'))?'cursor:pointer;':'')+'position:absolute;left:-16px;top:-64px;width:96px;height:96px;'+picStyle+'filter:drop-shadow(0px 3px 2px #000);-webkit-filter:drop-shadow(0px 3px 2px #000);"></div>';
 		str+='<div class="close" onclick="PlaySound(\'snd/press.mp3\');Game.ToggleSpecialMenu(0);">x</div>';
 		
 		if (Game.specialTab=='santa')
@@ -88,6 +96,28 @@ export function ToggleSpecialMenu(on: any)
 				'<div style="text-align:center;margin-bottom:4px;">'+level.action+'</div>';
 			}
 		}
+		else if (Game.specialTab=='cow')
+		{
+			var level=Game.cowLevels[Game.cowLevel];
+			
+			str+='<h3 style="pointer-events:none;">'+level.name+'</h3>';
+			str+='<div style="margin-bottom:4px;">'+loc("Milk bonus")+': <b>+'+Math.round(Game.CowMilkBonus()*100)+'%</b> '+loc("(the cow's share of the milk bonus; it grows as the cow grows)")+'</div>';
+			
+			if (Game.cowLevel<Game.cowLevels.length-1)
+			{
+				str+='<div class="line"></div>'+
+				'<div class="optionBox" style="margin-bottom:0px;"><a class="option framed large title" '+Game.clickStr+'="Game.UpgradeCow();">'+
+					'<div style="display:table-cell;vertical-align:middle;">'+level.action+'</div>'+
+					'<div style="display:table-cell;vertical-align:middle;padding:4px 12px;">|</div>'+
+					'<div style="display:table-cell;vertical-align:middle;font-size:65%;">'+loc("sacrifice %1",'<div'+(level.cost()?'':' style="color:#777;"')+'>'+level.costStr()+'</div>')+'</div>'+
+					'</a></div>';
+			}
+			else
+			{
+				str+='<div class="line"></div>'+
+				'<div style="text-align:center;margin-bottom:4px;">'+level.action+'</div>';
+			}
+		}
 		
 		l('specialPopup').innerHTML=str;
 		
@@ -122,11 +152,13 @@ export function DrawSpecial()
 		var s=1;
 		var pic='';
 		var frame=0;
+		var sw=96;var sh=96;//source rect of the sprite (the cow is a single 64x64 frame)
 		if (hovered) {s=1;x=24;}
 		if (selected) {s=1;x=48;}
 		
 		if (Game.specialTabs[i]=='santa') {pic='santa.webp';frame=Game.santaLevel;}
 		else if (Game.specialTabs[i]=='dragon') {pic='dragon.webp?v='+Game.version;frame=Game.dragonLevels[Game.dragonLevel].pic;}
+		else if (Game.specialTabs[i]=='cow') {pic='Cow.png?v='+Game.version;frame=0;sw=64;sh=64;}
 		else {pic='dragon.webp?v='+Game.version;frame=4;}
 		
 		if (hovered || selected)
@@ -141,8 +173,8 @@ export function DrawSpecial()
 			Game.LeftBackground.restore();
 		}
 		
-		if (Game.prefs.fancy) Game.LeftBackground.drawImage(Pic(pic),96*frame,0,96,96,(x+(selected?0:Math.sin(Game.T*0.2+tabI)*3)-24*s),(y-(selected?6:Math.abs(Math.cos(Game.T*0.2+tabI))*6)-24*s),48*s,48*s);
-		else Game.LeftBackground.drawImage(Pic(pic),96*frame,0,96,96,(x-24*s),(y-24*s),48*s,48*s);
+		if (Game.prefs.fancy) Game.LeftBackground.drawImage(Pic(pic),96*frame,0,sw,sh,(x+(selected?0:Math.sin(Game.T*0.2+tabI)*3)-24*s),(y-(selected?6:Math.abs(Math.cos(Game.T*0.2+tabI))*6)-24*s),48*s,48*s);
+		else Game.LeftBackground.drawImage(Pic(pic),96*frame,0,sw,sh,(x-24*s),(y-24*s),48*s,48*s);
 		
 		tabI++;
 		y+=48;
