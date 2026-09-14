@@ -66,7 +66,12 @@ export function declareVanillaChangelog(Game: EngineGame) {
 	if (!EN) Game.updateLog+='<div class="listing" style="font-weight:bold;font-style:italic;opacity:0.5;">'+loc("Note: older update notes are in English.")+'</div>';
 	
 	Game.updateLog+=
-
+	
+	'</div><div class="subsection update">' +
+	'<div class="title">13/09/2026 - the cookie cow</div>' +
+	'<div class="listing">&bull; adopted a cookie cow: buy <b>How to milk a cookie cow</b> (9 heavenly chips) and then <b>A certain cow</b> to unlock the cow tab — it grows in size eleven times, from 1 million cookies up to a final 10 quadrillion</div>' +
+	'<div class="listing">&bull; the bigger the cow, the bigger your milk bonus: +1% per growth, and the final 10 quadrillion growth is worth +3% (13% at full size) — the bonus multiplies the milk effect of your kitten upgrades</div>' +
+	'<div class="listing">&bull; each growth wins an achievement, and a fully grown cow is worth its own milestone</div>' +
 	'</div><div class="subsection update">' +
 	'<div class="title">11/09/2026 - the cookie counter can no longer turn into "Infinity" (and it repairs saves that already did)</div>' +
 	'<div class="listing">&bull; fixed a serious bug that could hit very large saves: a Factory Dungeon cookie pickup was scaled by your factory\'s production, and the product could overflow the largest number the game can represent — the top counter then displayed "Infinity", purchases stopped doing anything, and the damage was written into your save, so re-importing it kept it broken. Cookie counts are now clamped at the largest number the game can display, rewards that aren\'t real numbers are refused outright, and a save that already contains the damage self-repairs on load: your counter comes back as a huge but genuine number and the next autosave rewrites the file clean</div>' +

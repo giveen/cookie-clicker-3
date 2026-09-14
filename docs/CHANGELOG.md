@@ -11,6 +11,12 @@ upstream Cookie Clicker 2.048 patch notes that the engine also displays
 (31/05/2022 back to 05/08/2013) are Orteil's, shown verbatim in the
 in-game log, and are not duplicated here.
 
+## 13/09/2026 - the cookie cow
+
+- adopted a cookie cow: buy **How to milk a cookie cow** (9 heavenly chips) and then **A certain cow** to unlock the cow tab — it grows in size eleven times, from 1 million cookies up to a final 10 quadrillion
+- the bigger the cow, the bigger your milk bonus: +1% per growth, and the final 10 quadrillion growth is worth +3% (13% at full size) — the bonus multiplies the milk effect of your kitten upgrades
+- each growth wins an achievement, and a fully grown cow is worth its own milestone
+
 ## 11/09/2026 - save corruption fix (the "Infinity" counter)
 
 - **fixed (urgent)**: on very large saves a Factory Dungeon cookie pickup could push the cookie counter past the largest representable number — the counter then displayed "Infinity", purchases stopped doing anything, and the damage was written into the save itself, so re-importing the save kept it broken
