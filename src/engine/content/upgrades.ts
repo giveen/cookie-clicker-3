@@ -2131,6 +2131,15 @@ export function declareVanillaUpgrades(Game: EngineGame) {
 		new Game.Upgrade('Eternal labyrinth',"Factories gain <b>+15% CpS</b>."+'<q>You have mapped every wall. The walls have mapped you back.</q>',45000000,[0,0,'img/factoryIcon.webp',64]);Game.last.pool='prestige';Game.last.parents=['Subterranean forge'];
 		new Game.Upgrade('Master of the maze',"Factories gain <b>+20% CpS</b>."+'<q>There is no exit. There is only production.</q>',135000000,[0,0,'img/factoryIcon.webp',64]);Game.last.pool='prestige';Game.last.parents=['Eternal labyrinth'];
 
+		// CC3: The cookie cow (systems/cow.ts) — the unlock pair mirrors the
+		// dragon's ("How to bake your dragon" / "A crumbly egg"): a
+		// prestige-pool tome (9 HC, auto-parented to Legacy like its twin)
+		// next to a 25-cookie unlocker in the default pool. Appended (not
+		// interleaved) so existing upgrade ids stay stable for imported saves.
+		new Game.Upgrade('How to milk a cookie cow',loc("Allows you to purchase a <b>certain cow</b> once you have earned 1 million cookies.")+'<q>A field guide to the local dairy fauna. "It looks gentle. It is gentle. On the third day it will drink an entire river, then stand in the sun and think about nothing at all."</q>',9,[0,0,'img/Cow.png',64]);Game.last.pool='prestige';
+		order=25100;
+		new Game.Upgrade('A certain cow',loc("Unlocks the <b>cookie cow</b>. It grows in size as you grow it, and the milk bonus it grants grows with it.")+'<q>Thank you for adopting this sturdily-built, endlessly-amused cookie cow! It will bring you decades of joy, entertainment, and a suspicious amount of lactose.<br>Keep in a dry, cool place. Do not let it taste the sugar lumps — it will not stop mooing about it.</q>',25,[0,0,'img/Cow.png',64]);
+
 		//end of upgrades
 
 		Game.seasons={
