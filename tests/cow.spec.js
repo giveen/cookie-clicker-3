@@ -301,9 +301,27 @@ test.describe('cookie cow', () => {
 		const pic0 = await page.locator('#specialPic').getAttribute('style');
 		expect(pic0).toContain('Cow.png');
 		expect(pic0).toContain('scale(0.5)'); // stage 0 = 48px
+		expect(pic0).toContain('--cowScale:0.5'); // growth scale published for the idle-breath keyframes
 		// the cow sits on the milk at the RIGHT of the drawer area
 		expect(pic0).toContain('right:-16px');
 		expect(pic0).not.toContain('left:-16px');
+		// the idle-breath animation is scoped to the cow (cc3CowBreathe,
+		// gated by reduced-motion / the fancy-graphics toggle in CSS)
+		const cowAnim = await page.evaluate(() => {
+			const el = document.getElementById('specialPic');
+			const cs = getComputedStyle(el);
+			return { cls: el.className, name: cs.animationName, dur: cs.animationDuration, scale: el.style.getPropertyValue('--cowScale') };
+		});
+		expect(cowAnim.cls).toBe('cc3Cow');
+		expect(cowAnim.name).toContain('cc3CowBreathe');
+		expect(parseFloat(cowAnim.dur)).toBeCloseTo(2.4, 2);
+		expect(cowAnim.scale).toBe('0.5');
+		// the in-game "fancy graphics" toggle publishes body.noMotion: the
+		// idle-breath stops and the static inline scale is the fallback
+		await page.evaluate(() => document.body.classList.add('noMotion'));
+		const cowAnimOff = await page.evaluate(() => getComputedStyle(document.getElementById('specialPic')).animationName);
+		expect(cowAnimOff).toBe('none');
+		await page.evaluate(() => document.body.classList.remove('noMotion'));
 
 		// ...while the dragon's drawer still hangs off the left
 		await page.evaluate(() => {
@@ -316,6 +334,13 @@ test.describe('cookie cow', () => {
 		const dragonPic = await page.locator('#specialPic').getAttribute('style');
 		expect(dragonPic).toContain('left:-16px');
 		expect(dragonPic).not.toContain('right:-16px');
+		// the dragon sprite is untouched: no cc3Cow class, no idle-breath animation
+		const dragonAnim = await page.evaluate(() => {
+			const el = document.getElementById('specialPic');
+			return { cls: el.className, name: getComputedStyle(el).animationName };
+		});
+		expect(dragonAnim.cls).toBe('');
+		expect(dragonAnim.name).toBe('none');
 
 		// back to the cow drawer for the remaining checks
 		await page.evaluate(() => {

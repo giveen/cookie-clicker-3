@@ -29,17 +29,23 @@ export function ToggleSpecialMenu(on: any)
 		
 		//CC3: the cow is a single 64x64 sprite, not a 96x96 frame strip —
 		//center it and scale it in place as it grows (stage 0 = 48px, stage
-		//11 = 96px) so the growth is visible without new assets.
+		//11 = 96px) so the growth is visible without new assets. The
+		//growth scale is also published as --cowScale: the cc3CowBreathe
+		//keyframes (styles/main.css) rebuild the full transform from it, so
+		//the idle bob composes with the growth instead of replacing it;
+		//the inline transform is the reduced-motion / noMotion fallback.
 		var picStyle;
-		if (Game.specialTab=='cow') picStyle='background:url(img/'+pic+');background-repeat:no-repeat;background-position:center;background-size:96px 96px;transform:scale('+(0.5+Game.cowLevel/22)+');';
+		if (Game.specialTab=='cow') {var cowScale=0.5+Game.cowLevel/22;picStyle='background:url(img/'+pic+');background-repeat:no-repeat;background-position:center;background-size:96px 96px;--cowScale:'+cowScale+';transform:scale('+cowScale+');';}
 		else picStyle='background:url(img/'+pic+');background-position:'+(-frame*96)+'px 0px;';
+		var picClass='';
+		if (Game.specialTab=='cow') picClass=' class="cc3Cow"';
 		
 		//CC3: the cow sits on the milk at the RIGHT of the drawer area,
 		//mirroring the dragon/santa sprite which hangs off the left.
 		var picPos='left:-16px;top:-64px;';
 		if (Game.specialTab=='cow') picPos='right:-16px;top:-64px;';
 		
-		var str='<div id="specialPic" '+Game.clickStr+'="Game.ClickSpecialPic();" style="'+((Game.specialTab=='dragon' && Game.dragonLevel>=4 && Game.Has('Pet the dragon'))?'cursor:pointer;':'')+'position:absolute;'+picPos+'width:96px;height:96px;'+picStyle+'filter:drop-shadow(0px 3px 2px #000);-webkit-filter:drop-shadow(0px 3px 2px #000);"></div>';
+		var str='<div id="specialPic"'+picClass+' '+Game.clickStr+'="Game.ClickSpecialPic();" style="'+((Game.specialTab=='dragon' && Game.dragonLevel>=4 && Game.Has('Pet the dragon'))?'cursor:pointer;':'')+'position:absolute;'+picPos+'width:96px;height:96px;'+picStyle+'filter:drop-shadow(0px 3px 2px #000);-webkit-filter:drop-shadow(0px 3px 2px #000);"></div>';
 		str+='<div class="close" onclick="PlaySound(\'snd/press.mp3\');Game.ToggleSpecialMenu(0);">x</div>';
 		
 		if (Game.specialTab=='santa')
