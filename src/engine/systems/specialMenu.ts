@@ -34,7 +34,12 @@ export function ToggleSpecialMenu(on: any)
 		if (Game.specialTab=='cow') picStyle='background:url(img/'+pic+');background-repeat:no-repeat;background-position:center;background-size:96px 96px;transform:scale('+(0.5+Game.cowLevel/22)+');';
 		else picStyle='background:url(img/'+pic+');background-position:'+(-frame*96)+'px 0px;';
 		
-		var str='<div id="specialPic" '+Game.clickStr+'="Game.ClickSpecialPic();" style="'+((Game.specialTab=='dragon' && Game.dragonLevel>=4 && Game.Has('Pet the dragon'))?'cursor:pointer;':'')+'position:absolute;left:-16px;top:-64px;width:96px;height:96px;'+picStyle+'filter:drop-shadow(0px 3px 2px #000);-webkit-filter:drop-shadow(0px 3px 2px #000);"></div>';
+		//CC3: the cow sits on the milk at the RIGHT of the drawer area,
+		//mirroring the dragon/santa sprite which hangs off the left.
+		var picPos='left:-16px;top:-64px;';
+		if (Game.specialTab=='cow') picPos='right:-16px;top:-64px;';
+		
+		var str='<div id="specialPic" '+Game.clickStr+'="Game.ClickSpecialPic();" style="'+((Game.specialTab=='dragon' && Game.dragonLevel>=4 && Game.Has('Pet the dragon'))?'cursor:pointer;':'')+'position:absolute;'+picPos+'width:96px;height:96px;'+picStyle+'filter:drop-shadow(0px 3px 2px #000);-webkit-filter:drop-shadow(0px 3px 2px #000);"></div>';
 		str+='<div class="close" onclick="PlaySound(\'snd/press.mp3\');Game.ToggleSpecialMenu(0);">x</div>';
 		
 		if (Game.specialTab=='santa')
