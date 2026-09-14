@@ -110,16 +110,16 @@ export function WriteSave(type?: number)
 		{
 			Game.toSave=false;
 			//type: none is default, 1=return string only, 2=return uncompressed string, 3=return uncompressed, commented string
-			Game.lastDate=parseInt(Game.time);
+			Game.lastDate=parseInt(Game.time, 10);
 			var str='';
 			if (type==3) str+='\nGame version\n';
 			str+=Game.version+'|';
 			str+='|';//just in case we need some more stuff here
 			if (type==3) str+='\n\nRun details';
 			str+=//save stats
-			(type==3?'\n	run start date : ':'')+parseInt(Game.startDate)+';'+
-			(type==3?'\n	legacy start date : ':'')+parseInt(Game.fullDate)+';'+
-			(type==3?'\n	date when we last opened the game : ':'')+parseInt(Game.lastDate)+';'+
+			(type==3?'\n	run start date : ':'')+parseInt(Game.startDate, 10)+';'+
+			(type==3?'\n	legacy start date : ':'')+parseInt(Game.fullDate, 10)+';'+
+			(type==3?'\n	date when we last opened the game : ':'')+parseInt(Game.lastDate, 10)+';'+
 			(type==3?'\n	bakery name : ':'')+(Game.bakeryName)+';'+
 			(type==3?'\n	seed : ':'')+(Game.seed)+
 			'|';
@@ -159,55 +159,55 @@ export function WriteSave(type?: number)
 			str+=
 			(type==3?'\n	cookies : ':'')+parseFloat(Game.cookies).toString()+';'+
 			(type==3?'\n	total cookies earned : ':'')+parseFloat(Game.cookiesEarned).toString()+';'+
-			(type==3?'\n	cookie clicks : ':'')+parseInt(Math.floor(Game.cookieClicks))+';'+
-			(type==3?'\n	golden cookie clicks : ':'')+parseInt(Math.floor(Game.goldenClicks))+';'+
+			(type==3?'\n	cookie clicks : ':'')+parseInt(Math.floor(Game.cookieClicks), 10)+';'+
+			(type==3?'\n	golden cookie clicks : ':'')+parseInt(Math.floor(Game.goldenClicks), 10)+';'+
 			(type==3?'\n	cookies made by clicking : ':'')+parseFloat(Game.handmadeCookies).toString()+';'+
-			(type==3?'\n	golden cookies missed : ':'')+parseInt(Math.floor(Game.missedGoldenClicks))+';'+
-			(type==3?'\n	background type : ':'')+parseInt(Math.floor(Game.bgType))+';'+
-			(type==3?'\n	milk type : ':'')+parseInt(Math.floor(Game.milkType))+';'+
+			(type==3?'\n	golden cookies missed : ':'')+parseInt(Math.floor(Game.missedGoldenClicks), 10)+';'+
+			(type==3?'\n	background type : ':'')+parseInt(Math.floor(Game.bgType), 10)+';'+
+			(type==3?'\n	milk type : ':'')+parseInt(Math.floor(Game.milkType), 10)+';'+
 			(type==3?'\n	cookies from past runs : ':'')+parseFloat(Game.cookiesReset).toString()+';'+
-			(type==3?'\n	elder wrath : ':'')+parseInt(Math.floor(Game.elderWrath))+';'+
-			(type==3?'\n	pledges : ':'')+parseInt(Math.floor(Game.pledges))+';'+
-			(type==3?'\n	pledge time left : ':'')+parseInt(Math.floor(Game.pledgeT))+';'+
-			(type==3?'\n	currently researching : ':'')+parseInt(Math.floor(Game.nextResearch))+';'+
-			(type==3?'\n	research time left : ':'')+parseInt(Math.floor(Game.researchT))+';'+
-			(type==3?'\n	ascensions : ':'')+parseInt(Math.floor(Game.resets))+';'+
-			(type==3?'\n	golden cookie clicks (this run) : ':'')+parseInt(Math.floor(Game.goldenClicksLocal))+';'+
+			(type==3?'\n	elder wrath : ':'')+parseInt(Math.floor(Game.elderWrath), 10)+';'+
+			(type==3?'\n	pledges : ':'')+parseInt(Math.floor(Game.pledges), 10)+';'+
+			(type==3?'\n	pledge time left : ':'')+parseInt(Math.floor(Game.pledgeT), 10)+';'+
+			(type==3?'\n	currently researching : ':'')+parseInt(Math.floor(Game.nextResearch), 10)+';'+
+			(type==3?'\n	research time left : ':'')+parseInt(Math.floor(Game.researchT), 10)+';'+
+			(type==3?'\n	ascensions : ':'')+parseInt(Math.floor(Game.resets), 10)+';'+
+			(type==3?'\n	golden cookie clicks (this run) : ':'')+parseInt(Math.floor(Game.goldenClicksLocal), 10)+';'+
 			(type==3?'\n	cookies sucked by wrinklers : ':'')+parseFloat(Game.cookiesSucked).toString()+';'+
-			(type==3?'\n	wrinkles popped : ':'')+parseInt(Math.floor(Game.wrinklersPopped))+';'+
-			(type==3?'\n	santa level : ':'')+parseInt(Math.floor(Game.santaLevel))+';'+
-			(type==3?'\n	reindeer clicked : ':'')+parseInt(Math.floor(Game.reindeerClicked))+';'+
-			(type==3?'\n	season time left : ':'')+parseInt(Math.floor(Game.seasonT))+';'+
-			(type==3?'\n	season switcher uses : ':'')+parseInt(Math.floor(Game.seasonUses))+';'+
+			(type==3?'\n	wrinkles popped : ':'')+parseInt(Math.floor(Game.wrinklersPopped), 10)+';'+
+			(type==3?'\n	santa level : ':'')+parseInt(Math.floor(Game.santaLevel), 10)+';'+
+			(type==3?'\n	reindeer clicked : ':'')+parseInt(Math.floor(Game.reindeerClicked), 10)+';'+
+			(type==3?'\n	season time left : ':'')+parseInt(Math.floor(Game.seasonT), 10)+';'+
+			(type==3?'\n	season switcher uses : ':'')+parseInt(Math.floor(Game.seasonUses), 10)+';'+
 			(type==3?'\n	current season : ':'')+(Game.season?Game.season:'')+';';
 			var wrinklers=Game.SaveWrinklers();
 			str+=
 			(type==3?'\n	amount of cookies contained in wrinklers : ':'')+parseFloat(Math.floor(wrinklers.amount))+';'+
-			(type==3?'\n	number of wrinklers : ':'')+parseInt(Math.floor(wrinklers.number))+';'+
+			(type==3?'\n	number of wrinklers : ':'')+parseInt(Math.floor(wrinklers.number), 10)+';'+
 			(type==3?'\n	prestige level : ':'')+parseFloat(Game.prestige).toString()+';'+
 			(type==3?'\n	heavenly chips : ':'')+parseFloat(Game.heavenlyChips).toString()+';'+
 			(type==3?'\n	heavenly chips spent : ':'')+parseFloat(Game.heavenlyChipsSpent).toString()+';'+
 			(type==3?'\n	heavenly cookies : ':'')+parseFloat(Game.heavenlyCookies).toString()+';'+
-			(type==3?'\n	ascension mode : ':'')+parseInt(Math.floor(Game.ascensionMode))+';'+
-			(type==3?'\n	permanent upgrades : ':'')+parseInt(Math.floor(Game.permanentUpgrades[0]))+';'+parseInt(Math.floor(Game.permanentUpgrades[1]))+';'+parseInt(Math.floor(Game.permanentUpgrades[2]))+';'+parseInt(Math.floor(Game.permanentUpgrades[3]))+';'+parseInt(Math.floor(Game.permanentUpgrades[4]))+';'+
-			(type==3?'\n	dragon level : ':'')+parseInt(Math.floor(Game.dragonLevel))+';'+
-			(type==3?'\n	dragon aura : ':'')+parseInt(Math.floor(Game.dragonAura))+';'+
-			(type==3?'\n	dragon aura 2 : ':'')+parseInt(Math.floor(Game.dragonAura2))+';'+
-			(type==3?'\n	chime type : ':'')+parseInt(Math.floor(Game.chimeType))+';'+
-			(type==3?'\n	volume : ':'')+parseInt(Math.floor(Game.volume))+';'+
-			(type==3?'\n	number of shiny wrinklers : ':'')+parseInt(Math.floor(wrinklers.shinies))+';'+
+			(type==3?'\n	ascension mode : ':'')+parseInt(Math.floor(Game.ascensionMode), 10)+';'+
+			(type==3?'\n	permanent upgrades : ':'')+parseInt(Math.floor(Game.permanentUpgrades[0]), 10)+';'+parseInt(Math.floor(Game.permanentUpgrades[1]), 10)+';'+parseInt(Math.floor(Game.permanentUpgrades[2]), 10)+';'+parseInt(Math.floor(Game.permanentUpgrades[3]), 10)+';'+parseInt(Math.floor(Game.permanentUpgrades[4]), 10)+';'+
+			(type==3?'\n	dragon level : ':'')+parseInt(Math.floor(Game.dragonLevel), 10)+';'+
+			(type==3?'\n	dragon aura : ':'')+parseInt(Math.floor(Game.dragonAura), 10)+';'+
+			(type==3?'\n	dragon aura 2 : ':'')+parseInt(Math.floor(Game.dragonAura2), 10)+';'+
+			(type==3?'\n	chime type : ':'')+parseInt(Math.floor(Game.chimeType), 10)+';'+
+			(type==3?'\n	volume : ':'')+parseInt(Math.floor(Game.volume), 10)+';'+
+			(type==3?'\n	number of shiny wrinklers : ':'')+parseInt(Math.floor(wrinklers.shinies), 10)+';'+
 			(type==3?'\n	amount of cookies contained in shiny wrinklers : ':'')+parseFloat(Math.floor(wrinklers.amountShinies))+';'+
 			(type==3?'\n	current amount of sugar lumps : ':'')+parseFloat(Math.floor(Game.lumps))+';'+
 			(type==3?'\n	total amount of sugar lumps made : ':'')+parseFloat(Math.floor(Game.lumpsTotal))+';'+
 			(type==3?'\n	time when current sugar lump started : ':'')+parseFloat(Math.floor(Game.lumpT))+';'+
 			(type==3?'\n	time when last refilled a minigame with a sugar lump : ':'')+parseFloat(Math.floor(Game.lumpRefill))+';'+
-			(type==3?'\n	sugar lump type : ':'')+parseInt(Math.floor(Game.lumpCurrentType))+';'+
+			(type==3?'\n	sugar lump type : ':'')+parseInt(Math.floor(Game.lumpCurrentType), 10)+';'+
 			(type==3?'\n	vault : ':'')+Game.vault.join(',')+';'+
-			(type==3?'\n	heralds : ':'')+parseInt(Game.heralds)+';'+
-			(type==3?'\n	golden cookie fortune : ':'')+parseInt(Game.fortuneGC)+';'+
-			(type==3?'\n	CpS fortune : ':'')+parseInt(Game.fortuneCPS)+';'+
+			(type==3?'\n	heralds : ':'')+parseInt(Game.heralds, 10)+';'+
+			(type==3?'\n	golden cookie fortune : ':'')+parseInt(Game.fortuneGC, 10)+';'+
+			(type==3?'\n	CpS fortune : ':'')+parseInt(Game.fortuneCPS, 10)+';'+
 			(type==3?'\n	highest raw CpS : ':'')+parseFloat(Game.cookiesPsRawHighest)+';'+
-			(type==3?'\n	music volume : ':'')+parseInt(Math.floor(Game.volumeMusic))+';'+
+			(type==3?'\n	music volume : ':'')+parseInt(Math.floor(Game.volumeMusic), 10)+';'+
 			
 			'|';//cookies and lots of other stuff
 			
@@ -219,7 +219,7 @@ export function WriteSave(type?: number)
 				if (type==3) str+='\n	'+me.name+' : ';
 				if (me.vanilla)
 				{
-					str+=me.amount+','+me.bought+','+parseFloat(Math.floor(me.totalCookies))+','+parseInt(me.level);
+					str+=me.amount+','+me.bought+','+parseFloat(Math.floor(me.totalCookies))+','+parseInt(me.level, 10);
 					if (Game.isMinigameReady(me)) str+=','+me.minigame.save(); else str+=','+(me.minigameSave||'');
 					str+=','+(me.muted?'1':'0');
 					str+=','+me.highest;
@@ -416,97 +416,97 @@ export function LoadSave(data?: any,ignoreVersionIssues?: any)
 						Game.T=0;
 						
 						spl=str[2].split(';');//save stats
-						Game.startDate=parseInt(spl[0]);
-						Game.fullDate=parseInt(spl[1]);
-						Game.lastDate=parseInt(spl[2]);
+						Game.startDate=parseInt(spl[0], 10);
+						Game.fullDate=parseInt(spl[1], 10);
+						Game.lastDate=parseInt(spl[2], 10);
 						var bakeryName=(spl[3]?spl[3]:Game.GetBakeryName());
 						Game.seed=spl[4]?spl[4]:Game.makeSeed();
 						//prefs
 						if (version<1.0503) spl=str[3].split('');
 						else if (version<2.0046) spl=unpack2(str[3]).split('');
 						else spl=(str[3]).split('');
-						Game.prefs.particles=parseInt(spl[0]);
-						Game.prefs.numbers=parseInt(spl[1]);
-						Game.prefs.autosave=parseInt(spl[2]);
-						Game.prefs.autoupdate=spl[3]?parseInt(spl[3]):1;
-						Game.prefs.milk=spl[4]?parseInt(spl[4]):1;
-						Game.prefs.fancy=parseInt(spl[5]);if (Game.prefs.fancy) Game.removeClass('noFancy'); else if (!Game.prefs.fancy) Game.addClass('noFancy');
-						Game.prefs.warn=spl[6]?parseInt(spl[6]):0;
-						Game.prefs.cursors=spl[7]?parseInt(spl[7]):0;
-						Game.prefs.focus=spl[8]?parseInt(spl[8]):0;
-						Game.prefs.format=spl[9]?parseInt(spl[9]):0;
-						Game.prefs.notifs=spl[10]?parseInt(spl[10]):0;
-						Game.prefs.wobbly=spl[11]?parseInt(spl[11]):0;
-						Game.prefs.monospace=spl[12]?parseInt(spl[12]):0;
-						Game.prefs.filters=spl[13]?parseInt(spl[13]):1;if (Game.prefs.filters) Game.removeClass('noFilters'); else if (!Game.prefs.filters) Game.addClass('noFilters');
-						Game.prefs.cookiesound=spl[14]?parseInt(spl[14]):1;
-						Game.prefs.crates=spl[15]?parseInt(spl[15]):0;
-						Game.prefs.showBackupWarning=spl[16]?parseInt(spl[16]):1;
-						Game.prefs.extraButtons=spl[17]?parseInt(spl[17]):1;if (!Game.prefs.extraButtons) Game.removeClass('extraButtons'); else if (Game.prefs.extraButtons) Game.addClass('extraButtons');
-						Game.prefs.askLumps=spl[18]?parseInt(spl[18]):0;
-						Game.prefs.customGrandmas=spl[19]?parseInt(spl[19]):1;
-						Game.prefs.timeout=spl[20]?parseInt(spl[20]):0;
-						Game.prefs.cloudSave=spl[21]?parseInt(spl[21]):1;
-						Game.prefs.bgMusic=spl[22]?parseInt(spl[22]):1;
-						Game.prefs.notScary=spl[23]?parseInt(spl[23]):0;
-						Game.prefs.fullscreen=spl[24]?parseInt(spl[24]):0;if (App) App.setFullscreen(Game.prefs.fullscreen);
-						Game.prefs.screenreader=spl[25]?parseInt(spl[25]):0;
-						Game.prefs.discordPresence=spl[26]?parseInt(spl[26]):1;
+						Game.prefs.particles=parseInt(spl[0], 10);
+						Game.prefs.numbers=parseInt(spl[1], 10);
+						Game.prefs.autosave=parseInt(spl[2], 10);
+						Game.prefs.autoupdate=spl[3]?parseInt(spl[3], 10):1;
+						Game.prefs.milk=spl[4]?parseInt(spl[4], 10):1;
+						Game.prefs.fancy=parseInt(spl[5], 10);if (Game.prefs.fancy) Game.removeClass('noFancy'); else if (!Game.prefs.fancy) Game.addClass('noFancy');
+						Game.prefs.warn=spl[6]?parseInt(spl[6], 10):0;
+						Game.prefs.cursors=spl[7]?parseInt(spl[7], 10):0;
+						Game.prefs.focus=spl[8]?parseInt(spl[8], 10):0;
+						Game.prefs.format=spl[9]?parseInt(spl[9], 10):0;
+						Game.prefs.notifs=spl[10]?parseInt(spl[10], 10):0;
+						Game.prefs.wobbly=spl[11]?parseInt(spl[11], 10):0;
+						Game.prefs.monospace=spl[12]?parseInt(spl[12], 10):0;
+						Game.prefs.filters=spl[13]?parseInt(spl[13], 10):1;if (Game.prefs.filters) Game.removeClass('noFilters'); else if (!Game.prefs.filters) Game.addClass('noFilters');
+						Game.prefs.cookiesound=spl[14]?parseInt(spl[14], 10):1;
+						Game.prefs.crates=spl[15]?parseInt(spl[15], 10):0;
+						Game.prefs.showBackupWarning=spl[16]?parseInt(spl[16], 10):1;
+						Game.prefs.extraButtons=spl[17]?parseInt(spl[17], 10):1;if (!Game.prefs.extraButtons) Game.removeClass('extraButtons'); else if (Game.prefs.extraButtons) Game.addClass('extraButtons');
+						Game.prefs.askLumps=spl[18]?parseInt(spl[18], 10):0;
+						Game.prefs.customGrandmas=spl[19]?parseInt(spl[19], 10):1;
+						Game.prefs.timeout=spl[20]?parseInt(spl[20], 10):0;
+						Game.prefs.cloudSave=spl[21]?parseInt(spl[21], 10):1;
+						Game.prefs.bgMusic=spl[22]?parseInt(spl[22], 10):1;
+						Game.prefs.notScary=spl[23]?parseInt(spl[23], 10):0;
+						Game.prefs.fullscreen=spl[24]?parseInt(spl[24], 10):0;if (App) App.setFullscreen(Game.prefs.fullscreen);
+						Game.prefs.screenreader=spl[25]?parseInt(spl[25], 10):0;
+						Game.prefs.discordPresence=spl[26]?parseInt(spl[26], 10):1;
 						BeautifyAll();
 						spl=str[4].split(';');//cookies and lots of other stuff
 						Game.cookies=parseFloat(spl[0]);
 						Game.cookiesEarned=parseFloat(spl[1]);
-						Game.cookieClicks=spl[2]?parseInt(spl[2]):0;
-						Game.goldenClicks=spl[3]?parseInt(spl[3]):0;
+						Game.cookieClicks=spl[2]?parseInt(spl[2], 10):0;
+						Game.goldenClicks=spl[3]?parseInt(spl[3], 10):0;
 						Game.handmadeCookies=spl[4]?parseFloat(spl[4]):0;
-						Game.missedGoldenClicks=spl[5]?parseInt(spl[5]):0;
-						Game.bgType=spl[6]?parseInt(spl[6]):0;
-						Game.milkType=spl[7]?parseInt(spl[7]):0;
+						Game.missedGoldenClicks=spl[5]?parseInt(spl[5], 10):0;
+						Game.bgType=spl[6]?parseInt(spl[6], 10):0;
+						Game.milkType=spl[7]?parseInt(spl[7], 10):0;
 						Game.cookiesReset=spl[8]?parseFloat(spl[8]):0;
-						Game.elderWrath=spl[9]?parseInt(spl[9]):0;
-						Game.pledges=spl[10]?parseInt(spl[10]):0;
-						Game.pledgeT=spl[11]?parseInt(spl[11]):0;
-						Game.nextResearch=spl[12]?parseInt(spl[12]):0;
-						Game.researchT=spl[13]?parseInt(spl[13]):0;
-						Game.resets=spl[14]?parseInt(spl[14]):0;
-						Game.goldenClicksLocal=spl[15]?parseInt(spl[15]):0;
+						Game.elderWrath=spl[9]?parseInt(spl[9], 10):0;
+						Game.pledges=spl[10]?parseInt(spl[10], 10):0;
+						Game.pledgeT=spl[11]?parseInt(spl[11], 10):0;
+						Game.nextResearch=spl[12]?parseInt(spl[12], 10):0;
+						Game.researchT=spl[13]?parseInt(spl[13], 10):0;
+						Game.resets=spl[14]?parseInt(spl[14], 10):0;
+						Game.goldenClicksLocal=spl[15]?parseInt(spl[15], 10):0;
 						Game.cookiesSucked=spl[16]?parseFloat(spl[16]):0;
-						Game.wrinklersPopped=spl[17]?parseInt(spl[17]):0;
-						Game.santaLevel=spl[18]?parseInt(spl[18]):0;
-						Game.reindeerClicked=spl[19]?parseInt(spl[19]):0;
-						Game.seasonT=spl[20]?parseInt(spl[20]):0;
-						Game.seasonUses=spl[21]?parseInt(spl[21]):0;
+						Game.wrinklersPopped=spl[17]?parseInt(spl[17], 10):0;
+						Game.santaLevel=spl[18]?parseInt(spl[18], 10):0;
+						Game.reindeerClicked=spl[19]?parseInt(spl[19], 10):0;
+						Game.seasonT=spl[20]?parseInt(spl[20], 10):0;
+						Game.seasonUses=spl[21]?parseInt(spl[21], 10):0;
 						Game.season=spl[22]?spl[22]:Game.baseSeason;
-						var wrinklers:any={amount:spl[23]?parseFloat(spl[23]):0,number:spl[24]?parseInt(spl[24]):0};
+						var wrinklers:any={amount:spl[23]?parseFloat(spl[23]):0,number:spl[24]?parseInt(spl[24], 10):0};
 						Game.prestige=spl[25]?parseFloat(spl[25]):0;
 						Game.heavenlyChips=spl[26]?parseFloat(spl[26]):0;
 						Game.heavenlyChipsSpent=spl[27]?parseFloat(spl[27]):0;
 						Game.heavenlyCookies=spl[28]?parseFloat(spl[28]):0;
-						Game.ascensionMode=spl[29]?parseInt(spl[29]):0;
-						Game.permanentUpgrades[0]=spl[30]?parseInt(spl[30]):-1;Game.permanentUpgrades[1]=spl[31]?parseInt(spl[31]):-1;Game.permanentUpgrades[2]=spl[32]?parseInt(spl[32]):-1;Game.permanentUpgrades[3]=spl[33]?parseInt(spl[33]):-1;Game.permanentUpgrades[4]=spl[34]?parseInt(spl[34]):-1;
+						Game.ascensionMode=spl[29]?parseInt(spl[29], 10):0;
+						Game.permanentUpgrades[0]=spl[30]?parseInt(spl[30], 10):-1;Game.permanentUpgrades[1]=spl[31]?parseInt(spl[31], 10):-1;Game.permanentUpgrades[2]=spl[32]?parseInt(spl[32], 10):-1;Game.permanentUpgrades[3]=spl[33]?parseInt(spl[33], 10):-1;Game.permanentUpgrades[4]=spl[34]?parseInt(spl[34], 10):-1;
 						//if (version<1.05) {Game.heavenlyChipsEarned=Game.HowMuchPrestige(Game.cookiesReset);Game.heavenlyChips=Game.heavenlyChipsEarned;}
-						Game.dragonLevel=spl[35]?parseInt(spl[35]):0;
+						Game.dragonLevel=spl[35]?parseInt(spl[35], 10):0;
 						if (version<2.0041 && Game.dragonLevel==Game.dragonLevels.length-2) {Game.dragonLevel=Game.dragonLevels.length-1;}
-						Game.dragonAura=spl[36]?parseInt(spl[36]):0;
-						Game.dragonAura2=spl[37]?parseInt(spl[37]):0;
-						Game.chimeType=spl[38]?parseInt(spl[38]):0;
-						Game.volume=spl[39]?parseInt(spl[39]):75;
-						wrinklers.shinies=spl[40]?parseInt(spl[40]):0;
+						Game.dragonAura=spl[36]?parseInt(spl[36], 10):0;
+						Game.dragonAura2=spl[37]?parseInt(spl[37], 10):0;
+						Game.chimeType=spl[38]?parseInt(spl[38], 10):0;
+						Game.volume=spl[39]?parseInt(spl[39], 10):75;
+						wrinklers.shinies=spl[40]?parseInt(spl[40], 10):0;
 						wrinklers.amountShinies=spl[41]?parseFloat(spl[41]):0;
 						Game.lumps=spl[42]?parseFloat(spl[42]):-1;
 						Game.lumpsTotal=spl[43]?parseFloat(spl[43]):-1;
-						Game.lumpT=spl[44]?parseInt(spl[44]):Date.now();
-						Game.lumpRefill=spl[45]?parseInt(spl[45]):0;
+						Game.lumpT=spl[44]?parseInt(spl[44], 10):Date.now();
+						Game.lumpRefill=spl[45]?parseInt(spl[45], 10):0;
 						if (version<2.022) Game.lumpRefill=Game.fps*60;
-						Game.lumpCurrentType=spl[46]?parseInt(spl[46]):0;
+						Game.lumpCurrentType=spl[46]?parseInt(spl[46], 10):0;
 						Game.vault=spl[47]?spl[47].split(','):[];
-							for (var i in Game.vault){Game.vault[i]=parseInt(Game.vault[i]);}
+							for (var i in Game.vault){Game.vault[i]=parseInt(Game.vault[i], 10);}
 						var actualHeralds=Game.heralds;//we store the actual amount of heralds to restore it later; here we used the amount present in the save to compute offline CpS
 						Game.heralds=spl[48]?parseFloat(spl[48]):Game.heralds;
-						Game.fortuneGC=spl[49]?parseInt(spl[49]):0;
-						Game.fortuneCPS=spl[50]?parseInt(spl[50]):0;
+						Game.fortuneGC=spl[49]?parseInt(spl[49], 10):0;
+						Game.fortuneCPS=spl[50]?parseInt(spl[50], 10):0;
 						Game.cookiesPsRawHighest=spl[51]?parseFloat(spl[51]):0;
-						Game.volumeMusic=spl[52]?parseInt(spl[52]):50;
+						Game.volumeMusic=spl[52]?parseInt(spl[52], 10):50;
 						// CC3 P0: a save written while a bug pushed the ledger to float
 						// Infinity holds the literal "Infinity" in its monetary fields
 						// (parseFloat re-imports it as Infinity, so the damage was
@@ -535,9 +535,9 @@ export function LoadSave(data?: any,ignoreVersionIssues?: any)
 							if (spl[i])
 							{
 								var mestr:any=spl[i].toString().split(',');
-								me.amount=parseInt(mestr[0]);me.bought=parseInt(mestr[1]);me.totalCookies=parseFloat(mestr[2]);me.level=parseInt(mestr[3]||0);me.highest=(version>=2.024?parseInt(mestr[6]):me.amount);
+								me.amount=parseInt(mestr[0], 10);me.bought=parseInt(mestr[1], 10);me.totalCookies=parseFloat(mestr[2]);me.level=parseInt(mestr[3]||0, 10);me.highest=(version>=2.024?parseInt(mestr[6], 10):me.amount);
 								if (me.minigame && me.minigameLoaded && me.minigame.reset) {me.minigame.reset(true);me.minigame.load(mestr[4]||'');} else me.minigameSave=(mestr[4]||0);
-								me.muted=parseInt(mestr[5])||0;
+								me.muted=parseInt(mestr[5], 10)||0;
 								Game.BuildingsOwned+=me.amount;
 								if (version<2.003) me.level=0;
 							}
@@ -561,7 +561,7 @@ export function LoadSave(data?: any,ignoreVersionIssues?: any)
 								if (spl[i])
 								{
 									var mestr:any=spl[i].split(',');
-									me.unlocked=parseInt(mestr[0]);me.bought=parseInt(mestr[1]);
+									me.unlocked=parseInt(mestr[0], 10);me.bought=parseInt(mestr[1], 10);
 									if (me.bought && Game.CountsAsUpgradeOwned(me.pool)) Game.UpgradesOwned++;
 								}
 								else
@@ -577,7 +577,7 @@ export function LoadSave(data?: any,ignoreVersionIssues?: any)
 								if (spl[i])
 								{
 									var mestr:any=spl[i].split(',');
-									me.won=parseInt(mestr[0]);
+									me.won=parseInt(mestr[0], 10);
 								}
 								else
 								{
@@ -598,7 +598,7 @@ export function LoadSave(data?: any,ignoreVersionIssues?: any)
 								if (spl[(i as any)*2])
 								{
 									var mestr:any=[spl[(i as any)*2],spl[(i as any)*2+1]];
-									me.unlocked=parseInt(mestr[0]);me.bought=parseInt(mestr[1]);
+									me.unlocked=parseInt(mestr[0], 10);me.bought=parseInt(mestr[1], 10);
 									if (me.bought && Game.CountsAsUpgradeOwned(me.pool)) Game.UpgradesOwned++;
 								}
 								else
@@ -616,7 +616,7 @@ export function LoadSave(data?: any,ignoreVersionIssues?: any)
 								if (spl[i])
 								{
 									var mestr:any=[spl[i]];
-									me.won=parseInt(mestr[0]);
+									me.won=parseInt(mestr[0], 10);
 								}
 								else
 								{
@@ -637,7 +637,7 @@ export function LoadSave(data?: any,ignoreVersionIssues?: any)
 								if (spl[(i as any)*2])
 								{
 									var mestr:any=[spl[(i as any)*2],spl[(i as any)*2+1]];
-									me.unlocked=parseInt(mestr[0]);me.bought=parseInt(mestr[1]);
+									me.unlocked=parseInt(mestr[0], 10);me.bought=parseInt(mestr[1], 10);
 									if (me.bought && Game.CountsAsUpgradeOwned(me.pool)) Game.UpgradesOwned++;
 								}
 								else
@@ -655,7 +655,7 @@ export function LoadSave(data?: any,ignoreVersionIssues?: any)
 								if (spl[i])
 								{
 									var mestr:any=[spl[i]];
-									me.won=parseInt(mestr[0]);
+									me.won=parseInt(mestr[0], 10);
 								}
 								else
 								{
@@ -839,7 +839,7 @@ export function LoadSave(data?: any,ignoreVersionIssues?: any)
 						for (var i in buffsToLoad)
 						{
 							var mestr:any=buffsToLoad[i];
-							var type=Game.buffTypes[parseInt(mestr[0])];
+							var type=Game.buffTypes[parseInt(mestr[0], 10)];
 							Game.gainBuff(type.name,parseFloat(mestr[1])/Game.fps,parseFloat(mestr[3]||0),parseFloat(mestr[4]||0),parseFloat(mestr[5]||0)).time=parseFloat(mestr[2]);
 						}
 						

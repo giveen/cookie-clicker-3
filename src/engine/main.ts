@@ -184,13 +184,13 @@ var ajax=function(url: string,callback: (text: string) => void)
 function toFixed(x: number): string | number
 {
 	if (Math.abs(x) < 1.0) {
-		var e = parseInt(x.toString().split('e-')[1]);
+		var e = parseInt(x.toString().split('e-')[1], 10);
 		if (e) {
 			x = x * Math.pow(10,e-1);
 			return '0.' + (new Array(e)).join('0') + x.toString().substring(2);
 		}
 	} else {
-		var e = parseInt(x.toString().split('+')[1]);
+		var e = parseInt(x.toString().split('+')[1], 10);
 		if (e > 20) {
 			e -= 20;
 			x = x / Math.pow(10,e);
@@ -344,7 +344,7 @@ var parseLoc=function(str: string | string[], params?: LocParams)
 		if (inPercent)
 		{
 			inPercent=false;
-			if (!isNaN(Number(it)) && params.length>=parseInt(it)-1) out+=locParamToString(params[parseInt(it)-1]);
+			if (!isNaN(Number(it)) && params.length>=parseInt(it, 10)-1) out+=locParamToString(params[parseInt(it, 10)-1]);
 			else out+='%'+it;
 		}
 		else if (it=='%') inPercent=true;
@@ -440,7 +440,7 @@ var AddLanguage=function(id: string, _name: string, json: Record<string, Languag
 			{
 				var patch=i.split('|');
 			var patchTranslated=(locStrings[i] as string).split('|');
-				locPatches.push({id:parseInt(patch[1]),type:1,title:patchTranslated[2],points:patchTranslated.slice(3)})
+				locPatches.push({id:parseInt(patch[1], 10),type:1,title:patchTranslated[2],points:patchTranslated.slice(3)})
 			}
 		}
 		var sortMap=function(a: LocPatch,b: LocPatch)
@@ -1143,9 +1143,9 @@ Game.Launch=function()
 		}
 		Game.resize();
 		
-		Game.startDate=parseInt(Date.now());//when we started playing
-		Game.fullDate=parseInt(Date.now());//when we started playing (carries over with resets)
-		Game.lastDate=parseInt(Date.now());//when we last saved the game (used to compute "cookies made since we closed the game" etc)
+		Game.startDate=parseInt(Date.now(), 10);//when we started playing
+		Game.fullDate=parseInt(Date.now(), 10);//when we started playing (carries over with resets)
+		Game.lastDate=parseInt(Date.now(), 10);//when we last saved the game (used to compute "cookies made since we closed the game" etc)
 		
  		Game.prefs={} as Prefs;//2.048 used []; DefaultPrefs() (next line) fills every slot
 		Game.DefaultPrefs=function()
@@ -1292,7 +1292,7 @@ Game.Launch=function()
 				r=JSON.parse(response);
 				if (typeof r['herald']!=='undefined')
 				{
-					Game.heralds=parseInt(r['herald'] as string);
+					Game.heralds=parseInt(r['herald'] as string, 10);
 					Game.heralds=Math.max(0,Math.min(100,Game.heralds));
 				}
 				if (typeof r['grandma']!=='undefined' && r['grandma']!='')
@@ -2809,7 +2809,7 @@ window.loadMinigameModule!(me.minigameUrl).then(function(){
 		Game.wrinklers=[];
 		for (var i=0;i<12;i++)
 		{
-			Game.wrinklers.push({id:parseInt(i),close:0,sucked:0,phase:0,x:0,y:0,r:0,hurt:0,hp:Game.wrinklerHP,selected:0,type:0});
+			Game.wrinklers.push({id:parseInt(i, 10),close:0,sucked:0,phase:0,x:0,y:0,r:0,hurt:0,hp:Game.wrinklerHP,selected:0,type:0});
 		}
 		Game.getWrinklersMax=getWrinklersMax;//CC3 rewrite (phase 4, slice 5): moved verbatim to systems/wrinkler.ts; same Game slot, same Init position.
 		Game.ResetWrinklers=ResetWrinklers;//CC3 rewrite (phase 4, slice 5).
@@ -2955,7 +2955,7 @@ window.loadMinigameModule!(me.minigameUrl).then(function(){
 		};
 		
 		Game.dragonAurasBN={};for (var iKey in Game.dragonAuras){Game.dragonAurasBN[Game.dragonAuras[iKey].name]=Game.dragonAuras[iKey];}
-		for (var iKey in Game.dragonAuras){Game.dragonAuras[iKey].id=parseInt(iKey);Game.dragonAuras[iKey].dname=loc(Game.dragonAuras[iKey].name);}
+		for (var iKey in Game.dragonAuras){Game.dragonAuras[iKey].id=parseInt(iKey, 10);Game.dragonAuras[iKey].dname=loc(Game.dragonAuras[iKey].name);}
 		
 		for (var i=0;i<Game.dragonLevels.length;i++)
 		{
@@ -3270,7 +3270,7 @@ window.loadMinigameModule!(me.minigameUrl).then(function(){
 				width=width/95;
 				if (width>1)
 				{
-					el.style.fontSize=(parseInt(window.getComputedStyle(el).fontSize)*1/width)+'px';
+					el.style.fontSize=(parseInt(window.getComputedStyle(el).fontSize, 10)*1/width)+'px';
 					el.style.transform='scale(1,'+(width)+')';
 				}
 			}

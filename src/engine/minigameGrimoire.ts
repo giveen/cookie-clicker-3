@@ -544,9 +544,9 @@ M.launch=function(this: GrimoireMinigame)
 		//output cannot use ",", ";" or "|"
 		var str=''+
 		parseFloat(M.magic)+' '+
-		parseInt(Math.floor(M.spellsCast))+' '+
-		parseInt(Math.floor(M.spellsCastTotal))+
-		' '+parseInt(M.parent.onMinigame?'1':'0')
+		parseInt(Math.floor(M.spellsCast), 10)+' '+
+		parseInt(Math.floor(M.spellsCastTotal), 10)+
+		' '+parseInt(M.parent.onMinigame?'1':'0', 10)
 		;
 		return str;
 	}
@@ -559,9 +559,9 @@ M.launch=function(this: GrimoireMinigame)
 		var spl=str.split(' ');
 		M.computeMagicM();
 		M.magic=parseFloat(spl[i++]||M.magicM);
-		M.spellsCast=parseInt(spl[i++]||0);
-		M.spellsCastTotal=parseInt(spl[i++]||0);
-		var on=parseInt(spl[i++]||0);if (on && Game.ascensionMode!=1) M.parent.switchMinigame(1);
+		M.spellsCast=parseInt(spl[i++]||0, 10);
+		M.spellsCastTotal=parseInt(spl[i++]||0, 10);
+		var on=parseInt(spl[i++]||0, 10);if (on && Game.ascensionMode!=1) M.parent.switchMinigame(1);
 		return;
 	}
 	M.reset=function()

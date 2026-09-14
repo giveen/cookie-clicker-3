@@ -772,7 +772,7 @@ function defineHero(name: string, pic: string, portrait: string, icon: [number, 
 		// ":" here, not "," -- this string gets embedded as one field inside
 		// M.save()'s own comma-free output (see below).
 		save: function () { return `${this.inDungeon}:${this.completedDungeons}:${this.gear.armor}:${this.gear.weapon}`; },
-		load: function (data) { const p = data.split(":"); this.inDungeon = parseInt(p[0]); this.completedDungeons = parseInt(p[1]); this.gear.armor = parseInt(p[2]); this.gear.weapon = parseInt(p[3]); },
+		load: function (data) { const p = data.split(":"); this.inDungeon = parseInt(p[0], 10); this.completedDungeons = parseInt(p[1], 10); this.gear.armor = parseInt(p[2], 10); this.gear.weapon = parseInt(p[3], 10); },
 	};
 	DungeonHeroes.push(hr);
 	return hr;
@@ -1423,7 +1423,7 @@ M.load = function (this: DungeonMinigame, str: string): boolean | undefined {
 			this.bestCookies = parseFloat(parts[10]) || 0;
 			this.bestMonsters = parseFloat(parts[11]) || 0;
 			// CC3 (Tier 1): selected hero + that hero's persisted progression.
-			let sel = parseInt(parts[12]) || 0;
+			let sel = parseInt(parts[12], 10) || 0;
 			if (sel < 0 || sel >= DungeonHeroes.length) sel = 0;
 			this.selectedHero = sel;
 			if (parts[13]) DungeonHeroes[sel].load(parts[13]);

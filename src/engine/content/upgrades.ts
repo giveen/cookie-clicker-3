@@ -955,7 +955,7 @@ export function declareVanillaUpgrades(Game: EngineGame) {
 			var choices: any=[];
 			for (var ix in Game.BGsByChoice)
 			{
-				choices[ix]={name:Game.BGsByChoice[ix].name,icon:Game.BGsByChoice[ix].icon,order:Game.BGsByChoice[ix].order||parseInt(ix)};
+				choices[ix]={name:Game.BGsByChoice[ix].name,icon:Game.BGsByChoice[ix].icon,order:Game.BGsByChoice[ix].order||parseInt(ix, 10)};
 			}
 			
 			choices[13].div=true;

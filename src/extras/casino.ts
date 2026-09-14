@@ -922,28 +922,28 @@
 
 			const getMinigameStateSave = function () {
 				let res = '';
-				res += parseInt(M.parent.onMinigame ? '1' : '0');
-				res += '_' + parseInt(M.games.Blackjack.wins);
-				res += '_' + parseInt(M.games.Blackjack.winsT);
-				res += '_' + parseInt(M.games.Blackjack.ownLuckWins);
-				res += '_' + parseInt(M.games.Blackjack.tiesLost);
-				res += '_' + parseInt(M.betMode);
-				res += '_' + parseInt(M.betChoice);
+				res += parseInt(M.parent.onMinigame ? '1' : '0', 10);
+				res += '_' + parseInt(M.games.Blackjack.wins, 10);
+				res += '_' + parseInt(M.games.Blackjack.winsT, 10);
+				res += '_' + parseInt(M.games.Blackjack.ownLuckWins, 10);
+				res += '_' + parseInt(M.games.Blackjack.tiesLost, 10);
+				res += '_' + parseInt(M.betMode, 10);
+				res += '_' + parseInt(M.betChoice, 10);
 				res += '_' + parseFloat(M.games.Blackjack.netTotal);
-				res += '_' + parseInt(0);
-				res += '_' + parseInt(M.beatLength);
+				res += '_' + parseInt(0, 10);
+				res += '_' + parseInt(M.beatLength, 10);
 				res += '_' + Number(M.bankPercentage);
 				return res;
 			};
 
 			const getGameStateSave = function () {
 				let res = '';
-				res += parseInt(M.currentPlayerHand);
-				res += '_' + parseInt(M.nextBeat);
-				res += '_' + parseInt(M.games.Blackjack.phase);
-				res += '_' + parseInt(M.games.Blackjack.istep);
+				res += parseInt(M.currentPlayerHand, 10);
+				res += '_' + parseInt(M.nextBeat, 10);
+				res += '_' + parseInt(M.games.Blackjack.phase, 10);
+				res += '_' + parseInt(M.games.Blackjack.istep, 10);
 				res += '_' + parseFloat(M.betAmount);
-				res += '_' + parseInt(M.games.Blackjack.hiddenCard.pip + 13 * M.games.Blackjack.hiddenCard.suit);
+				res += '_' + parseInt(M.games.Blackjack.hiddenCard.pip + 13 * M.games.Blackjack.hiddenCard.suit, 10);
 				return res;
 			};
 
@@ -994,16 +994,16 @@
 			const parseMinigameStateSave = function (str: string) {
 				let i = 0;
 				const spl = str.split('_');
-				const on = parseInt(spl[i++] || 0);
-				M.games.Blackjack.wins = parseInt(spl[i++] || 0);
-				M.games.Blackjack.winsT = parseInt(spl[i++] || 0);
-				M.games.Blackjack.ownLuckWins = parseInt(spl[i++] || 0);
-				M.games.Blackjack.tiesLost = parseInt(spl[i++] || 0);
-				M.betMode = parseInt(spl[i++] || 0);
-				M.betChoice = parseInt(spl[i++] || 0);
+				const on = parseInt(spl[i++] || 0, 10);
+				M.games.Blackjack.wins = parseInt(spl[i++] || 0, 10);
+				M.games.Blackjack.winsT = parseInt(spl[i++] || 0, 10);
+				M.games.Blackjack.ownLuckWins = parseInt(spl[i++] || 0, 10);
+				M.games.Blackjack.tiesLost = parseInt(spl[i++] || 0, 10);
+				M.betMode = parseInt(spl[i++] || 0, 10);
+				M.betChoice = parseInt(spl[i++] || 0, 10);
 				M.games.Blackjack.netTotal = parseFloat(spl[i++] || 0);
 				i++; //legacy dummy field
-				M.beatLength = parseInt(spl[i++] || 750);
+				M.beatLength = parseInt(spl[i++] || 750, 10);
 				M.bankPercentage = Number(spl[i++] || true);
 
 				if (on && G.ascensionMode != 1) M.parent.switchMinigame(1);
@@ -1012,12 +1012,12 @@
 			const parseGameStateSave = function (str: string) {
 				let i = 0;
 				const spl = str.split('_');
-				M.currentPlayerHand = parseInt(spl[i++] || 0);
-				M.nextBeat = parseInt(spl[i++] || 0);
-				M.games.Blackjack.phase = parseInt(spl[i++] || 0);
-				M.games.Blackjack.istep = parseInt(spl[i++] || 0);
+				M.currentPlayerHand = parseInt(spl[i++] || 0, 10);
+				M.nextBeat = parseInt(spl[i++] || 0, 10);
+				M.games.Blackjack.phase = parseInt(spl[i++] || 0, 10);
+				M.games.Blackjack.istep = parseInt(spl[i++] || 0, 10);
 				M.betAmount = parseFloat(spl[i++] || 0);
-				M.games.Blackjack.hiddenCard = M.cards[parseInt(spl[i++] || 0)];
+				M.games.Blackjack.hiddenCard = M.cards[parseInt(spl[i++] || 0, 10)];
 			};
 
 			const parseCardSave = function (str: string) {
@@ -1051,7 +1051,7 @@
 					const idx = Number(i);
 					if (spl[idx]) {
 						const mestr = [spl[idx]];
-						me.won = parseInt(mestr[0]);
+						me.won = parseInt(mestr[0], 10);
 					} else {
 						me.won = 0;
 					}
@@ -1066,8 +1066,8 @@
 					const idx = Number(i);
 					if (spl[idx * 2]) {
 						const mestr = [spl[idx * 2], spl[idx * 2 + 1]];
-						me.unlocked = parseInt(mestr[0]);
-						me.bought = parseInt(mestr[1]);
+						me.unlocked = parseInt(mestr[0], 10);
+						me.bought = parseInt(mestr[1], 10);
 						if (me.bought && G.CountsAsUpgradeOwned(me.pool)) G.UpgradesOwned++;
 					} else {
 						me.unlocked = 0;

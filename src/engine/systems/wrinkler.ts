@@ -41,7 +41,7 @@ function inRect(x: any,y: any,rect: any)
 		{
 			for (var i in Game.wrinklers)
 			{
-				Game.wrinklers[i]={id:parseInt(i),close:0,sucked:0,phase:0,x:0,y:0,r:0,hurt:0,hp:Game.wrinklerHP,selected:0,type:0};
+				Game.wrinklers[i]={id:parseInt(i, 10),close:0,sucked:0,phase:0,x:0,y:0,r:0,hurt:0,hp:Game.wrinklerHP,selected:0,type:0};
 			}
 		}
 		export function CollectWrinklers()
@@ -167,12 +167,12 @@ function inRect(x: any,y: any,rect: any)
 						me.hp=Math.min(Game.wrinklerHP*3,me.hp);
 					}
 					var d=128*(2-me.close);//*Game.BigCookieSize;
-					if (Game.prefs.fancy) d+=Math.cos(Game.T*0.05+parseInt(me.id))*4;
+					if (Game.prefs.fancy) d+=Math.cos(Game.T*0.05+parseInt(me.id, 10))*4;
 					me.r=(me.id/max)*360;
-					if (Game.prefs.fancy) me.r+=Math.sin(Game.T*0.05+parseInt(me.id))*4;
+					if (Game.prefs.fancy) me.r+=Math.sin(Game.T*0.05+parseInt(me.id, 10))*4;
 					me.x=xBase+(Math.sin(me.r*Math.PI/180)*d);
 					me.y=yBase+(Math.cos(me.r*Math.PI/180)*d);
-					if (Game.prefs.fancy) me.r+=Math.sin(Game.T*0.09+parseInt(me.id))*4;
+					if (Game.prefs.fancy) me.r+=Math.sin(Game.T*0.09+parseInt(me.id, 10))*4;
 					var rect={w:100,h:200,r:(-me.r)*Math.PI/180,o:10};
 					if (Math.random()<0.01 && !Game.prefs.notScary) me.hurt=Math.max(me.hurt,Math.random());
 					if (Game.T%5==0 && Game.CanClick) {if (Game.LeftBackground && Game.mouseX<Game.LeftBackground.canvas.width && inRect(Game.mouseX-me.x,Game.mouseY-me.y,rect)) me.selected=1; else me.selected=0;}
