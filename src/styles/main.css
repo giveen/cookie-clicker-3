@@ -3870,3 +3870,27 @@ body.oneColumn #topBar
 		animation:cc3Shake 0.45s ease-out;
 	}
 }
+
+/* -- the cookie cow idle-breathes in its special drawer (CC3 feature:
+   systems/specialMenu.ts). #specialPic is shared with the dragon/santa
+   drawer, so the selector is scoped to the .cc3Cow class the cow drawer
+   stamps — the dragon sprite stays exactly as 2.048 renders it. The
+   keyframes rebuild the full transform from the per-stage growth scale
+   (the inline --cowScale, 0.5 at stage 0 → 1.0 at stage 11) plus a
+   gentle bob and chest-expand squash, so the animation composes with
+   the growth instead of replacing it. When the animation is off
+   (reduced motion / noMotion) the inline transform:scale() applies as
+   the static fallback. -- */
+@keyframes cc3CowBreathe
+{
+	0%   {transform:scale(var(--cowScale,1));}
+	50%  {transform:scale(var(--cowScale,1)) translateY(-3px) scale(0.985,1.045);}
+	100% {transform:scale(var(--cowScale,1));}
+}
+@media (prefers-reduced-motion: no-preference)
+{
+	body:not(.noMotion) #specialPic.cc3Cow
+	{
+		animation:cc3CowBreathe 2.4s ease-in-out infinite;
+	}
+}
