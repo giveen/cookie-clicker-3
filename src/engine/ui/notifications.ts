@@ -30,8 +30,8 @@
  * resolve through src/globals.d.ts to the engine's window shim.
  */
 
-import { replaceAll } from '../utils/helpers';
 import { FireEvent } from '../utils/dom';
+import { replaceAll } from '../utils/helpers';
 
 
 /* GameSurface types Game.tooltip as `{ hide(): void; shouldHide?: boolean }`, but at runtime the

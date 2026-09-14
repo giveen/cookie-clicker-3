@@ -1,5 +1,5 @@
 // Quick diagnostic: Cat building upgrades
-import { test, expect } from '@playwright/test';
+import { test } from '@playwright/test';
 
 const BOOT = { timeout: 30_000 };
 

@@ -1916,12 +1916,12 @@ M.launch=function(this: GardenMinigame)
 		//output cannot use ",", ";" or "|"
 		var str=''+
 		parseFloat(M.nextStep)+':'+
-		parseInt(M.soil)+':'+
+		parseInt(M.soil, 10)+':'+
 		parseFloat(M.nextSoil)+':'+
-		parseInt(M.freeze)+':'+
-		parseInt(M.harvests)+':'+
-		parseInt(M.harvestsTotal)+':'+
-		parseInt(M.parent.onMinigame?'1':'0')+':'+
+		parseInt(M.freeze, 10)+':'+
+		parseInt(M.harvests, 10)+':'+
+		parseInt(M.harvestsTotal, 10)+':'+
+		parseInt(M.parent.onMinigame?'1':'0', 10)+':'+
 		parseFloat(M.convertTimes)+':'+
 		parseFloat(M.nextFreeze)+':'+
 		' ';
@@ -1934,7 +1934,7 @@ M.launch=function(this: GardenMinigame)
 		{
 			for (var x=0;x<6;x++)
 			{
-				str+=parseInt(M.plot[y][x][0])+':'+parseInt(M.plot[y][x][1])+':';
+				str+=parseInt(M.plot[y][x][0], 10)+':'+parseInt(M.plot[y][x][1], 10)+':';
 			}
 		}
 		return str;
@@ -1949,12 +1949,12 @@ M.launch=function(this: GardenMinigame)
 		var spl2=spl[i++].split(':');
 		var i2=0;
 		M.nextStep=parseFloat(spl2[i2++]||M.nextStep);
-		M.soil=parseInt(spl2[i2++]||M.soil);
+		M.soil=parseInt(spl2[i2++]||M.soil, 10);
 		M.nextSoil=parseFloat(spl2[i2++]||M.nextSoil);
-		M.freeze=parseInt(spl2[i2++]||M.freeze)?1:0;
-		M.harvests=parseInt(spl2[i2++]||0);
-		M.harvestsTotal=parseInt(spl2[i2++]||0);
-		var on=parseInt(spl2[i2++]||0);if (on && Game.ascensionMode!=1) M.parent.switchMinigame(1);
+		M.freeze=parseInt(spl2[i2++]||M.freeze, 10)?1:0;
+		M.harvests=parseInt(spl2[i2++]||0, 10);
+		M.harvestsTotal=parseInt(spl2[i2++]||0, 10);
+		var on=parseInt(spl2[i2++]||0, 10);if (on && Game.ascensionMode!=1) M.parent.switchMinigame(1);
 		M.convertTimes=parseFloat(spl2[i2++]||M.convertTimes);
 		M.nextFreeze=parseFloat(spl2[i2++]||M.nextFreeze);
 		var seeds=spl[i++]||'';
@@ -1978,7 +1978,7 @@ M.launch=function(this: GardenMinigame)
 			{
 				for (var x=0;x<6;x++)
 				{
-					M.plot[y][x]=[parseInt(plot[n]),parseInt(plot[n+1])];
+					M.plot[y][x]=[parseInt(plot[n], 10),parseInt(plot[n+1], 10)];
 					n+=2;
 				}
 			}
@@ -2212,6 +2212,7 @@ M.launch=function(this: GardenMinigame)
 	}
 	M.init(l('rowSpecial'+M.parent.id));
 }
+
 /* CC3: explicit module marker — at runtime these files are always ESM modules
  * (Vite bundles them as such), and this keeps their top-level var/function
  * declarations out of the TS global scope. Zero runtime effect. */

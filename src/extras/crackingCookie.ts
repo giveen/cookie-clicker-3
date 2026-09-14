@@ -391,9 +391,9 @@ import type { Game as EngineGame } from '../engine/types';
 			state.progress = typeof d.progress === 'number' ? Math.min(1, Math.max(0, d.progress)) : 0;
 			state.totalTriggers = typeof d.totalTriggers === 'number' ? Math.max(0, Math.floor(d.totalTriggers)) : 0;
 			state.lastTickMs = typeof d.lastTickMs === 'number' ? d.lastTickMs : Date.now();
-			state.notified = d.notified ? true : false;
+			state.notified = !!d.notified;
 			state.cooldownUntil = typeof d.cooldownUntil === 'number' ? Math.max(0, d.cooldownUntil) : 0;
-			state.prestigeNotified = d.prestigeNotified ? true : false;
+			state.prestigeNotified = !!d.prestigeNotified;
 		} catch (e) {
 			/* corrupt entry: keep defaults */
 		}

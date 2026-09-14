@@ -484,6 +484,7 @@ export function UpdateMenu()
 			'<div class="listing"><b>'+loc("Achievements unlocked:")+'</b> '+achievementsOwned+'/'+achievementsTotal+' ('+Math.floor((achievementsOwned/achievementsTotal)*100)+'%)'+(achievementsOwnedOther>0?('<span style="font-weight:bold;font-size:10px;color:#70a;"> (+'+achievementsOwnedOther+')</span>'):'')+'</div>'+
 			(Game.cookiesMultByType['kittens']>1?('<div class="listing"><b>'+loc("Kitten multiplier:")+'</b> '+Beautify((Game.cookiesMultByType['kittens'])*100)+'%</div>'):'')+
 			'<div class="listing"><b>'+loc("Milk")+':</b> '+milkName+'</div>'+
+			(Game.cowLevel>0?('<div class="listing"><b>'+loc("Milk bonus")+':</b> +'+Math.round(Game.CowMilkBonus()*100)+'% '+loc("(from your cookie cow)")+'</div>'):'')+
 			(milkStr!=''?'<div class="listing"><b>'+loc("Milk flavors unlocked:")+'</b></div><div>'+milkStr+'</div>':'')+
 			'<div class="listing"><small style="opacity:0.75;">('+loc("Milk is gained with each achievement. It can unlock unique upgrades over time.")+')</small></div>'+
 			achievementsStr+

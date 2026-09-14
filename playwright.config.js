@@ -9,8 +9,9 @@
 // scripts/setup-master.mjs, or a checkout step in CI), a `vite preview`
 // serves it on :4174 and tests/save-compat.spec.js runs; without one that
 // spec skips itself (see its header).
-import { defineConfig } from '@playwright/test';
+
 import fs from 'node:fs';
+import { defineConfig } from '@playwright/test';
 
 // The baseline is a directory with a built dist/ — its own package.json is
 // the marker that this isn't a half-provisioned checkout.

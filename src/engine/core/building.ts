@@ -25,7 +25,7 @@
  * erased at compile time (same treatment as the content modules' type
  * imports).
  */
-import type { Art, Achievement, Upgrade } from '../types';
+import type { Achievement, Art, Upgrade } from '../types';
 
 export class Building {
 	[key: string]: any;
@@ -592,25 +592,24 @@ export class Building {
 			
 			this.tooltip=function()
 			{
-				var me=this;
 				var ariaText='';
-				var desc=me.desc;
-				var name=me.dname;
+				var desc=this.desc;
+				var name=this.dname;
 				if (Game.season=='fools')
 				{
-					if (!Game.foolObjects[me.name])
+					if (!Game.foolObjects[this.name])
 						{
 							name=Game.foolObjects['Unknown'].name;
 							desc=Game.foolObjects['Unknown'].desc;
 					}
 					else
 					{
-						name=Game.foolObjects[me.name].name;
-						desc=Game.foolObjects[me.name].desc;
+						name=Game.foolObjects[this.name].name;
+						desc=Game.foolObjects[this.name].desc;
 					}
 				}
-				var icon=[me.iconColumn,0];
-				if (me.locked)
+				var icon=[this.iconColumn,0];
+				if (this.locked)
 				{
 					name='???';
 					desc='???';
@@ -619,24 +618,24 @@ export class Building {
 				//if (l('rowInfo'+me.id) && Game.drawT%10==0) l('rowInfoContent'+me.id).innerHTML='&bull; '+me.amount+' '+(me.amount==1?me.single:me.plural)+'<br>&bull; producing '+Beautify(me.storedTotalCps,1)+' '+(me.storedTotalCps==1?'cookie':'cookies')+' per second<br>&bull; total : '+Beautify(me.totalCookies)+' '+(Math.floor(me.totalCookies)==1?'cookie':'cookies')+' '+me.actionName;
 				
 				var canBuy=false;
-				var price=me.bulkPrice;
-				if ((Game.buyMode==1 && Game.cookies>=price) || (Game.buyMode==-1 && me.amount>0)) canBuy=true;
+				var price=this.bulkPrice;
+				if ((Game.buyMode==1 && Game.cookies>=price) || (Game.buyMode==-1 && this.amount>0)) canBuy=true;
 				
 				var synergiesStr='';
 				//note : might not be entirely accurate, math may need checking
-				if (me.amount>0)
+				if (this.amount>0)
 				{
 					var synergiesWith: Record<string, number>={};//string-keyed accumulation map
 					var synergyBoost=0;
 					
-					if (me.name=='Grandma')
+					if (this.name=='Grandma')
 					{
 						for (var i in Game.GrandmaSynergies)
 						{
 							if (Game.Has(Game.GrandmaSynergies[i]))
 							{
 								var other: Building=Game.Upgrades[Game.GrandmaSynergies[i]].buildingTie as Building;//buildingTie is the Building|Upgrade|0 union; synergy ties are Buildings — the original derefs unguarded
-								var mult=me.amount*0.01*(1/(other.id-1));
+								var mult=this.amount*0.01*(1/(other.id-1));
 								var boost=(other.storedTotalCps*Game.globalCpsMult)-(other.storedTotalCps*Game.globalCpsMult)/(1+mult);
 								synergyBoost+=boost;
 								if (!synergiesWith[other.plural]) synergiesWith[other.plural]=0;
@@ -644,7 +643,7 @@ export class Building {
 							}
 						}
 					}
-					else if (me.name=='Cats')
+					else if (this.name=='Cats')
 					{
 						for (var i in Game.CatSynergies)
 						{
@@ -654,7 +653,7 @@ export class Building {
 								// Math.max(1,...): unlike GrandmaSynergies, CatSynergies includes
 								// 'Kitten grandmas' tied to Grandma itself (id 1), where the plain
 								// (id-1) divisor above would be 0 -> Infinity/NaN.
-								var mult=me.amount*0.01*(1/Math.max(1,other.id-1));
+								var mult=this.amount*0.01*(1/Math.max(1,other.id-1));
 								var boost=(other.storedTotalCps*Game.globalCpsMult)-(other.storedTotalCps*Game.globalCpsMult)/(1+mult);
 								synergyBoost+=boost;
 								if (!synergiesWith[other.plural]) synergiesWith[other.plural]=0;
@@ -662,27 +661,27 @@ export class Building {
 							}
 						}
 					}
-					else if (me.name=='Portal' && Game.Has('Elder Pact'))
+					else if (this.name=='Portal' && Game.Has('Elder Pact'))
 					{
 						var other: Building=Game.Objects['Grandma'];//same-scope redeclaration of the `other` above (tsgo TS2403 keeps them uniform)
-						var boost=(me.amount*0.05*other.amount)*Game.globalCpsMult;
+						var boost=(this.amount*0.05*other.amount)*Game.globalCpsMult;
 						synergyBoost+=boost;
 						if (!synergiesWith[other.plural]) synergiesWith[other.plural]=0;
 						synergiesWith[other.plural]+=boost/(other.storedTotalCps*Game.globalCpsMult);
 					}
 					
-					for (var i in me.synergies)
+					for (var i in this.synergies)
 					{
-						var it=me.synergies[i];
+						var it=this.synergies[i];
 						if (Game.Has(it.name))
 						{
 							var weight=0.05;
 							var other: Building=it.buildingTie1 as Building;//buildingTie1/2 are optional-typed; the original derefs them unguarded
-							if (me==it.buildingTie1) {weight=0.001;other=it.buildingTie2 as Building;}
-							var boost=(other.storedTotalCps*Game.globalCpsMult)-(other.storedTotalCps*Game.globalCpsMult)/(1+me.amount*weight);
+							if (this==it.buildingTie1) {weight=0.001;other=it.buildingTie2 as Building;}
+							var boost=(other.storedTotalCps*Game.globalCpsMult)-(other.storedTotalCps*Game.globalCpsMult)/(1+this.amount*weight);
 							synergyBoost+=boost;
 							if (!synergiesWith[other.plural]) synergiesWith[other.plural]=0;
-							synergiesWith[other.plural]+=me.amount*weight;
+							synergiesWith[other.plural]+=this.amount*weight;
 						}
 					}
 					if (synergyBoost>0)
@@ -698,36 +697,35 @@ export class Building {
 				
 				if (Game.prefs.screenreader)
 				{
-					if (me.locked) ariaText='This building is not yet unlocked. ';
+					if (this.locked) ariaText='This building is not yet unlocked. ';
 					else ariaText=name+'. ';
-					if (!me.locked) ariaText+='You own '+me.amount+'. ';
+					if (!this.locked) ariaText+='You own '+this.amount+'. ';
 					ariaText+=(canBuy?'Can buy 1 for':'Cannot afford the')+' '+Beautify(Math.round(price))+' cookies. ';
-					if (!me.locked && me.totalCookies>0)
+					if (!this.locked && this.totalCookies>0)
 					{
-						ariaText+='Each '+me.single+' produces '+Beautify((me.storedTotalCps/me.amount)*Game.globalCpsMult,1)+' cookies per second. ';
-						ariaText+=Beautify(me.totalCookies)+' cookies '+me.actionName+' so far. ';
+						ariaText+='Each '+this.single+' produces '+Beautify((this.storedTotalCps/this.amount)*Game.globalCpsMult,1)+' cookies per second. ';
+						ariaText+=Beautify(this.totalCookies)+' cookies '+this.actionName+' so far. ';
 					}
-					if (!me.locked) ariaText+=desc;
+					if (!this.locked) ariaText+=desc;
 					
-					var ariaLabel=l('ariaReader-product-'+(me.id));
+					var ariaLabel=l('ariaReader-product-'+(this.id));
 					if (ariaLabel) ariaLabel.innerHTML=ariaText.replace(/(<([^>]+)>)/gi,' ');
 				}
 				
-				return '<div style="position:absolute;left:1px;top:1px;right:1px;bottom:1px;background:linear-gradient(125deg,'+(false?'rgba(15,115,130,1) 0%,rgba(15,115,130,0)':'rgba(50,40,40,1) 0%,rgba(50,40,40,0)')+' 20%);mix-blend-mode:screen;z-index:1;"></div><div style="z-index:10;min-width:350px;padding:8px;position:relative;" id="tooltipBuilding"><div class="icon" style="float:left;margin-left:-8px;margin-top:-8px;'+writeIcon(icon)+'"></div><div style="float:right;text-align:right;"><span class="price'+(canBuy?'':' disabled')+'">'+Beautify(Math.round(price))+'</span>'+Game.costDetails(price)+'</div><div class="name">'+name+'</div>'+'<small><div class="tag">'+loc("owned: %1",me.amount)+'</div>'+(me.free>0?'<div class="tag">'+loc("free: %1!",me.free)+'</div>':'')+'</small>'+
+				return '<div style="position:absolute;left:1px;top:1px;right:1px;bottom:1px;background:linear-gradient(125deg,'+(false?'rgba(15,115,130,1) 0%,rgba(15,115,130,0)':'rgba(50,40,40,1) 0%,rgba(50,40,40,0)')+' 20%);mix-blend-mode:screen;z-index:1;"></div><div style="z-index:10;min-width:350px;padding:8px;position:relative;" id="tooltipBuilding"><div class="icon" style="float:left;margin-left:-8px;margin-top:-8px;'+writeIcon(icon)+'"></div><div style="float:right;text-align:right;"><span class="price'+(canBuy?'':' disabled')+'">'+Beautify(Math.round(price))+'</span>'+Game.costDetails(price)+'</div><div class="name">'+name+'</div>'+'<small><div class="tag">'+loc("owned: %1",this.amount)+'</div>'+(this.free>0?'<div class="tag">'+loc("free: %1!",this.free)+'</div>':'')+'</small>'+
 				'<div class="line"></div><div class="description"><q>'+desc+'</q></div>'+
-				(me.totalCookies>0?(
+				(this.totalCookies>0?(
 					'<div class="line"></div>'+
-					(me.amount>0?'<div class="descriptionBlock">'+loc("each %1 produces <b>%2</b> per second",[me.single,loc("%1 cookie",LBeautify((me.storedTotalCps/me.amount)*Game.globalCpsMult,1))])+'</div>':'')+
-					'<div class="descriptionBlock">'+loc("%1 producing <b>%2</b> per second",[loc("%1 "+me.bsingle,LBeautify(me.amount)),loc("%1 cookie",LBeautify(me.storedTotalCps*Game.globalCpsMult,1))])+' ('+loc("<b>%1%</b> of total CpS",Beautify(Game.cookiesPs>0?((me.amount>0?((me.storedTotalCps*Game.globalCpsMult)/Game.cookiesPs):0)*100):0,1))+')</div>'+
+					(this.amount>0?'<div class="descriptionBlock">'+loc("each %1 produces <b>%2</b> per second",[this.single,loc("%1 cookie",LBeautify((this.storedTotalCps/this.amount)*Game.globalCpsMult,1))])+'</div>':'')+
+					'<div class="descriptionBlock">'+loc("%1 producing <b>%2</b> per second",[loc("%1 "+this.bsingle,LBeautify(this.amount)),loc("%1 cookie",LBeautify(this.storedTotalCps*Game.globalCpsMult,1))])+' ('+loc("<b>%1%</b> of total CpS",Beautify(Game.cookiesPs>0?((this.amount>0?((this.storedTotalCps*Game.globalCpsMult)/Game.cookiesPs):0)*100):0,1))+')</div>'+
 					(synergiesStr?('<div class="descriptionBlock">'+synergiesStr+'</div>'):'')+
-					(EN?'<div class="descriptionBlock"><b>'+Beautify(me.totalCookies)+'</b> '+(Math.floor(me.totalCookies)==1?'cookie':'cookies')+' '+me.actionName+' so far</div>':'<div class="descriptionBlock">'+loc("<b>%1</b> produced so far",loc("%1 cookie",LBeautify(me.totalCookies)))+'</div>')
+					(EN?'<div class="descriptionBlock"><b>'+Beautify(this.totalCookies)+'</b> '+(Math.floor(this.totalCookies)==1?'cookie':'cookies')+' '+this.actionName+' so far</div>':'<div class="descriptionBlock">'+loc("<b>%1</b> produced so far",loc("%1 cookie",LBeautify(this.totalCookies)))+'</div>')
 				):'')+
 				'</div>';
 			}
 			this.levelTooltip=function()
 			{
-				var me=this;
-				return '<div style="width:280px;padding:8px;" id="tooltipLevel"><b>'+loc("Level %1 %2",[Beautify(me.level),me.plural])+'</b><div class="line"></div>'+(EN?((me.level==1?me.extraName!:me.extraPlural!).replace('[X]',Beautify(me.level))+' granting <b>+'+Beautify(me.level)+'% '+me.dname+' CpS</b>.'):loc("Granting <b>+%1% %2 CpS</b>.",[Beautify(me.level),me.single]))+'<div class="line"></div>'+loc("Click to level up for %1.",'<span class="price lump'+(Game.lumps>=me.level+1?'':' disabled')+'">'+loc("%1 sugar lump",LBeautify(me.level+1))+'</span>')+((me.minigameUrl && (me.name==='Factory'?me.amount<50:me.level==0))?'<div class="line"></div><b>'+loc(me.name==='Factory'?"Own 50 factories to unlock the dungeon minigame.":"Levelling up this building unlocks a minigame.")+'</b>':'')+'</div>';
+				return '<div style="width:280px;padding:8px;" id="tooltipLevel"><b>'+loc("Level %1 %2",[Beautify(this.level),this.plural])+'</b><div class="line"></div>'+(EN?((this.level==1?this.extraName!:this.extraPlural!).replace('[X]',Beautify(this.level))+' granting <b>+'+Beautify(this.level)+'% '+this.dname+' CpS</b>.'):loc("Granting <b>+%1% %2 CpS</b>.",[Beautify(this.level),this.single]))+'<div class="line"></div>'+loc("Click to level up for %1.",'<span class="price lump'+(Game.lumps>=this.level+1?'':' disabled')+'">'+loc("%1 sugar lump",LBeautify(this.level+1))+'</span>')+((this.minigameUrl && (this.name==='Factory'?this.amount<50:this.level==0))?'<div class="line"></div><b>'+loc(this.name==='Factory'?"Own 50 factories to unlock the dungeon minigame.":"Levelling up this building unlocks a minigame.")+'</b>':'')+'</div>';
 			}
 			this.levelUp=function(me: Building){
 				return function(free: number | boolean){Game.spendLump(me.level+1,loc("level up your %1",me.plural),function()
@@ -765,7 +763,6 @@ export class Building {
 			}
 			this.rebuild=function()
 			{
-				var me=this;
 				//CC3 perf: this used to rewrite every product node unconditionally
 				//(name innerHTML, icon styles, button states) on every refresh — i.e.
 				//a full parse+layout of every store row on every single purchase,
@@ -773,23 +770,23 @@ export class Building {
 				//now guarded by the last value it rendered, so repeat refreshes only
 				//touch the nodes whose value actually changed. BuildStore resets the
 				//cache whenever it recreates the product DOM.
-				var cache=me.__rebuildCache||(me.__rebuildCache={});
+				var cache=this.__rebuildCache||(this.__rebuildCache={});
 				//var classes='product';
-				var price=me.bulkPrice;
+				var price=this.bulkPrice;
 				/*if (Game.cookiesEarned>=me.basePrice || me.bought>0) {classes+=' unlocked';me.locked=0;} else {classes+=' locked';me.locked=1;}
 				if (Game.cookies>=price) classes+=' enabled'; else classes+=' disabled';
 				if (me.l.className.indexOf('toggledOff')!=-1) classes+=' toggledOff';
 				*/
-				var icon=[0,me.icon];
-				var iconOff=[1,me.icon];
-				if (me.iconFunc) icon=me.iconFunc();
+				var icon=[0,this.icon];
+				var iconOff=[1,this.icon];
+				if (this.iconFunc) icon=this.iconFunc();
 				
 				//var desc=me.desc; //dropped (write-only; its reads live in commented-out lines below)
-				var name=me.dname;
-				var displayName=me.displayName;
+				var name=this.dname;
+				var displayName=this.displayName;
 				if (Game.season=='fools')
 				{
-					if (!Game.foolObjects[me.name])
+					if (!Game.foolObjects[this.name])
 						{
 							icon=[2,0];
 							iconOff=[3,0];
@@ -798,9 +795,9 @@ export class Building {
 						}
 					else
 					{
-						icon=[2,me.icon];
-						iconOff=[3,me.icon];
-						name=Game.foolObjects[me.name].name;
+						icon=[2,this.icon];
+						iconOff=[3,this.icon];
+						name=Game.foolObjects[this.name].name;
 						//desc=Game.foolObjects[me.name].desc; //dropped (desc was write-only)
 					}
 					displayName=name;
@@ -811,34 +808,34 @@ export class Building {
 				icon=[icon[0]*64,icon[1]*64];
 				iconOff=[iconOff[0]*64,iconOff[1]*64];
 				
-				var customStoreIcon=(me.art as any).storeIcon;
+				var customStoreIcon=(this.art as any).storeIcon;
 				if (customStoreIcon)
 				{
 					//a custom store icon fully replaces the default sprite (the
 					//original wrote the default position first and immediately
 					//overwrote it) — so the guarded default writes below are skipped
 					//entirely for these buildings.
-					var customStoreSize=(me.art as any).storeIconSize||'48px 48px';
+					var customStoreSize=(this.art as any).storeIconSize||'48px 48px';
 					//storeIconPosition centers multi-frame sheets whose frames are
 					//wider than the 64px icon window (e.g. the Cats strips, 80px
 					//frames) the same way the muted .catSleepIcon does.
-					var customStorePosition=(me.art as any).storeIconPosition||'0px 0px';
+					var customStorePosition=(this.art as any).storeIconPosition||'0px 0px';
 					var customStoreUrl="url('"+customStoreIcon.replace(/'/g,"\\'")+"')";
 					//pixelated keeps 2x-upscaled pixel-art strips (Cats) crisp
 					//instead of bilinearly blurring them
-					var customStoreImageRendering=(me.art as any).storeIconRendering||'pixelated';
+					var customStoreImageRendering=(this.art as any).storeIconRendering||'pixelated';
 					var customKey=customStoreUrl+'|'+customStoreSize+'|'+customStorePosition+'|'+customStoreImageRendering;
 					if (cache.customIcon!==customKey)
 					{
 						cache.customIcon=customKey;
-						l('productIcon'+me.id).style.backgroundImage=customStoreUrl;
-						l('productIconOff'+me.id).style.backgroundImage=customStoreUrl;
-						l('productIcon'+me.id).style.backgroundSize=customStoreSize;
-						l('productIconOff'+me.id).style.backgroundSize=customStoreSize;
-						l('productIcon'+me.id).style.backgroundPosition=customStorePosition;
-						l('productIconOff'+me.id).style.backgroundPosition=customStorePosition;
-						l('productIcon'+me.id).style.imageRendering=customStoreImageRendering;
-						l('productIconOff'+me.id).style.imageRendering=customStoreImageRendering;
+						l('productIcon'+this.id).style.backgroundImage=customStoreUrl;
+						l('productIconOff'+this.id).style.backgroundImage=customStoreUrl;
+						l('productIcon'+this.id).style.backgroundSize=customStoreSize;
+						l('productIconOff'+this.id).style.backgroundSize=customStoreSize;
+						l('productIcon'+this.id).style.backgroundPosition=customStorePosition;
+						l('productIconOff'+this.id).style.backgroundPosition=customStorePosition;
+						l('productIcon'+this.id).style.imageRendering=customStoreImageRendering;
+						l('productIconOff'+this.id).style.imageRendering=customStoreImageRendering;
 					}
 				}
 				else
@@ -846,36 +843,36 @@ export class Building {
 					//me.l.className=classes;
 					//l('productIcon'+me.id).style.backgroundImage='url(img/'+icon+')';
 					var iconPos='-'+icon[0]+'px -'+icon[1]+'px';
-					if (cache.iconPos!==iconPos) {cache.iconPos=iconPos;l('productIcon'+me.id).style.backgroundPosition=iconPos;}
+					if (cache.iconPos!==iconPos) {cache.iconPos=iconPos;l('productIcon'+this.id).style.backgroundPosition=iconPos;}
 					//l('productIconOff'+me.id).style.backgroundImage='url(img/'+iconOff+')';
 					var iconOffPos='-'+iconOff[0]+'px -'+iconOff[1]+'px';
-					if (cache.iconOffPos!==iconOffPos) {cache.iconOffPos=iconOffPos;l('productIconOff'+me.id).style.backgroundPosition=iconOffPos;}
+					if (cache.iconOffPos!==iconOffPos) {cache.iconOffPos=iconOffPos;l('productIconOff'+this.id).style.backgroundPosition=iconOffPos;}
 				}
-				if (cache.name!==displayName) {cache.name=displayName;l('productName'+me.id).innerHTML=displayName;}
+				if (cache.name!==displayName) {cache.name=displayName;l('productName'+this.id).innerHTML=displayName;}
 				var longName=name.length>12/Langs[locId].w && (Game.season=='fools' || !EN);
 				if (cache.longName!==longName)
 				{
 					cache.longName=longName;
-					if (longName) l('productName'+me.id).classList.add('longProductName'); else l('productName'+me.id).classList.remove('longProductName');
+					if (longName) l('productName'+this.id).classList.add('longProductName'); else l('productName'+this.id).classList.remove('longProductName');
 				}
-				var ownedVal=me.amount?me.amount:'';
-				if (cache.owned!==ownedVal) {cache.owned=ownedVal;l('productOwned'+me.id).textContent=ownedVal;}
+				var ownedVal=this.amount?this.amount:'';
+				if (cache.owned!==ownedVal) {cache.owned=ownedVal;l('productOwned'+this.id).textContent=ownedVal;}
 				var priceStr=Beautify(Math.round(price));
-				if (cache.price!==priceStr) {cache.price=priceStr;l('productPrice'+me.id).textContent=priceStr;}
+				if (cache.price!==priceStr) {cache.price=priceStr;l('productPrice'+this.id).textContent=priceStr;}
 				var priceMultStr=(Game.buyBulk>1)?('x'+Game.buyBulk+' '):'';
-				if (cache.priceMult!==priceMultStr) {cache.priceMult=priceMultStr;l('productPriceMult'+me.id).textContent=priceMultStr;}
-				var levelStr='lvl '+Beautify(me.level);
-				if (cache.level!==levelStr) {cache.level=levelStr;l('productLevel'+me.id).textContent=levelStr;}
-				var minigameReady=Game.isMinigameReady(me) && Game.ascensionMode!=1;
+				if (cache.priceMult!==priceMultStr) {cache.priceMult=priceMultStr;l('productPriceMult'+this.id).textContent=priceMultStr;}
+				var levelStr='lvl '+Beautify(this.level);
+				if (cache.level!==levelStr) {cache.level=levelStr;l('productLevel'+this.id).textContent=levelStr;}
+				var minigameReady=Game.isMinigameReady(this) && Game.ascensionMode!=1;
 				var minigameShow=minigameReady?'block':'none';
-				if (cache.minigameShow!==minigameShow) {cache.minigameShow=minigameShow;l('productMinigameButton'+me.id).style.display=minigameShow;}
+				if (cache.minigameShow!==minigameShow) {cache.minigameShow=minigameShow;l('productMinigameButton'+this.id).style.display=minigameShow;}
 				if (minigameReady)
 				{
-					var minigameText=!me.onMinigame?loc("View %1",me.minigameName):loc("Close %1",me.minigameName);
-					if (cache.minigameText!==minigameText) {cache.minigameText=minigameText;l('productMinigameButton'+me.id).textContent=minigameText;}
+					var minigameText=!this.onMinigame?loc("View %1",this.minigameName):loc("Close %1",this.minigameName);
+					if (cache.minigameText!==minigameText) {cache.minigameText=minigameText;l('productMinigameButton'+this.id).textContent=minigameText;}
 				}
-				var dragonBoostShow=(Game.isMinigameReady(me) && Game.ascensionMode!=1 && me.minigame.dragonBoostTooltip && Game.hasAura('Supreme Intellect'))?'block':'none';
-				if (cache.dragonBoostShow!==dragonBoostShow) {cache.dragonBoostShow=dragonBoostShow;l('productDragonBoost'+me.id).style.display=dragonBoostShow;}
+				var dragonBoostShow=(Game.isMinigameReady(this) && Game.ascensionMode!=1 && this.minigame.dragonBoostTooltip && Game.hasAura('Supreme Intellect'))?'block':'none';
+				if (cache.dragonBoostShow!==dragonBoostShow) {cache.dragonBoostShow=dragonBoostShow;l('productDragonBoost'+this.id).style.display=dragonBoostShow;}
 			}
 			this.muted=false;
 			this.mute=function(val: number)
@@ -918,8 +915,7 @@ export class Building {
 				this.toResize=true;
 				this.redraw=function()
 				{
-					var me=this;
-					me.pics=[];
+					this.pics=[];
 				}
 				this.draw=function()
 				{

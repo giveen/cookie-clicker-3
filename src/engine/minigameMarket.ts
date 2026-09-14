@@ -835,18 +835,18 @@ M.launch=function(this: MarketMinigame)
 	{
 		//output cannot use ",", ";" or "|"
 		var str=''+
-		parseInt(M.officeLevel)+':'+
-		parseInt(M.brokers)+':'+
-		parseInt(M.graphLines)+':'+
+		parseInt(M.officeLevel, 10)+':'+
+		parseInt(M.brokers, 10)+':'+
+		parseInt(M.graphLines, 10)+':'+
 		parseFloat(M.profit)+':'+
-		parseInt(M.graphCols)+':'+
+		parseInt(M.graphCols, 10)+':'+
 		' ';
 		for (var iG=0;iG<M.goodsById.length;iG++)
 		{
 			var it=M.goodsById[iG];
-			str+=parseInt(it.val*100)+':'+parseInt(it.mode)+':'+parseInt(it.d*100)+':'+parseInt(it.dur)+':'+parseInt(it.stock)+':'+parseInt(it.hidden?1:0)+':'+parseInt(it.last)+'!';
+			str+=parseInt(it.val*100, 10)+':'+parseInt(it.mode, 10)+':'+parseInt(it.d*100, 10)+':'+parseInt(it.dur, 10)+':'+parseInt(it.stock, 10)+':'+parseInt(it.hidden?1:0, 10)+':'+parseInt(it.last, 10)+'!';
 		}
-		str+=' '+parseInt(M.parent.onMinigame?'1':'0');
+		str+=' '+parseInt(M.parent.onMinigame?'1':'0', 10);
 		return str;
 	}
 	M.load=function(str: string)
@@ -858,11 +858,11 @@ M.launch=function(this: MarketMinigame)
 		var spl=str.split(' ');
 		var spl2=spl[i++].split(':');
 		var i2=0;
-		M.officeLevel=parseInt((spl2[i2++]||M.officeLevel) as string);
-		M.brokers=parseInt((spl2[i2++]||M.brokers) as string);
-		M.graphLines=parseInt((spl2[i2++]||M.graphLines) as string);
+		M.officeLevel=parseInt((spl2[i2++]||M.officeLevel) as string, 10);
+		M.brokers=parseInt((spl2[i2++]||M.brokers) as string, 10);
+		M.graphLines=parseInt((spl2[i2++]||M.graphLines) as string, 10);
 		M.profit=parseFloat((spl2[i2++]||0) as string);
-		M.graphCols=parseInt((spl2[i2++]||M.graphCols) as string);M.setCols();
+		M.graphCols=parseInt((spl2[i2++]||M.graphCols) as string, 10);M.setCols();
 		M.tickT=0;
 		
 		var goods=spl[i++].split('!');
@@ -871,21 +871,21 @@ M.launch=function(this: MarketMinigame)
 			if (!goods[iG]) continue;
 			var it=M.goodsById[iG];
 			var itData=goods[iG].split(':');
-			it.val=parseInt(itData[0])/100;
-			it.mode=parseInt(itData[1]);
-			it.d=parseInt(itData[2])/100;
+			it.val=parseInt(itData[0], 10)/100;
+			it.mode=parseInt(itData[1], 10);
+			it.d=parseInt(itData[2], 10)/100;
 			it.vals=[it.val,it.val-it.d];
-			it.dur=parseInt(itData[3]);
-			it.stock=parseInt(itData[4]);
-			it.hidden=parseInt(itData[5])?true:false;
+			it.dur=parseInt(itData[3], 10);
+			it.stock=parseInt(itData[4], 10);
+			it.hidden=!!parseInt(itData[5], 10);
 			it.active=false;
-			it.last=parseInt((itData[6]||0) as string);
+			it.last=parseInt((itData[6]||0) as string, 10);
 			if (it.building.highest>0) it.active=true;
 			if (it.l) M.updateGoodStyle(it.id);
 		}
 		M.onResize();
 		
-		var on=parseInt((spl[i++]||0) as string);if (on && Game.ascensionMode!=1) M.parent.switchMinigame(1);
+		var on=parseInt((spl[i++]||0) as string, 10);if (on && Game.ascensionMode!=1) M.parent.switchMinigame(1);
 		return;
 	}
 	M.reset=function(hard?: boolean)
@@ -1162,7 +1162,7 @@ M.launch=function(this: MarketMinigame)
 		{
 			if (M.lastTickDrawn<M.ticks-1) M.toRedraw=2;
 			M.lastTickDrawn=M.ticks;
-			M.drawGraph(M.toRedraw==2?true:false);
+			M.drawGraph(!!(M.toRedraw==2));
 			
 			for (var i=0;i<M.goodsById.length;i++)
 			{
@@ -1225,6 +1225,7 @@ M.launch=function(this: MarketMinigame)
 	}
 	M.init(l('rowSpecial'+M.parent.id));
 }
+
 /* CC3: explicit module marker — at runtime these files are always ESM modules
  * (Vite bundles them as such), and this keeps their top-level var/function
  * declarations out of the TS global scope. Zero runtime effect. */

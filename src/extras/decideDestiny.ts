@@ -137,7 +137,7 @@ import type { Game as EngineGame, Upgrade } from '../engine/types';
 			for (let i = 0; i < AllDestinies.length; i++) {
 				const temp = AllDestinies[i];
 				if (!temp.prereq || Game.Has(temp.prereq)) {
-					const neg = temp.negative ? true : false;
+					const neg = !!temp.negative;
 					if (temp.name == rectifyDecision()) {
 						choices[i] = {name: temp.name, icon: temp.icon, selected: 1};
 						if (i) choices[i].name = 'Destiny Decided: ' + choices[i].name;

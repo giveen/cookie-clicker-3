@@ -1,8 +1,10 @@
 /**
- * content/achievements.ts — the 630 achievement declarations
- * (211 `new Game.Achievement`, 266 `Game.TieredAchievement`, 61
+ * content/achievements.ts — the 641 achievement declarations
+ * (222 `new Game.Achievement`, 266 `Game.TieredAchievement`, 61
  * `Game.ProductionAchievement`), plus the 46 `Game.BankAchievement` and
  * 46 `Game.CpsAchievement` calls, ported verbatim from the 2.048 engine
+ * (plus the 11 appended CC3 cookie-cow stage achievements, see the block
+ * at the end)
  * (engine/main.ts, the ACHIEVEMENTS block inside Game.Init): the same
  * constructor calls, in the same order, with the same `order`
  * bookkeeping — only the file moved.
@@ -38,8 +40,9 @@
  *    TieredAchievement is only ever called with building tiers, and every
  *    numeric tier defines achievUnlock — compile-erased, runtime-identical.
  */
+
+import { Achievement, BankAchievement, CpsAchievement, ProductionAchievement, TieredAchievement } from '../core/achievement';
 import type { Game as EngineGame } from '../types';
-import { Achievement, TieredAchievement, ProductionAchievement, BankAchievement, CpsAchievement } from '../core/achievement';
 
 /** Declare the 501 vanilla achievements (and their bookkeeping) on Game. */
 export function declareVanillaAchievements(Game: EngineGame) {
@@ -1121,6 +1124,27 @@ export function declareVanillaAchievements(Game: EngineGame) {
 		new Game.Achievement('Golden heart',loc("Reach <b>%1</b> baked during an <b>Ascetic</b> run (no golden cookies).",loc("%1 cookie",LBeautify(1e12)))+'<q>Denial builds character.</q>',[27,6]);Game.last.pool='shadow';
 		new Game.Achievement('Unity',loc("Reach <b>%1</b> baked during a <b>Monoculture</b> run (one building type).",loc("%1 cookie",LBeautify(1e9)))+'<q>Diversify nothing.</q>',[13,0]);Game.last.pool='shadow';
 		new Game.Achievement('Minimalist',loc("Reach <b>%1</b> baked during a <b>Spender</b> run (no upgrades).",loc("%1 cookie",LBeautify(1e15)))+'<q>Who needs upgrades anyway?</q>',[14,0]);Game.last.pool='shadow';
+
+		// CC3: The cookie cow (systems/cow.ts) — one achievement per growth
+		// stage, won directly from the cow's buy() actions (the terminal
+		// stage wins 'Here be a moo', mirroring 'Here be dragon'). Appended
+		// (not interleaved) so existing achievement ids stay stable for
+		// imported saves. Icons use the custom-image form (as documented in
+		// systems/modding.ts) so each crate shows the cow itself rather than
+		// borrowing a cell from icons.webp — row 12 has no free cell (every
+		// column there is already claimed by another feature).
+		order=1200;
+		new Game.Achievement('First growth',loc("Grow your <b>cookie cow</b> for the first time.")+'<q>Moo.</q>',[0,0,'img/Cow.png',64]);
+		new Game.Achievement('Growing pains',loc("Grow your <b>cookie cow</b> <b>2 times</b>.")+'<q>It insists this is a phase.</q>',[0,0,'img/Cow.png',64]);
+		new Game.Achievement('Big cow',loc("Grow your <b>cookie cow</b> <b>3 times</b>."),[0,0,'img/Cow.png',64]);
+		new Game.Achievement('Milk machine',loc("Grow your <b>cookie cow</b> <b>4 times</b>."),[0,0,'img/Cow.png',64]);
+		new Game.Achievement('Big leagues',loc("Grow your <b>cookie cow</b> <b>5 times</b>."),[0,0,'img/Cow.png',64]);
+		new Game.Achievement('Bovine behemoth',loc("Grow your <b>cookie cow</b> <b>6 times</b>."),[0,0,'img/Cow.png',64]);
+		new Game.Achievement('Dairy giant',loc("Grow your <b>cookie cow</b> <b>7 times</b>."),[0,0,'img/Cow.png',64]);
+		new Game.Achievement('Cow of a different scale',loc("Grow your <b>cookie cow</b> <b>8 times</b>."),[0,0,'img/Cow.png',64]);
+		new Game.Achievement('Bigger than the milk glass',loc("Grow your <b>cookie cow</b> <b>9 times</b>."),[0,0,'img/Cow.png',64]);
+		new Game.Achievement('Bovine apotheosis',loc("Grow your <b>cookie cow</b> <b>10 times</b>."),[0,0,'img/Cow.png',64]);
+		new Game.Achievement('Here be a moo',loc("Fully grow your <b>cookie cow</b>."),[0,0,'img/Cow.png',64]);
 
 		//end of achievements
 }

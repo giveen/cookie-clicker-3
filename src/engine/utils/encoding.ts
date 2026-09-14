@@ -80,7 +80,7 @@ export function UncompressLargeBin(arr: any)
 	var bits=[];
 	for (var i in arr2)
 	{
-		bits.push(UncompressBin(parseInt(arr2[i])));
+		bits.push(UncompressBin(parseInt(arr2[i], 10)));
 	}
 	arr2=[];
 	for (var i in bits)

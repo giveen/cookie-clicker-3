@@ -8,8 +8,8 @@
 // master build exists at .cc3-master/ (create it with `npm run setup:master`,
 // or let the CI test-compat job check it out), a `vite preview` serves it on
 // :4174 alongside the :4173 build and this spec runs; otherwise it skips.
-import { test, expect } from '@playwright/test';
-import fs from 'fs';
+import fs from 'node:fs';
+import { expect, test } from '@playwright/test';
 
 const BOOT = { timeout: 30_000 };
 

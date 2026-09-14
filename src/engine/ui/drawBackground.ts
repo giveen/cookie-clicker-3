@@ -267,7 +267,7 @@ export function DrawBackground()
 					for (var i=0;i<digits;i++)
 					{
 						var s=16*(digits-i);
-						var num=parseInt(amount[i]);
+						var num=parseInt(amount[i], 10);
 						if (i>0) space-=s*(1-num/10)/2;
 						if (i==0 && num>1) space+=s*0.1;
 						for (var ii=0;ii<num;ii++)

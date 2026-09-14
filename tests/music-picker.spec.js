@@ -6,7 +6,8 @@
 // :4173 preview, like the other explicit specs:
 // `npx playwright test tests/music-picker.spec.js` (npm test stays scoped
 // to tests/qa.spec.js).
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
+
 const BOOT = { timeout: 30_000 };
 async function boot(page) {
 	await page.goto('/?debug=1', { waitUntil: 'load' });

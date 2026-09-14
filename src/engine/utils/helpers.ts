@@ -5,7 +5,7 @@
 export function l(what: any): any {return document.getElementById(what);}
 export function choose(arr: any) {return arr[Math.floor(Math.random()*arr.length)];}
 
-export function escapeRegExp(str: any){return str.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, "\\$&");}
+export function escapeRegExp(str: any){return str.replace(/[-[\]/{}()*+?.\\^$|]/g, "\\$&");}
 export function replaceAll(find: any, replace: any, str: any){return str.replace(new RegExp(escapeRegExp(find),'g'),replace);}
 
 export function cap(str: any){return str.charAt(0).toUpperCase()+str.slice(1);}

@@ -543,7 +543,7 @@ M.launch = function (this: SittingRoomMinigame) {
 		var seatsStr = spl[i++] || '';
 		var seatParts = seatsStr.split(':');
 		for (var s = 0; s < M.seats.length; s++) {
-			var sv = seatParts.length > s ? parseInt(seatParts[s]) : -1;
+			var sv = seatParts.length > s ? parseInt(seatParts[s], 10) : -1;
 			M.seats[s] = isNaN(sv) ? -1 : sv;
 		}
 		var stacksStr = spl[i++] || '';
@@ -617,6 +617,7 @@ M.launch = function (this: SittingRoomMinigame) {
 
 	M.init(l('rowSpecial' + M.parent.id)!);
 };
+
 /* CC3: explicit module marker — at runtime these files are always ESM modules
  * (Vite bundles them as such), and this keeps their top-level var/function
  * declarations out of the TS global scope. Zero runtime effect. */

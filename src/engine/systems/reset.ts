@@ -77,8 +77,8 @@ export function Reset(hard: any)
 	Game.season=Game.baseSeason;
 	Game.computeSeasonPrices();
 	
-	Game.startDate=parseInt(Date.now());
-	Game.lastDate=parseInt(Date.now());
+	Game.startDate=parseInt(Date.now(), 10);
+	Game.lastDate=parseInt(Date.now(), 10);
 	
 	Game.cookiesSucked=0;
 	Game.wrinklersPopped=0;
@@ -90,6 +90,8 @@ export function Reset(hard: any)
 	Game.dragonLevel=0;
 	Game.dragonAura=0;
 	Game.dragonAura2=0;
+	
+	Game.cowLevel=0;//CC3 feature (systems/cow.ts): the cookie cow is a prestige asset; hard reset only
 	
 	Game.fortuneGC=0;
 	Game.fortuneCPS=0;
@@ -229,7 +231,7 @@ export function HardReset(bypass: any)
 		Game.missedGoldenClicks=0;
 		Game.Reset(1);
 		Game.resets=0;
-		Game.fullDate=parseInt(Date.now());
+		Game.fullDate=parseInt(Date.now(), 10);
 		Game.bakeryName=Game.GetBakeryName();
 		Game.bakeryNameRefresh();
 		Game.cookiesReset=0;

@@ -1,57 +1,57 @@
 /* CC3 rewrite (phase 6): engine typed. */
 /* CC3 rewrite: typed content layer, extracted from this file incrementally. */
-import type { TIERS } from './content/tiers';
-import type { declareVanillaBuildings } from './content/buildings';
-import type { declareVanillaUpgrades } from './content/upgrades';
+
 import type { declareVanillaAchievements } from './content/achievements';
+import type { declareVanillaBuildings } from './content/buildings';
 import type { declareVanillaFoolObjects } from "./content/foolObjects";
+import type { declareVanillaMilks } from "./content/milks";
+import type { TIERS } from './content/tiers';
+import type { declareVanillaUpgrades } from './content/upgrades';
+import { Building } from "./core/building";
 /* CC3 rewrite (phase 3): the Game singleton is now a real class instance from the typed core layer. */
 import { Game } from "./core/game";
-import { Building } from "./core/building";
-import { Upgrade, TieredUpgrade, SynergyUpgrade } from "./core/upgrade";
-import { HowMuchPrestige, HowManyCookiesReset, EarnHeavenlyChips, GetHeavenlyMultiplier, ComputeCps, GetTieredCpsMult, Earn, Spend, Dissolve, mouseCps, playCookieClickSound, ClickCookie, GetMouseCoords } from "./systems/economy";
-import { ValidateContent, GetEconomyReport, SimulateEconomy, AnalyzeEconomy, SimulateStrategy } from "./systems/contentValidation";
-import { ExportSave, ImportSave, ImportSaveCode, CopySaveToClipboard, FileSave, FileLoad, WriteSave, salvageSave, LoadSave } from "./systems/save";
-import { CaptureSave, ListBackups, RestoreBackup, DownloadBackup, RefreshBackupList } from "./systems/backup";
-import { CreateMusic, type MusicSystem } from "./systems/music";
-import { Shimmer, updateShimmers, killShimmers } from "./systems/shimmer";
-import { getWrinklersMax, ResetWrinklers, CollectWrinklers, playWrinklerSquishSound, SpawnWrinkler, PopRandomWrinkler, UpdateWrinklers, DrawWrinklers, SaveWrinklers, LoadWrinklers } from "./systems/wrinkler";
-import { UpdateAscensionModePrompt, PickAscensionMode, UpdateAscendIntro, UpdateReincarnateIntro, Reincarnate, Ascend, AscendBrowseView, AscendBrowseClose, UpdateAscend, AscendRefocus, PurchaseHeavenlyUpgrade, BuildAscendTree, lumpTooltip, computeLumpTimes, loadLumps, gainLumps, clickLump, harvestLumps, computeLumpType, canLumps, getLumpRefillMax, getLumpRefillRemaining, canRefillLump, refillLump, spendLump, doLumps, SaveHeavenlyLayout, ToggleArrangeHeavenly, ResetHeavenlyLayout } from "./systems/ascend";
-/* CC3 rewrite (phase 6, slice 2): pure utils extracted to engine/utils/. */
-import { l, choose, escapeRegExp, replaceAll, cap, romanize, randomFloor, shuffle } from "./utils/helpers";
-import { formatEveryThirdPower, rawFormatter, formatLong, prefixes, suffixes, formatShort, numberFormatters, Beautify, shortenNumber, SimpleBeautify, beautifyInTextFilter, BeautifyInTextFunction, BeautifyInText, BeautifyAll } from "./utils/format";
-import { utf8_to_b64, b64_to_utf8, CompressBin, UncompressBin, CompressLargeBin, UncompressLargeBin, pack, unpack, pack2, unpack2, pack3 } from "./utils/encoding";
-import { AddEvent, RemoveEvent, FireEvent, writeIcon, tinyIcon, LoadScript } from "./utils/dom";
-import { sayTime } from "./utils/time";
+import { SynergyUpgrade, TieredUpgrade, Upgrade } from "./core/upgrade";
+import { Ascend, AscendBrowseClose, AscendBrowseView, AscendRefocus, BuildAscendTree, canLumps, canRefillLump, clickLump, computeLumpTimes, computeLumpType, doLumps, gainLumps, getLumpRefillMax, getLumpRefillRemaining, harvestLumps, loadLumps, lumpTooltip, PickAscensionMode, PurchaseHeavenlyUpgrade, Reincarnate, ResetHeavenlyLayout, refillLump, SaveHeavenlyLayout, spendLump, ToggleArrangeHeavenly, UpdateAscend, UpdateAscendIntro, UpdateAscensionModePrompt, UpdateReincarnateIntro } from "./systems/ascend";
+import { CaptureSave, DownloadBackup, ListBackups, RefreshBackupList, RestoreBackup } from "./systems/backup";
+import { bakeryNamePrompt, bakeryNamePromptRandom, bakeryNameRefresh, bakeryNameSet, GetBakeryName, RandomBakeryName } from "./systems/bakeryName";
 /* CC3 rewrite (phase 6, slice 3): systems + UI extracted to typed modules. */
-import { gainBuff, hasBuff, updateBuffs, killBuff, killBuffs, buffType, declareVanillaBuffs, buffTypes, buffTypesByName } from "./systems/buffs";
-import { UpdateTicker, getNewTicker, TickerDraw } from "./systems/ticker";
-import { UpgradeSanta, ClickSpecialPic, santaLevels } from "./systems/santa";
-import { hasAura, auraMult, SelectDragonAura, UpgradeDragon } from "./systems/dragon";
-import { shimmerTypes, goldenCookieChoices, goldenCookieBuildingBuffs } from "./systems/shimmerTypes";
-import { ToggleSpecialMenu, DrawSpecial } from "./systems/specialMenu";
-import { Note, CloseNote, CloseNotes, UpdateNotes, NotesLogic, NotesDraw, Notify, NotifyTooltip, UpdatePrompt, Prompt, ClosePrompt, ConfirmPrompt, FocusPromptOption } from "./ui/notifications";
-import { particlesUpdate, particleAdd, particlesDraw, textParticlesUpdate, textParticlesAdd, Popup, SparkleAt, SparkleOn } from "./ui/particles";
-
-import { RandomBakeryName, GetBakeryName, bakeryNameSet, bakeryNameRefresh, bakeryNamePrompt, bakeryNamePromptRandom } from "./systems/bakeryName";
-import { GetHowManyHalloweenDrops, GetHowManyHeartDrops, GetHowManyEggs, DropEgg, GetHowManySantaDrops, GetHowManyReindeerDrops, saySeasonSwitchUses, computeSeasonPrices, computeSeasons, getSeasonDuration } from "./systems/seasons";
-import { setupModding } from "./systems/modding";
-import { Reset, HardReset } from "./systems/reset";
+import { buffType, buffTypes, buffTypesByName, declareVanillaBuffs, gainBuff, hasBuff, killBuff, killBuffs, updateBuffs } from "./systems/buffs";
+import { CalculateGains } from "./systems/calculateGains";
+import { AnalyzeEconomy, GetEconomyReport, SimulateEconomy, SimulateStrategy, ValidateContent } from "./systems/contentValidation";
+import { CowMilkBonus, cowLevels, UpgradeCow } from "./systems/cow";
+import { auraMult, hasAura, SelectDragonAura, UpgradeDragon } from "./systems/dragon";
+import { ClickCookie, ComputeCps, Dissolve, Earn, EarnHeavenlyChips, GetHeavenlyMultiplier, GetMouseCoords, GetTieredCpsMult, HowManyCookiesReset, HowMuchPrestige, mouseCps, playCookieClickSound, Spend } from "./systems/economy";
+import { applyHeavenlyPreset, computeHeavenlyLayout, HEAVENLY_PRESETS, syncHeavenlyLayoutIfStale } from "./systems/heavenlyLayout";
 import { Logic } from "./systems/logic";
 import { Loop } from "./systems/loop";
+import { setupModding } from "./systems/modding";
+import { CreateMusic, type MusicSystem } from "./systems/music";
+import { HardReset, Reset } from "./systems/reset";
+import { ClickSpecialPic, santaLevels, UpgradeSanta } from "./systems/santa";
+import { CopySaveToClipboard, ExportSave, FileLoad, FileSave, ImportSave, ImportSaveCode, LoadSave, salvageSave, WriteSave } from "./systems/save";
+import { computeSeasonPrices, computeSeasons, DropEgg, GetHowManyEggs, GetHowManyHalloweenDrops, GetHowManyHeartDrops, GetHowManyReindeerDrops, GetHowManySantaDrops, getSeasonDuration, saySeasonSwitchUses } from "./systems/seasons";
+import { killShimmers, Shimmer, updateShimmers } from "./systems/shimmer";
+import { goldenCookieBuildingBuffs, goldenCookieChoices, shimmerTypes } from "./systems/shimmerTypes";
+import { DrawSpecial, ToggleSpecialMenu } from "./systems/specialMenu";
+import { getNewTicker, TickerDraw, UpdateTicker } from "./systems/ticker";
+import { CollectWrinklers, DrawWrinklers, getWrinklersMax, LoadWrinklers, PopRandomWrinkler, playWrinklerSquishSound, ResetWrinklers, SaveWrinklers, SpawnWrinkler, UpdateWrinklers } from "./systems/wrinkler";
+import type { EconomyAnalysisOptions, EconomyStrategyOptions, HeavenlyUpgradeRef, LanguageHeader, LanguageString, Prefs } from "./types";
+import { costDetails, crate, crateTooltip } from "./ui/crate";
 import { Draw } from "./ui/draw";
-import { CalculateGains } from "./systems/calculateGains";
-
-import { tooltipDraw, tooltipUpdate, tooltipHide, tooltipWobble, getTooltip, getDynamicTooltip, attachTooltip } from "./ui/tooltip";
-import { crate, crateTooltip, costDetails } from "./ui/crate";
-import { modifyBuildingPrice, storeBulkButton, BuildStore, ClickProduct, RefreshStore, HoldToBuyPref, ToggleHoldToBuy } from "./ui/store";
-import { ShowMenu, tinyCookie, ClickTinyCookie, setVolume, setVolumeMusic, setWubMusic, showLangSelection, UpdateMenu } from "./ui/menu";
 import { DrawBackground } from "./ui/drawBackground";/* CC3: the original relied on implicit globals; declare them for module strict mode. */
+import { ClickTinyCookie, ShowMenu, setVolume, setVolumeMusic, setWubMusic, showLangSelection, tinyCookie, UpdateMenu } from "./ui/menu";
+import { CloseNote, CloseNotes, ClosePrompt, ConfirmPrompt, FocusPromptOption, Note, NotesDraw, NotesLogic, Notify, NotifyTooltip, Prompt, UpdateNotes, UpdatePrompt } from "./ui/notifications";
+import { Popup, particleAdd, particlesDraw, particlesUpdate, SparkleAt, SparkleOn, textParticlesAdd, textParticlesUpdate } from "./ui/particles";
+import { BuildStore, ClickProduct, HoldToBuyPref, modifyBuildingPrice, RefreshStore, storeBulkButton, ToggleHoldToBuy } from "./ui/store";
+import { attachTooltip, getDynamicTooltip, getTooltip, tooltipDraw, tooltipHide, tooltipUpdate, tooltipWobble } from "./ui/tooltip";
+import { Debug, debugStr } from "./utils/debug";
+import { AddEvent, FireEvent, LoadScript, RemoveEvent, tinyIcon, writeIcon } from "./utils/dom";
+import { b64_to_utf8, CompressBin, CompressLargeBin, pack, pack2, pack3, UncompressBin, UncompressLargeBin, unpack, unpack2, utf8_to_b64 } from "./utils/encoding";
+import { Beautify, BeautifyAll, BeautifyInText, BeautifyInTextFunction, beautifyInTextFilter, formatEveryThirdPower, formatLong, formatShort, numberFormatters, prefixes, rawFormatter, SimpleBeautify, shortenNumber, suffixes } from "./utils/format";
+/* CC3 rewrite (phase 6, slice 2): pure utils extracted to engine/utils/. */
+import { cap, choose, escapeRegExp, l, randomFloor, replaceAll, romanize, shuffle } from "./utils/helpers";
+import { sayTime } from "./utils/time";
 
-import type { declareVanillaMilks } from "./content/milks";
-import { computeHeavenlyLayout, applyHeavenlyPreset, syncHeavenlyLayoutIfStale, HEAVENLY_PRESETS } from "./systems/heavenlyLayout";
-import { debugStr, Debug } from "./utils/debug";
-import type { HeavenlyUpgradeRef, LanguageString, LanguageHeader, EconomyAnalysisOptions, EconomyStrategyOptions, Prefs } from "./types";
 /* CC3: the vanilla content (tiers/buildings/upgrades/achievements/fool
  * objects/milks — ~300 KB of the old critical chunk) ships as a DEFERRED
  * chunk: the fetch starts here at module eval, in parallel with the extras
@@ -98,10 +98,10 @@ var PlayCue: (cue: string, arg?: string | number) => void;
 /* 32 normally, 0 in 'offWeb' mode — set in Init; the original declared these
  * bare (undefined at module eval, when the Object.assign below publishes them
  * by value), so keep the runtime-identical initializers. */
-var TopBarOffset: number | undefined = undefined;
-var LASTHEAVENLYSELECTED: HeavenlyUpgradeRef | undefined = undefined;
-var ON: string | undefined = undefined;
-var OFF: string | undefined = undefined;
+var TopBarOffset: number | undefined ;
+var LASTHEAVENLYSELECTED: HeavenlyUpgradeRef | undefined ;
+var ON: string | undefined ;
+var OFF: string | undefined ;
 /* CC3 rewrite (slice 3): the vanilla-content order/pool/power bookkeeping.
  * Originally Init-scoped closure vars read by the Game.Upgrade /
  * Game.Achievement ctors and mutated by the upgrade declarations; the
@@ -185,13 +185,13 @@ var ajax=function(url: string,callback: (text: string) => void)
 function toFixed(x: number): string | number
 {
 	if (Math.abs(x) < 1.0) {
-		var e = parseInt(x.toString().split('e-')[1]);
+		var e = parseInt(x.toString().split('e-')[1], 10);
 		if (e) {
 			x = x * Math.pow(10,e-1);
 			return '0.' + (new Array(e)).join('0') + x.toString().substring(2);
 		}
 	} else {
-		var e = parseInt(x.toString().split('+')[1]);
+		var e = parseInt(x.toString().split('+')[1], 10);
 		if (e > 20) {
 			e -= 20;
 			x = x / Math.pow(10,e);
@@ -345,7 +345,7 @@ var parseLoc=function(str: string | string[], params?: LocParams)
 		if (inPercent)
 		{
 			inPercent=false;
-			if (!isNaN(Number(it)) && params.length>=parseInt(it)-1) out+=locParamToString(params[parseInt(it)-1]);
+			if (!isNaN(Number(it)) && params.length>=parseInt(it, 10)-1) out+=locParamToString(params[parseInt(it, 10)-1]);
 			else out+='%'+it;
 		}
 		else if (it=='%') inPercent=true;
@@ -428,7 +428,7 @@ var AddLanguage=function(id: string, _name: string, json: Record<string, Languag
 		
 		locPlur=(function(plural_form: string){
 			//lifted and modified from gettext.js
-			var pf_re=new RegExp('^\\s*nplurals\\s*=\\s*[0-9]+\\s*;\\s*plural\\s*=\\s*(?:\\s|[-\\?\\|&=!<>+*/%:;n0-9_\(\)])+');
+			var pf_re=/^\s*nplurals\s*=\s*[0-9]+\s*;\s*plural\s*=\s*(?:\s|[-?|&=!<>+*/%:;n0-9_()])+/;
 			if (!pf_re.test(plural_form))
 			throw new Error('The plural form "'+plural_form+'" is not valid');
 			return new Function('n','var plural, nplurals; '+ plural_form +' return plural;');
@@ -441,7 +441,7 @@ var AddLanguage=function(id: string, _name: string, json: Record<string, Languag
 			{
 				var patch=i.split('|');
 			var patchTranslated=(locStrings[i] as string).split('|');
-				locPatches.push({id:parseInt(patch[1]),type:1,title:patchTranslated[2],points:patchTranslated.slice(3)})
+				locPatches.push({id:parseInt(patch[1], 10),type:1,title:patchTranslated[2],points:patchTranslated.slice(3)})
 			}
 		}
 		var sortMap=function(a: LocPatch,b: LocPatch)
@@ -522,16 +522,16 @@ function b64_to_utf8( str ) {
 }*/
 
 //file save function from https://github.com/eligrey/FileSaver.js
-var saveAs: any=saveAs||function(view: any){"use strict";if(typeof navigator!=="undefined"&&/MSIE [1-9]\./.test(navigator.userAgent)){return}var doc=view.document,get_URL=function(){return view.URL||view.webkitURL||view},save_link=doc.createElementNS("http://www.w3.org/1999/xhtml","a"),can_use_save_link="download"in save_link,click=function(node: any){var event=new MouseEvent("click");node.dispatchEvent(event)},is_safari=/Version\/[\d\.]+.*Safari/.test(navigator.userAgent),webkit_req_fs=view.webkitRequestFileSystem,req_fs=view.requestFileSystem||webkit_req_fs||view.mozRequestFileSystem,throw_outside=function(ex: any){(view.setImmediate||view.setTimeout)(function(){throw ex},0)},force_saveable_type="application/octet-stream",fs_min_size=0,arbitrary_revoke_timeout=500,revoke=function(file: any){var revoker=function(){if(typeof file==="string"){get_URL().revokeObjectURL(file)}else{file.remove()}};if(view.chrome){revoker()}else{setTimeout(revoker,arbitrary_revoke_timeout)}},dispatch=function(filesaver: any,event_types: any,event?: any){event_types=[].concat(event_types);var i=event_types.length;while(i--){var listener=filesaver["on"+event_types[i]];if(typeof listener==="function"){try{listener.call(filesaver,event||filesaver)}catch(ex){throw_outside(ex)}}}},auto_bom=function(blob: any){if(/^\s*(?:text\/\S*|application\/xml|\S*\/\S*\+xml)\s*;.*charset\s*=\s*utf-8/i.test(blob.type)){return new Blob(["\ufeff",blob],{type:blob.type})}return blob},FileSaver: any=function(this: any,blob: any,name: any,no_auto_bom: any){if(!no_auto_bom){blob=auto_bom(blob)}var filesaver=this,type=blob.type,blob_changed=false,object_url: any,target_view: any,dispatch_all=function(){dispatch(filesaver,"writestart progress write writeend".split(" "))},fs_error=function(){if(target_view&&is_safari&&typeof FileReader!=="undefined"){var reader=new FileReader;reader.onloadend=function(){var base64Data: any=reader.result;target_view.location.href="data:attachment/file"+base64Data.slice(base64Data.search(/[,;]/));filesaver.readyState=filesaver.DONE;dispatch_all()};reader.readAsDataURL(blob);filesaver.readyState=filesaver.INIT;return}if(blob_changed||!object_url){object_url=get_URL().createObjectURL(blob)}if(target_view){target_view.location.href=object_url}else{var new_tab=view.open(object_url,"_blank");if(new_tab==undefined&&is_safari){view.location.href=object_url}}filesaver.readyState=filesaver.DONE;dispatch_all();revoke(object_url)},abortable=function(func: any){return function(this: any){if(filesaver.readyState!==filesaver.DONE){return func.apply(this,arguments)}}},create_if_not_found={create:true,exclusive:false},slice;filesaver.readyState=filesaver.INIT;if(!name){name="download"}if(can_use_save_link){object_url=get_URL().createObjectURL(blob);setTimeout(function(){save_link.href=object_url;save_link.download=name;click(save_link);dispatch_all();revoke(object_url);filesaver.readyState=filesaver.DONE});return}if(view.chrome&&type&&type!==force_saveable_type){slice=blob.slice||blob.webkitSlice;blob=slice.call(blob,0,blob.size,force_saveable_type);blob_changed=true}if(webkit_req_fs&&name!=="download"){name+=".download"}if(type===force_saveable_type||webkit_req_fs){target_view=view}if(!req_fs){fs_error();return}fs_min_size+=blob.size;req_fs(view.TEMPORARY,fs_min_size,abortable(function(fs: any){fs.root.getDirectory("saved",create_if_not_found,abortable(function(dir: any){var save=function(){dir.getFile(name,create_if_not_found,abortable(function(file: any){file.createWriter(abortable(function(writer: any){writer.onwriteend=function(event: any){target_view.location.href=file.toURL();filesaver.readyState=filesaver.DONE;dispatch(filesaver,"writeend",event);revoke(file)};writer.onerror=function(){var error=writer.error;if(error.code!==error.ABORT_ERR){fs_error()}};"writestart progress write abort".split(" ").forEach(function(event: any){writer["on"+event]=filesaver["on"+event]});writer.write(blob);filesaver.abort=function(){writer.abort();filesaver.readyState=filesaver.DONE};filesaver.readyState=filesaver.WRITING}),fs_error)}),fs_error)};dir.getFile(name,{create:false},abortable(function(file: any){file.remove();save()}),abortable(function(ex: any){if(ex.code===ex.NOT_FOUND_ERR){save()}else{fs_error()}}))}),fs_error)}),fs_error)},FS_proto=FileSaver.prototype,saveAs=function(blob: any,name: any,no_auto_bom: any){return new FileSaver(blob,name,no_auto_bom)};if(typeof navigator!=="undefined"&&(navigator as any).msSaveOrOpenBlob){return function(blob: any,name: any,no_auto_bom: any){if(!no_auto_bom){blob=auto_bom(blob)}return (navigator as any).msSaveOrOpenBlob(blob,name||"download")}}FS_proto.abort=function(){var filesaver=this;filesaver.readyState=filesaver.DONE;dispatch(filesaver,"abort")};FS_proto.readyState=FS_proto.INIT=0;FS_proto.WRITING=1;FS_proto.DONE=2;FS_proto.error=FS_proto.onwritestart=FS_proto.onprogress=FS_proto.onwrite=FS_proto.onabort=FS_proto.onerror=FS_proto.onwriteend=null;return saveAs}(typeof self!=="undefined"&&self||typeof window!=="undefined"&&window||(this as any).content);if(typeof module!=="undefined"&&module.exports){module.exports.saveAs=saveAs}else if(typeof define!=="undefined"&&define!==null&&define.amd!=null){define([],function(){return saveAs})}
+var saveAs: any=saveAs||function(view: any){if(typeof navigator!=="undefined"&&/MSIE [1-9]\./.test(navigator.userAgent)){return}var doc=view.document,get_URL=function(){return view.URL||view.webkitURL||view},save_link=doc.createElementNS("http://www.w3.org/1999/xhtml","a"),can_use_save_link="download"in save_link,click=function(node: any){var event=new MouseEvent("click");node.dispatchEvent(event)},is_safari=/Version\/[\d.]+.*Safari/.test(navigator.userAgent),webkit_req_fs=view.webkitRequestFileSystem,req_fs=view.requestFileSystem||webkit_req_fs||view.mozRequestFileSystem,throw_outside=function(ex: any){(view.setImmediate||view.setTimeout)(function(){throw ex},0)},force_saveable_type="application/octet-stream",fs_min_size=0,arbitrary_revoke_timeout=500,revoke=function(file: any){var revoker=function(){if(typeof file==="string"){get_URL().revokeObjectURL(file)}else{file.remove()}};if(view.chrome){revoker()}else{setTimeout(revoker,arbitrary_revoke_timeout)}},dispatch=function(filesaver: any,event_types: any,event?: any){event_types=[].concat(event_types);var i=event_types.length;while(i--){var listener=filesaver["on"+event_types[i]];if(typeof listener==="function"){try{listener.call(filesaver,event||filesaver)}catch(ex){throw_outside(ex)}}}},auto_bom=function(blob: any){if(/^\s*(?:text\/\S*|application\/xml|\S*\/\S*\+xml)\s*;.*charset\s*=\s*utf-8/i.test(blob.type)){return new Blob(["\ufeff",blob],{type:blob.type})}return blob},FileSaver: any=function(this: any,blob: any,name: any,no_auto_bom: any){if(!no_auto_bom){blob=auto_bom(blob)}var filesaver=this,type=blob.type,blob_changed=false,object_url: any,target_view: any,dispatch_all=function(){dispatch(filesaver,"writestart progress write writeend".split(" "))},fs_error=function(){if(target_view&&is_safari&&typeof FileReader!=="undefined"){var reader=new FileReader;reader.onloadend=function(){var base64Data: any=reader.result;target_view.location.href="data:attachment/file"+base64Data.slice(base64Data.search(/[,;]/));filesaver.readyState=filesaver.DONE;dispatch_all()};reader.readAsDataURL(blob);filesaver.readyState=filesaver.INIT;return}if(blob_changed||!object_url){object_url=get_URL().createObjectURL(blob)}if(target_view){target_view.location.href=object_url}else{var new_tab=view.open(object_url,"_blank");if(new_tab==undefined&&is_safari){view.location.href=object_url}}filesaver.readyState=filesaver.DONE;dispatch_all();revoke(object_url)},abortable=function(func: any){return function(this: any){if(filesaver.readyState!==filesaver.DONE){return func.apply(this,arguments)}}},create_if_not_found={create:true,exclusive:false},slice;filesaver.readyState=filesaver.INIT;if(!name){name="download"}if(can_use_save_link){object_url=get_URL().createObjectURL(blob);setTimeout(function(){save_link.href=object_url;save_link.download=name;click(save_link);dispatch_all();revoke(object_url);filesaver.readyState=filesaver.DONE});return}if(view.chrome&&type&&type!==force_saveable_type){slice=blob.slice||blob.webkitSlice;blob=slice.call(blob,0,blob.size,force_saveable_type);blob_changed=true}if(webkit_req_fs&&name!=="download"){name+=".download"}if(type===force_saveable_type||webkit_req_fs){target_view=view}if(!req_fs){fs_error();return}fs_min_size+=blob.size;req_fs(view.TEMPORARY,fs_min_size,abortable(function(fs: any){fs.root.getDirectory("saved",create_if_not_found,abortable(function(dir: any){var save=function(){dir.getFile(name,create_if_not_found,abortable(function(file: any){file.createWriter(abortable(function(writer: any){writer.onwriteend=function(event: any){target_view.location.href=file.toURL();filesaver.readyState=filesaver.DONE;dispatch(filesaver,"writeend",event);revoke(file)};writer.onerror=function(){var error=writer.error;if(error.code!==error.ABORT_ERR){fs_error()}};"writestart progress write abort".split(" ").forEach(function(event: any){writer["on"+event]=filesaver["on"+event]});writer.write(blob);filesaver.abort=function(){writer.abort();filesaver.readyState=filesaver.DONE};filesaver.readyState=filesaver.WRITING}),fs_error)}),fs_error)};dir.getFile(name,{create:false},abortable(function(file: any){file.remove();save()}),abortable(function(ex: any){if(ex.code===ex.NOT_FOUND_ERR){save()}else{fs_error()}}))}),fs_error)}),fs_error)},FS_proto=FileSaver.prototype,saveAs=function(blob: any,name: any,no_auto_bom: any){return new FileSaver(blob,name,no_auto_bom)};if(typeof navigator!=="undefined"&&(navigator as any).msSaveOrOpenBlob){return function(blob: any,name: any,no_auto_bom: any){if(!no_auto_bom){blob=auto_bom(blob)}return (navigator as any).msSaveOrOpenBlob(blob,name||"download")}}FS_proto.abort=function(){this.readyState=this.DONE;dispatch(this,"abort")};FS_proto.readyState=FS_proto.INIT=0;FS_proto.WRITING=1;FS_proto.DONE=2;FS_proto.error=FS_proto.onwritestart=FS_proto.onprogress=FS_proto.onwrite=FS_proto.onabort=FS_proto.onerror=FS_proto.onwriteend=null;return saveAs}(typeof self!=="undefined"&&self||typeof window!=="undefined"&&window||(this as any).content);if(typeof module!=="undefined"&&module.exports){module.exports.saveAs=saveAs}else if(typeof define!=="undefined"&&define!==null&&define.amd!=null){define([],function(){return saveAs})}
 
 
 //seeded random function, courtesy of http://davidbau.com/archives/2010/01/30/random_seeds_coded_hints_and_quintillions.html
 (function(a: any,b: any,c: any,d: any,e: any,f: any){function k(this: any,a: any): any{var b,c=a.length,e=this,f=0,g=e.i=e.j=0,h: any=e.S=[];for(c||(a=[c++]);d>f;)h[f]=f++;for(f=0;d>f;f++)h[f]=h[g=j&g+a[f%c]+(b=h[f])],h[g]=b;(e.g=function(a: any){for(var b,c=0,f=e.i,g=e.j,h=e.S;a--;)b=h[f=j&f+1],c=c*d+h[j&(h[f]=h[g=j&g+b])+(h[g]=b)];return e.i=f,e.j=g,c})(d)}function l(a: any,b: any): any{var e,c=[],d=(typeof a)[0];if(b&&"o"==d)for(e in a)try{c.push(l(a[e],b-1))}catch(f){}return c.length?c:"s"==d?a:a+"\0"}function m(a: any,b: any){for(var d: any,c=a+"",e=0;c.length>e;)b[j&e]=j&(d^=19*b[j&e])+c.charCodeAt(e++);return o(b)}function n(c?: any){try{return a.crypto.getRandomValues(c=new Uint8Array(d)),o(c)}catch(e){return[+new Date,a,a.navigator.plugins,a.screen,o(b)]}}function o(a: any){return String.fromCharCode.apply(0,a)}var g: any=c.pow(d,e),h: any=c.pow(2,f),i: any=2*h,j: any=d-1;c.seedrandom=function(a: any,f: any){var j: any[]=[],p=m(l(f?[a,o(b)]:0 in arguments?a:n(),3),j),q=new (k as any)(j);return m(o(q.S),b),c.random=function(){for(var a=q.g(e),b=g,c=0;h>a;)a=(a+c)*d,b*=d,c=q.g(1);for(;a>=i;)a/=2,b/=2,c>>>=1;return(a+c)/b},p},m(c.random(),b)})(window,[],Math,256,6,52);
 
-function bind(scope: unknown,fn: Function)
+function bind(scope: unknown,fn: (...args: any[]) => any)
 {
 	//use : bind(this,function(){this.x++;}) - returns a function where "this" refers to the scoped this
-	return function() {fn.apply(scope,arguments);};
+	return function() {fn.apply(scope,[...arguments]);};
 }
 
 var grabProps=function(arr: Record<string, unknown>[] | null | undefined,prop: string)
@@ -786,7 +786,9 @@ PlayCue=function(cue: string,arg?: string | number)
 	if (Music && Game.jukebox.trackAuto) Music.cue(cue,arg);
 }
 
-if (!Date.now){Date.now=function now() {return new Date().getTime();};}
+if (!Date.now){Date.now=function now() {
+	// biome-ignore lint/complexity/useDateNow: this shim *defines* Date.now; it must use the Date constructor fallback
+	return new Date().getTime();};}
 
 var triggerAnim=function(element: HTMLElement | null,anim: string)
 {
@@ -842,7 +844,7 @@ Game.loadedFromVersion=VERSION;
 Game.beta=BETA;
 if (!App && window.location.href.indexOf('/beta')>-1) Game.beta=1;
 else if (App && new URL(window.location.href).searchParams.get('beta')) Game.beta=1;
-Game.https=!App?((location.protocol!='https:')?false:true):true;
+Game.https=!App?!!(location.protocol!='https:'):true;
 Game.SaveTo='CookieClickerGame';
 if (Game.beta) Game.SaveTo='CookieClickerGameBeta';
 if (App && new URL(window.location.href).searchParams.get('modless')) Game.modless=1;
@@ -905,7 +907,7 @@ Game.Launch=function()
 	//automatic season detection (might not be 100% accurate)
 	var year=new Date().getFullYear();
 	var leap=(((year%4==0)&&(year%100!=0))||(year%400==0))?1:0;
-	var day=Math.floor((new Date().getTime()-new Date(year,0,0).getTime())/(1000*60*60*24));
+	var day=Math.floor((Date.now()-new Date(year,0,0).getTime())/(1000*60*60*24));
 	if (day>=41 && day<=46) Game.baseSeason='valentines';
 	else if (day+leap>=90 && day<=92+leap) Game.baseSeason='fools';
 	else if (day>=304-7+leap && day<=304+leap) Game.baseSeason='halloween';
@@ -1079,6 +1081,7 @@ Game.Launch=function()
 		Game.dragonLevel=0;
 		Game.dragonAura=0;
 		Game.dragonAura2=0;
+		Game.cowLevel=0;//CC3 feature: the cookie cow's growth stage (systems/cow.ts); 0 = un-grown, 11 = fully grown
 		
 		Game.fortuneGC=0;
 		Game.fortuneCPS=0;
@@ -1142,9 +1145,9 @@ Game.Launch=function()
 		}
 		Game.resize();
 		
-		Game.startDate=parseInt(Date.now());//when we started playing
-		Game.fullDate=parseInt(Date.now());//when we started playing (carries over with resets)
-		Game.lastDate=parseInt(Date.now());//when we last saved the game (used to compute "cookies made since we closed the game" etc)
+		Game.startDate=parseInt(Date.now(), 10);//when we started playing
+		Game.fullDate=parseInt(Date.now(), 10);//when we started playing (carries over with resets)
+		Game.lastDate=parseInt(Date.now(), 10);//when we last saved the game (used to compute "cookies made since we closed the game" etc)
 		
  		Game.prefs={} as Prefs;//2.048 used []; DefaultPrefs() (next line) fills every slot
 		Game.DefaultPrefs=function()
@@ -1291,7 +1294,7 @@ Game.Launch=function()
 				r=JSON.parse(response);
 				if (typeof r['herald']!=='undefined')
 				{
-					Game.heralds=parseInt(r['herald'] as string);
+					Game.heralds=parseInt(r['herald'] as string, 10);
 					Game.heralds=Math.max(0,Math.min(100,Game.heralds));
 				}
 				if (typeof r['grandma']!=='undefined' && r['grandma']!='')
@@ -2669,8 +2672,9 @@ window.loadMinigameModule!(me.minigameUrl).then(function(){
 		Game.AchievementsById={};
 		Game.AchievementsN=0;
 		Game.AchievementsOwned=0;
-		// CC3 rewrite (slice 4): the achievement ctors/factories and the 630
-		// achievement declarations now live in the typed content layer
+		// CC3 rewrite (slice 4): the achievement ctors/factories and the 641
+		// achievement declarations (630 from 2.048 + 11 CC3 cookie-cow stage
+		// achievements) now live in the typed content layer
 		// (content/achievements.ts). They run at this exact point in Init, so
 		// declaration order (and every id, save slot and Game.last hand-off)
 		// is unchanged; the order bookkeeping inherits the slice-3
@@ -2808,7 +2812,7 @@ window.loadMinigameModule!(me.minigameUrl).then(function(){
 		Game.wrinklers=[];
 		for (var i=0;i<12;i++)
 		{
-			Game.wrinklers.push({id:parseInt(i),close:0,sucked:0,phase:0,x:0,y:0,r:0,hurt:0,hp:Game.wrinklerHP,selected:0,type:0});
+			Game.wrinklers.push({id:parseInt(i, 10),close:0,sucked:0,phase:0,x:0,y:0,r:0,hurt:0,hp:Game.wrinklerHP,selected:0,type:0});
 		}
 		Game.getWrinklersMax=getWrinklersMax;//CC3 rewrite (phase 4, slice 5): moved verbatim to systems/wrinkler.ts; same Game slot, same Init position.
 		Game.ResetWrinklers=ResetWrinklers;//CC3 rewrite (phase 4, slice 5).
@@ -2837,6 +2841,7 @@ window.loadMinigameModule!(me.minigameUrl).then(function(){
 			Game.specialTabs=[];
 			if (Game.Has('A festive hat')) Game.specialTabs.push('santa');
 			if (Game.Has('A crumbly egg')) Game.specialTabs.push('dragon');
+			if (Game.Has('A certain cow')) Game.specialTabs.push('cow');
 			if (Game.specialTabs.length==0) {Game.ToggleSpecialMenu(0);return;}
 		
 			if (Game.LeftBackground)
@@ -2954,7 +2959,7 @@ window.loadMinigameModule!(me.minigameUrl).then(function(){
 		};
 		
 		Game.dragonAurasBN={};for (var iKey in Game.dragonAuras){Game.dragonAurasBN[Game.dragonAuras[iKey].name]=Game.dragonAuras[iKey];}
-		for (var iKey in Game.dragonAuras){Game.dragonAuras[iKey].id=parseInt(iKey);Game.dragonAuras[iKey].dname=loc(Game.dragonAuras[iKey].name);}
+		for (var iKey in Game.dragonAuras){Game.dragonAuras[iKey].id=parseInt(iKey, 10);Game.dragonAuras[iKey].dname=loc(Game.dragonAuras[iKey].name);}
 		
 		for (var i=0;i<Game.dragonLevels.length;i++)
 		{
@@ -2992,6 +2997,10 @@ window.loadMinigameModule!(me.minigameUrl).then(function(){
 		}
 		
 		Game.UpgradeDragon=UpgradeDragon;//CC3 rewrite (phase 6, slice 3): moved verbatim to systems/dragon.ts; same Game slot, same Init position.
+		
+		Game.cowLevels=cowLevels;//CC3 feature: the 11 growth stages + terminal state of the cookie cow (systems/cow.ts).
+		Game.CowMilkBonus=CowMilkBonus;//CC3 feature: the cow's share of the milk bonus (0 … 0.13), multiplied into milkMult in CalculateGains.
+		Game.UpgradeCow=UpgradeCow;//CC3 feature: grow the cookie cow one stage (systems/cow.ts).
 		
 		Game.lastClickedSpecialPic=0;
 		Game.ClickSpecialPic=ClickSpecialPic;//CC3 rewrite (phase 6, slice 3): moved verbatim to systems/santa.ts; same Game slot, same Init position.
@@ -3269,7 +3278,7 @@ window.loadMinigameModule!(me.minigameUrl).then(function(){
 				width=width/95;
 				if (width>1)
 				{
-					el.style.fontSize=(parseInt(window.getComputedStyle(el).fontSize)*1/width)+'px';
+					el.style.fontSize=(parseInt(window.getComputedStyle(el).fontSize, 10)*1/width)+'px';
 					el.style.transform='scale(1,'+(width)+')';
 				}
 			}

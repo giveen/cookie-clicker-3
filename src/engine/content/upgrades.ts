@@ -1,7 +1,14 @@
 /**
- * content/upgrades.ts — the 842 upgrade declarations (285 direct,
- * 271 tiered, 35 synergy, 17 grandma, 234 cookie), including the
- * CC3-added cat synergy and cat-colony blocks at the end.
+ * content/upgrades.ts: the vanilla upgrade declarations (the 2.048
+ * //define upgrades block, ported verbatim) plus the non-cat CC3
+ * additions (sitting-room and dungeon minigame rewards, Astral
+ * Reliquary, challenge rewards, Deep Delve, the mortal staircase).
+ * The CC3 cat content (cats-synergy factory, 24-upgrade Cat
+ * collection, 8 cat synergies, 6 Cat Colony rewards, 10 "Nine
+ * Lives" heavenly upgrades) now lives in content/cats.ts;
+ * declareVanillaUpgrades calls into it at the same Init positions,
+ * so the registration order (and therefore the save-stable upgrade
+ * ids) is unchanged.
  *
  * Ported verbatim from the 2.048 engine (engine/main.ts, the
  * //define upgrades block inside Game.Init): the same constructor calls
@@ -27,8 +34,16 @@
  *    Game.NewUnshackleUpgradeTier factories moved here because vanilla
  *    declarations call them at declaration time (they are assigned on
  *    Game, so the modding surface is unchanged).
+ *  - The CC3 cat blocks (cats-synergy factory, cat collection, cat
+ *    synergies, Cat Colony rewards, Nine Lives heavenly branch) were
+ *    carved into content/cats.ts unchanged; declareVanillaUpgrades
+ *    calls its three exports at the exact Init positions the code used
+ *    to occupy inline (registration order, and therefore save-stable
+ *    upgrade ids, unchanged; pinned by tests/upgrades-fingerprint.spec.js).
  */
 import type { Game as EngineGame } from '../types';
+
+import { declareCatHeavenlyUpgrades, declareCatStoreUpgrades, defineCatSynergies } from './cats';
 
 /** Declare the upgrades (and their per-upgrade extras) on Game. */
 export function declareVanillaUpgrades(Game: EngineGame) {
@@ -178,26 +193,13 @@ export function declareVanillaUpgrades(Game: EngineGame) {
 		Game.GrandmaSynergy('Altered grandmas','a NiCe GrAnDmA tO bA##########','Portal');
 		Game.GrandmaSynergy('Grandmas\' grandmas','A nice grandma\'s nice grandma to bake double the cookies.','Time machine');
 		
-		// CC3: the cats-synergy pool — a mirror of Game.GrandmaSynergy centered
-		// on Cats. Owning a cat synergy makes Cats twice as efficient and gives
-		// the tied building +1% CpS per (id-1) cats (see GetTieredCpsMult).
-		Game.CatSynergies=[];
-		Game.CatSynergy=function(name: any,desc: any,building: any)
-		{
-			var building: any=Game.Objects[building];
-			// Math.max(1,...): 'Kitten grandmas' ties this to Grandma, whose
-			// building id is 1, so the naive (id-1) divisor used by every other
-			// cat/grandma synergy would be 0 here — this is the one tied
-			// building where that self-reference actually happens.
-			var catNumber=loc("%1 cat",LBeautify(Math.max(1,building.id-1)));
-			desc=loc("%1 are <b>twice</b> as efficient.",cap(Game.Objects['Cats'].plural))+' '+loc("%1 gain <b>+%2%</b> CpS per %3.",[cap(building.plural),1,catNumber])+'<q>'+desc+'</q>';
-			
-			var upgrade=new Game.Upgrade(name,desc,building.basePrice*Game.Tiers[2].price,[10,9],function(){Game.Objects['Cats'].redraw();});
-			building.cat=upgrade;
-			upgrade.buildingTie=building;
-			Game.CatSynergies.push(upgrade.name);
-			return upgrade;
-		}
+		// CC3: the cats-synergy pool factory (Game.CatSynergies +
+		// Game.CatSynergy) now lives in content/cats.ts; called here at the
+		// exact Init position (right after the grandma synergies) so the 8
+		// Game.CatSynergy(...) registrations below find it defined and the
+		// registration order, and therefore the save-stable upgrade ids, is
+		// unchanged.
+		defineCatSynergies(Game);
 		
 		order=14000;
 		
@@ -953,7 +955,7 @@ export function declareVanillaUpgrades(Game: EngineGame) {
 			var choices: any=[];
 			for (var ix in Game.BGsByChoice)
 			{
-				choices[ix]={name:Game.BGsByChoice[ix].name,icon:Game.BGsByChoice[ix].icon,order:Game.BGsByChoice[ix].order||parseInt(ix)};
+				choices[ix]={name:Game.BGsByChoice[ix].name,icon:Game.BGsByChoice[ix].icon,order:Game.BGsByChoice[ix].order||parseInt(ix, 10)};
 			}
 			
 			choices[13].div=true;
@@ -1394,7 +1396,7 @@ export function declareVanillaUpgrades(Game: EngineGame) {
 		// draw this dead entry exactly as master does. TS2695 (unused comma
 		// left side) is a property of the source itself and cannot be fixed
 		// with types alone.
-		// @ts-ignore — see the CC3 note above
+		// @ts-expect-error — see the CC3 note above
 				var str='(Your ticket reads '+Math.floor(Math.random()*100)+' '+Math.floor(Math.random()*100)+' '+Math.floor(Math.random()*100)+' '+Math.floor(Math.random()*100)+', entitling you to '+choose([Math.floor(Math.random()*5+2)+' lines of javascript','one free use of Math.random()','one qubit, whatever that is','one half-eaten cookie','a brand new vacuum cleaner','most of one room-temperature cup of orange soda','one really good sandwich','one handful of pocket lint','someone\'s mostly clean hairpiece','a trip to a fancy restaurant','the knowledge of those numbers','a furtive glance at the news ticker','another ticket, half-price','all-you-can-eat moldy bread','one lifetime supply of oxygen','the color '+choose['red','orange','yellow','green','blue','purple','black','white','gray','brown','pink','teal'],'increased intellect for a limited time','an ancient runesword','the throne of a far-away country','the position of Mafia capo. Good luck','one free time-travel week-end','something beautiful','the deed to some oil well','one hamburger made out of the animal, plant, or person of your choice','the last surviving '+choose['dodo bird','thylacine','unicorn','dinosaur','neanderthal'],'a deep feeling of accomplishment','a fleeting tinge of entertainment','a vague sense of unease','deep existential dread','one extra week added to your lifespan','breathe manually','blink right here and now','one meeting with any famous person, living or dead, in your next dream','one very nice dream','a wacky sound effect','45 seconds of moral flexibility','hundreds and thousands, also known as "sprinkles"','one circle, triangle, square or other simple geometric shape, of average dimensions','just this extra bit of randomness','the extra push you needed to turn your life around','a good fright','one secret superpower','a better luck next time','an irrational phobia of tombola tickets','one whole spider','an increased sense of self-worth and determination','inner peace','one double-XP week-end in the MMORPG of your choice','a little piece of the universe, represented by the trillions of atoms that make up this very ticket','food poisoning','the Moon! Well, conceptually','a new car, baby','a new catchphrase','an intrusive thought of your choice','- ...aw man, it just cuts off there','the director spot for the next big hit movie','really good-looking calves','one genuine pirate golden doubloon','"treasure and riches", or something','one boat, sunken','baby shoes, never worn','direct lineage to some King or Queen','innate knowledge of a dead language you\'ll never encounter','the melody of a song you don\'t know the words to','white noise','mild physical impairment','a new pair of lips','things, and such','one popular expression bearing your name','one typo','one get-out-of-jail-free card','the rest of your life... for now','one polite huff','a condescending stare','one cursed monkey paw','true love, probably','an interesting factoid about the animal, country, TV show or celebrity of your choice','a pop culture reference','minutes of fun','the etymology of the word "tombola" - it\'s Italian for "a tumble"','nothing. You lost, sorry'])+'.)';
 				Math.seedrandom();
 				return this.desc+'<q>Like quantum computing, but more fun.<br>'+str+'</q>';
@@ -1976,122 +1978,12 @@ export function declareVanillaUpgrades(Game: EngineGame) {
 			}
 		}
 
-		// CC3 Cat upgrade collection: 24 custom Cat-specific upgrades.
-		// These do NOT use Game.TieredUpgrade (which doubles building CpS
-		// per tier and would make Cats overpowered at their cheap price).
-		// Instead each upgrade adds a small additive bonus to Cat CpS,
-		// keeping Cats balanced between Grandma and Farm throughout.
-		var catUpgradeIcon=function(index: number): any
-		{
-			return [index%6,Math.floor(index/6),'img/cat-upgrades/protein_spritesheet.png',48];
-		};
-
-		// 14 base upgrades: flat additive Cat CpS bonuses.
-		// Total effect of all 14: +3 CpS per Cat (4 base -> 7), keeping
-		// the early Cat curve below Farm while still rewarding the full line.
-		// Unlock thresholds mirror the standard tier amounts: 1/5/25/50/100/150/200/250/300/350/400/450/500/550.
-		var catBaseUpgrades=[
-			{name:'Cardboard box basics',price:1000,effect:0.2},
-			{name:'Sunbeam training',price:2500,effect:0.2},
-			{name:'Whisker refinement',price:5000,effect:0.2},
-			{name:'Midnight zoomies',price:10000,effect:0.2},
-			{name:'Tuna-grade nutrition',price:25000,effect:0.2},
-			{name:'Claw-powered kneading',price:50000,effect:0.2},
-			{name:'Purrfect production',price:100000,effect:0.2},
-			{name:'Nine-lives efficiency',price:250000,effect:0.2},
-			{name:'Feline assembly',price:500000,effect:0.2},
-			{name:'Astral catnaps',price:1000000,effect:0.2},
-			{name:'Infinite yarn loop',price:2500000,effect:0.3},
-			{name:'Quantum litter boxes',price:5000000,effect:0.3},
-			{name:'Cosmic whisker arrays',price:10000000,effect:0.3},
-			{name:'Protein singularity',price:25000000,effect:0.1}
-		];
-		order=350;
-		for (var catBaseIndex=0;catBaseIndex<catBaseUpgrades.length;catBaseIndex++)
-		{
-			var catBase=catBaseUpgrades[catBaseIndex];
-			var catBaseUpgrade=new Game.Upgrade(catBase.name,'Cats gain <b>+'+catBase.effect+' CpS each</b>.'+'<q>Every cat business starts somewhere.</q>',catBase.price,catUpgradeIcon(catBaseIndex));
-			catBaseUpgrade.catAdd=catBase.effect;
-			// Register as a Cat building tier so it appears greyed out in the store.
-			catBaseUpgrade.buildingTie=Game.Objects['Cats'];
-			var catTier='cat'+(catBaseIndex+1);
-			catBaseUpgrade.tier=catTier;
-			Game.Objects['Cats'].tieredUpgrades[catTier]=catBaseUpgrade;
-		}
-
-		// 10 specialty upgrades: mild multiplicative and synergy effects.
-		// Unlocked by Cat count; effects are intentionally small.
-		var catSpecialUpgrades=[
-			{name:'Grandma-approved recipes',desc:'Cats gain <b>+0.5% CpS per Grandma</b>, up to +25%.',price:25000,unlock:10},
-			{name:'Purrfect timing',desc:'Clicking gains <b>+1% of your CpS</b>.',price:100000,unlock:25},
-			{name:'Cat café loyalty',desc:'Cookie production multiplier <b>+1%</b>.',price:100000,unlock:50},
-			{name:'Protein-rich kibble',desc:'Cats gain <b>+2% CpS</b>.',price:50000,unlock:75},
-			{name:'Feather wand drills',desc:'Cats gain <b>+2% CpS</b>.',price:100000,unlock:100},
-			{name:'Sunbeam perches',desc:'Cats gain <b>+2% CpS</b>.',price:250000,unlock:150},
-			{name:'Catnip cultivation',desc:'Cats gain <b>+2% CpS</b>.',price:500000,unlock:200},
-			{name:'Scratching-post ovens',desc:'Cats gain <b>+2% CpS</b>.',price:1000000,unlock:250},
-			{name:'Climbing shelves',desc:'Cats gain <b>+2% CpS</b>.',price:2000000,unlock:350},
-			{name:'Nine lives logistics',desc:'Cats gain <b>+2% CpS</b>.',price:5000000,unlock:450}
-		];
-		for (var catSpecialIndex=0;catSpecialIndex<catSpecialUpgrades.length;catSpecialIndex++)
-		{
-			var catSpecial=catSpecialUpgrades[catSpecialIndex];
-			var catSpecialUpgrade=new Game.Upgrade(catSpecial.name,catSpecial.desc+'<q>More cats, more cookies, fewer explanations.</q>',catSpecial.price,catUpgradeIcon(14+catSpecialIndex));
-			catSpecialUpgrade.catUnlock=catSpecial.unlock;
-			// Register as a Cat building tier so it appears greyed out in the store.
-			catSpecialUpgrade.buildingTie=Game.Objects['Cats'];
-			var catSpecTier='catS'+(catSpecialIndex+1);
-			catSpecialUpgrade.tier=catSpecTier;
-			Game.Objects['Cats'].tieredUpgrades[catSpecTier]=catSpecialUpgrade;
-		}
-
-		// CC3: register the 8 cat-synergy upgrades. They are declared at the
-		// very end of the upgrade list on purpose: upgrade ids are the
-		// registration index and saves store purchased upgrades by id, so
-		// inserting them mid-list would shift every later id and break
-		// existing saves. (The Game.CatSynergy factory above only defines
-		// them; the store display order (order=300, right after the
-		// grandma synergies) is independent of registration order.)
-		order=300;
-		Game.CatSynergy('Kitten grandmas','A nice cat to help the grandmas. It\'s all in the family.','Grandma');
-		Game.CatSynergy('Farm cats','A nice cat to keep the mice away from the cookie plants. Mice are a real pest.','Farm');
-		Game.CatSynergy('Miner cats','Mine safety officer. The mice appreciate it, even if they can\'t say so.','Mine');
-		Game.CatSynergy('Worker cats','Assembly-line cat. Nine lives, one job, zero complaints.','Factory');
-		Game.CatSynergy('Space cats','Zero gravity is the perfect nap environment. They\'ve never been cozier.','Shipment');
-		Game.CatSynergy('Golden cats','Transmuted from silver. They hiss a little more now, but they pay rent in gold.','Alchemy lab');
-		Game.CatSynergy('Altered cats','It went through the portal. It came back a little different. Mostly naps.','Portal');
-		Game.CatSynergy('Time cats','Always napping exactly one second into the past, so the cookies are warm when they wake.','Time machine');
-
-		// CC3 Cat Colony minigame rewards: REPEATABLE upgrades bought with
-		// Treats from inside the minigame panel (stacks in
-		// minigameCatColony.ts M.upgradeStacks; the main-save bought flag is
-		// only set on the first stack, via Game.Upgrades[name].earn(), for
-		// save continuity), never through the cookie store — the cookie price
-		// here is unused (these are never unlocked via
-		// Game.Unlock/UnlockTiered, so the store never offers them) and kept
-		// at 0 for clarity. Icons crop frame 0 of the existing cat sprite
-		// strips (img/cats/*.png) via the standard [col,row,path,size] icon
-		// form — no new art. treatsPrice is a minigame-only field the shop
-		// panel reads; the flat price never changes, every stack costs the
-		// same and adds the full per-stack effect, so the six rows are the
-		// colony's endless treat sink.
-		var catColonyUpgrades=[
-			{name:'Cardboard fort training',desc:'Cats gain <b>+0.15 CpS each</b> (per stack).',treats:15,catAdd:0.15,icon:'idle'},
-			{name:'Sunbeam napping technique',desc:'Cats gain <b>+0.15 CpS each</b> (per stack).',treats:35,catAdd:0.15,icon:'walk'},
-			{name:'Treat-sniffing whiskers',desc:'Cats gain <b>+2% CpS</b> (per stack).',treats:70,icon:'run'},
-			{name:'Nine-lives insurance',desc:'Per stack: Cats gain <b>+0.2 CpS each</b>,<br>and colony expeditions are 30% less likely to send a cat home hurt.',treats:150,catAdd:0.2,icon:'jump'},
-			{name:'Golden collar bells',desc:'Cats gain <b>+2% CpS</b> (per stack).',treats:300,icon:'running-jump'},
-			{name:'Legendary colony charter',desc:'Cats gain <b>+0.5 CpS each</b> (per stack).',treats:600,catAdd:0.5,icon:'attack-1'}
-		];
-		order=356;
-		for (var catColonyIndex=0;catColonyIndex<catColonyUpgrades.length;catColonyIndex++)
-		{
-			var catColony=catColonyUpgrades[catColonyIndex];
-			var catColonyUpgrade=new Game.Upgrade(catColony.name,catColony.desc+'<q>Bought with treats earned by the colony, not with cookies.</q>',0,[0,0,'img/cats/'+catColony.icon+'.png',64]);
-			if (catColony.catAdd) catColonyUpgrade.catAdd=catColony.catAdd;
-			catColonyUpgrade.treatsPrice=catColony.treats;
-			catColonyUpgrade.buildingTie=Game.Objects['Cats'];
-		}
+		// CC3: the 24-upgrade Cat collection (14 base + 10 specialty), the 8
+		// cat-synergy registrations, and the 6 Cat Colony minigame rewards now
+		// live in content/cats.ts; called here at the exact Init position (after
+		// the new-cookie styles block) so the registration order, and therefore
+		// the save-stable upgrade ids, is unchanged.
+		declareCatStoreUpgrades(Game);
 
 		// CC3 Grandma's Sitting Room minigame rewards: REPEATABLE upgrades bought
 		// with Yarn from inside the minigame panel (stacks in
@@ -2176,30 +2068,11 @@ export function declareVanillaUpgrades(Game: EngineGame) {
 
 		new Game.Upgrade('Convergence of the reliquary',loc("Cookie production multiplier <b>+%1% permanently</b>.",10)+'<q>Four paths, one hunger.</q>',9000000000,[26,12]);Game.last.pool='prestige';Game.last.parents=['Everlasting embers','Frozen sepulcher','Prismatic aftertaste','Bloodless ichor'];Game.last.power=10;Game.last.pseudoCookie=true;
 
-		// Nine Lives: a themed heavenly sub-branch off 'Five-finger discount',
-		// focused entirely on the Cats building (content/buildings/cats.ts),
-		// the cat-synergy bonus (systems/economy.ts's GetTieredCpsMult), and the
-		// Cat Colony minigame (minigameCatColony.ts). Declared here at the very
-		// end of upgrades.ts, same reasoning as the Astral Reliquary branch
-		// above: inserting earlier would shift every subsequent vanilla
-		// upgrade's id and corrupt existing save files. Positions are derived
-		// automatically from the parents DAG, so no manual coordinates are set.
-		// Icons reuse frame [0,0] of existing Cats sprite sheets (img/cats/*.png at
-		// 64px cells) rather than any icons.webp cell, the same technique the
-		// Cat Colony minigame's own reward upgrades already use — no new art.
-		new Game.Upgrade('Communion of whiskers',"Cats gain <b>+10% CpS</b>."+'<q>Somewhere, a cat is purring in exactly your rhythm.</q>',700000,[0,0,'img/cats/idle.png',64]);Game.last.pool='prestige';Game.last.parents=['Five-finger discount'];
-		new Game.Upgrade('Nine lives, one purpose',"Cats gain <b>+10% CpS</b>."+'<q>All nine, pointed the same way: toward the food bowl.</q>',2000000,[0,0,'img/cats/walk.png',64]);Game.last.pool='prestige';Game.last.parents=['Communion of whiskers'];
-		new Game.Upgrade('Feline apex',"Cats gain <b>+15% CpS</b>."+'<q>The apex predator of your living room, and possibly your economy.</q>',6000000,[0,0,'img/cats/run.png',64]);Game.last.pool='prestige';Game.last.parents=['Nine lives, one purpose'];
-
-		new Game.Upgrade('Territorial pact',"Cat synergies grant their tied building an additional <b>+1% CpS per cat</b>, on top of the usual bonus."+'<q>Cats don\'t share territory. They annex it, generously, on your behalf.</q>',1800000,[0,0,'img/cats/jump.png',64]);Game.last.pool='prestige';Game.last.parents=['Communion of whiskers'];
-		new Game.Upgrade('Alpha instincts',"Cats gain <b>+5% CpS</b> for every cat synergy upgrade owned."+'<q>Every colony needs a cat who\'s just a little more in charge.</q>',5000000,[0,0,'img/cats/running-jump.png',64]);Game.last.pool='prestige';Game.last.parents=['Territorial pact'];
-
-		new Game.Upgrade('Nap discipline',"Cat Colony expeditions are <b>20% less likely</b> to send a cat home hurt."+'<q>A well-rested cat is a cat that comes home in one piece.</q>',1500000,[0,0,'img/cats/sleep.png',64]);Game.last.pool='prestige';Game.last.parents=['Communion of whiskers'];
-		new Game.Upgrade('Generous strangers',"Cat Colony expeditions yield <b>20% more treats</b>."+'<q>Turns out most of the neighborhood was willing to be robbed, gently.</q>',4000000,[0,0,'img/cats/attack-1.png',64]);Game.last.pool='prestige';Game.last.parents=['Nap discipline'];
-		new Game.Upgrade('Bottomless treat jar',"The Cat Colony slowly generates <b>1 treat per minute</b>, even with no expeditions underway."+'<q>Some jars refill themselves. Nobody asks questions.</q>',6000000,[0,0,'img/cats/hurt.png',64]);Game.last.pool='prestige';Game.last.parents=['Generous strangers'];
-		new Game.Upgrade('Efficient patrols',"Cat Colony expeditions take <b>15% less time</b>."+'<q>They\'ve stopped stopping to sniff every third leaf.</q>',9000000,[0,0,'img/cats/idle.png',64]);Game.last.pool='prestige';Game.last.parents=['Bottomless treat jar'];
-
-		new Game.Upgrade('The Nine Lives Convergence',"Cats gain <b>+20% CpS</b>."+'<q>Nine lives, one destiny: your cookie jar.</q>',25000000,[0,0,'img/cats/attack-1.png',64]);Game.last.pool='prestige';Game.last.parents=['Feline apex','Alpha instincts','Efficient patrols'];
+		// CC3: the "Nine Lives" heavenly cat branch (10 upgrades) now lives
+		// in content/cats.ts; called here at the exact Init position (end of
+		// the upgrade list, before the mortal staircase) so the registration
+		// order, and therefore the save-stable upgrade ids, is unchanged.
+		declareCatHeavenlyUpgrades(Game);
 
 		// CC3: low-tier heavenly upgrades ("the mortal staircase"), declared
 		// after the CC3 branches above (still the very end of the upgrade list) so
@@ -2257,6 +2130,15 @@ export function declareVanillaUpgrades(Game: EngineGame) {
 		new Game.Upgrade('Subterranean forge',"Factories gain <b>+10% CpS</b>."+'<q>The deeper the forge, the hotter the cookies.</q>',15000000,[0,0,'img/factoryIcon.webp',64]);Game.last.pool='prestige';Game.last.parents=['The deep delve'];
 		new Game.Upgrade('Eternal labyrinth',"Factories gain <b>+15% CpS</b>."+'<q>You have mapped every wall. The walls have mapped you back.</q>',45000000,[0,0,'img/factoryIcon.webp',64]);Game.last.pool='prestige';Game.last.parents=['Subterranean forge'];
 		new Game.Upgrade('Master of the maze',"Factories gain <b>+20% CpS</b>."+'<q>There is no exit. There is only production.</q>',135000000,[0,0,'img/factoryIcon.webp',64]);Game.last.pool='prestige';Game.last.parents=['Eternal labyrinth'];
+
+		// CC3: The cookie cow (systems/cow.ts) — the unlock pair mirrors the
+		// dragon's ("How to bake your dragon" / "A crumbly egg"): a
+		// prestige-pool tome (9 HC, auto-parented to Legacy like its twin)
+		// next to a 25-cookie unlocker in the default pool. Appended (not
+		// interleaved) so existing upgrade ids stay stable for imported saves.
+		new Game.Upgrade('How to milk a cookie cow',loc("Allows you to purchase a <b>certain cow</b> once you have earned 1 million cookies.")+'<q>A field guide to the local dairy fauna. "It looks gentle. It is gentle. On the third day it will drink an entire river, then stand in the sun and think about nothing at all."</q>',9,[0,0,'img/Cow.png',64]);Game.last.pool='prestige';
+		order=25100;
+		new Game.Upgrade('A certain cow',loc("Unlocks the <b>cookie cow</b>. It grows in size as you grow it, and the milk bonus it grants grows with it.")+'<q>Thank you for adopting this sturdily-built, endlessly-amused cookie cow! It will bring you decades of joy, entertainment, and a suspicious amount of lactose.<br>Keep in a dry, cool place. Do not let it taste the sugar lumps — it will not stop mooing about it.</q>',25,[0,0,'img/Cow.png',64]);
 
 		//end of upgrades
 

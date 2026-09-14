@@ -4,7 +4,7 @@
 // every load starts from a fresh profile and must pass the language prompt
 // first (boot() handles it). Two probes (offline, a11y) reload the page
 // themselves; Playwright's retrying locators ride through the reload.
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 const BOOT = { timeout: 30_000 };
 
@@ -552,9 +552,9 @@ test('?qa=sound: sound engine, web music, and settings labels work', async ({ pa
 	const report = await qaReport(page, /PASS: sound engine, music, and settings labels all work/);
 	expect(report).not.toMatch(/ERROR/);
 	expect(report).toMatch(/wrapper produces real Audio elements: true/);
-	expect(report).toMatch(/\'snd\/tick\.mp3\' loaded \(readyState=\d+\): true/);
-	expect(report).toMatch(/\'snd\/error1\.mp3\' loaded \(readyState=\d+\): true/);
-	expect(report).toMatch(/\'snd\/confirm1\.mp3\' loaded via achievement win \(readyState=\d+\): true/);
+	expect(report).toMatch(/'snd\/tick\.mp3' loaded \(readyState=\d+\): true/);
+	expect(report).toMatch(/'snd\/error1\.mp3' loaded \(readyState=\d+\): true/);
+	expect(report).toMatch(/'snd\/confirm1\.mp3' loaded via achievement win \(readyState=\d+\): true/);
 	expect(report).toMatch(/music tracks=\d+ jukebox=\d+/);
 	expect(report).toMatch(/no track fetched before first play \(lazy\): true/);
 	expect(report).toMatch(/first music track loaded after playTrack \(readyState=\d+\): true/);
@@ -1150,7 +1150,7 @@ test('heavenly presets: auto/branch/generations/grid arrange the tree, reset res
 		const autoPreset = snap();
 		// the auto preset re-derives a clean full-tree layout: every upgrade lands
 		// on a layer row (y is a multiple of LAYER_GAP) and it is stable across re-applies
-		out.autoCleanLayers = Object.values(autoPreset).every(([x, y]) => y % 150 === 0);
+		out.autoCleanLayers = Object.values(autoPreset).every(([, y]) => y % 150 === 0);
 		G.ApplyHeavenlyPreset('auto');
 		out.autoStable = JSON.stringify(snap()) === JSON.stringify(autoPreset);
 

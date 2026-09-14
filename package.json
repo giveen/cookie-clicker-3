@@ -7,7 +7,9 @@
   "scripts": {
     "dev": "vite",
     "typecheck": "tsc --noEmit",
-		"build": "tsc --noEmit && vite build && node scripts/check-bundle-size.mjs",
+    "lint": "biome check .",
+    "lint:write": "biome check --write .",
+    "build": "tsc --noEmit && vite build && node scripts/check-bundle-size.mjs",
     "preview": "vite preview",
     "test": "playwright test tests/qa.spec.js",
     "test:perf": "playwright test tests/perf.spec.js",
@@ -15,6 +17,7 @@
     "test:compat": "npm run setup:master && playwright test tests/save-compat.spec.js"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.5.13",
     "@playwright/test": "^1.62.1",
     "@types/node": "^26.2.0",
     "typescript": "^7.0.2",
