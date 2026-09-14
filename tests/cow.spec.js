@@ -301,6 +301,27 @@ test.describe('cookie cow', () => {
 		const pic0 = await page.locator('#specialPic').getAttribute('style');
 		expect(pic0).toContain('Cow.png');
 		expect(pic0).toContain('scale(0.5)'); // stage 0 = 48px
+		// the cow sits on the milk at the RIGHT of the drawer area
+		expect(pic0).toContain('right:-16px');
+		expect(pic0).not.toContain('left:-16px');
+
+		// ...while the dragon's drawer still hangs off the left
+		await page.evaluate(() => {
+			const G = window.Game;
+			G.Upgrades['A crumbly egg'].bought = 1;
+			G.UpdateSpecial();
+			G.specialTab = 'dragon';
+			G.ToggleSpecialMenu(1);
+		});
+		const dragonPic = await page.locator('#specialPic').getAttribute('style');
+		expect(dragonPic).toContain('left:-16px');
+		expect(dragonPic).not.toContain('right:-16px');
+
+		// back to the cow drawer for the remaining checks
+		await page.evaluate(() => {
+			window.Game.specialTab = 'cow';
+			window.Game.ToggleSpecialMenu(1);
+		});
 		const name = await page.locator('#specialPopup h3').first().textContent();
 		expect(name).toBe('A certain cow');
 		expect(await page.locator('#specialPopup').textContent()).toContain('+0%');
