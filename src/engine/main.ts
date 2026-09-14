@@ -19,6 +19,7 @@ import { buffType, buffTypes, buffTypesByName, declareVanillaBuffs, gainBuff, ha
 import { CalculateGains } from "./systems/calculateGains";
 import { AnalyzeEconomy, GetEconomyReport, SimulateEconomy, SimulateStrategy, ValidateContent } from "./systems/contentValidation";
 import { auraMult, hasAura, SelectDragonAura, UpgradeDragon } from "./systems/dragon";
+import { CowMilkBonus, cowLevels, UpgradeCow } from "./systems/cow";
 import { ClickCookie, ComputeCps, Dissolve, Earn, EarnHeavenlyChips, GetHeavenlyMultiplier, GetMouseCoords, GetTieredCpsMult, HowManyCookiesReset, HowMuchPrestige, mouseCps, playCookieClickSound, Spend } from "./systems/economy";
 import { applyHeavenlyPreset, computeHeavenlyLayout, HEAVENLY_PRESETS, syncHeavenlyLayoutIfStale } from "./systems/heavenlyLayout";
 import { Logic } from "./systems/logic";
@@ -1080,6 +1081,7 @@ Game.Launch=function()
 		Game.dragonLevel=0;
 		Game.dragonAura=0;
 		Game.dragonAura2=0;
+		Game.cowLevel=0;//CC3 feature: the cookie cow's growth stage (systems/cow.ts); 0 = un-grown, 11 = fully grown
 		
 		Game.fortuneGC=0;
 		Game.fortuneCPS=0;
@@ -2670,8 +2672,9 @@ window.loadMinigameModule!(me.minigameUrl).then(function(){
 		Game.AchievementsById={};
 		Game.AchievementsN=0;
 		Game.AchievementsOwned=0;
-		// CC3 rewrite (slice 4): the achievement ctors/factories and the 630
-		// achievement declarations now live in the typed content layer
+		// CC3 rewrite (slice 4): the achievement ctors/factories and the 641
+		// achievement declarations (630 from 2.048 + 11 CC3 cookie-cow stage
+		// achievements) now live in the typed content layer
 		// (content/achievements.ts). They run at this exact point in Init, so
 		// declaration order (and every id, save slot and Game.last hand-off)
 		// is unchanged; the order bookkeeping inherits the slice-3
@@ -2838,6 +2841,7 @@ window.loadMinigameModule!(me.minigameUrl).then(function(){
 			Game.specialTabs=[];
 			if (Game.Has('A festive hat')) Game.specialTabs.push('santa');
 			if (Game.Has('A crumbly egg')) Game.specialTabs.push('dragon');
+			if (Game.Has('A certain cow')) Game.specialTabs.push('cow');
 			if (Game.specialTabs.length==0) {Game.ToggleSpecialMenu(0);return;}
 		
 			if (Game.LeftBackground)
@@ -2993,6 +2997,10 @@ window.loadMinigameModule!(me.minigameUrl).then(function(){
 		}
 		
 		Game.UpgradeDragon=UpgradeDragon;//CC3 rewrite (phase 6, slice 3): moved verbatim to systems/dragon.ts; same Game slot, same Init position.
+		
+		Game.cowLevels=cowLevels;//CC3 feature: the 11 growth stages + terminal state of the cookie cow (systems/cow.ts).
+		Game.CowMilkBonus=CowMilkBonus;//CC3 feature: the cow's share of the milk bonus (0 … 0.13), multiplied into milkMult in CalculateGains.
+		Game.UpgradeCow=UpgradeCow;//CC3 feature: grow the cookie cow one stage (systems/cow.ts).
 		
 		Game.lastClickedSpecialPic=0;
 		Game.ClickSpecialPic=ClickSpecialPic;//CC3 rewrite (phase 6, slice 3): moved verbatim to systems/santa.ts; same Game slot, same Init position.

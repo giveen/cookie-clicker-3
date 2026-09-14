@@ -209,6 +209,8 @@ export function WriteSave(type?: number)
 			(type==3?'\n	highest raw CpS : ':'')+parseFloat(Game.cookiesPsRawHighest)+';'+
 			(type==3?'\n	music volume : ':'')+parseInt(Math.floor(Game.volumeMusic), 10)+';'+
 			
+			(type==3?'\n\tcow level : ':'')+parseInt(Math.floor(Game.cowLevel), 10)+';'+
+			
 			'|';//cookies and lots of other stuff
 			
 			if (type==3) str+='\n\nBuildings : amount, bought, cookies produced, level, minigame data';
@@ -507,6 +509,8 @@ export function LoadSave(data?: any,ignoreVersionIssues?: any)
 						Game.fortuneCPS=spl[50]?parseInt(spl[50], 10):0;
 						Game.cookiesPsRawHighest=spl[51]?parseFloat(spl[51]):0;
 						Game.volumeMusic=spl[52]?parseInt(spl[52], 10):50;
+						Game.cowLevel=spl[53]?parseInt(spl[53], 10):0;//CC3 feature (systems/cow.ts): appended field — saves without it import as 0
+						if (Game.cowLevel<0 || Game.cowLevel>11) Game.cowLevel=0;//clamp hand-edited saves to a valid stage
 						// CC3 P0: a save written while a bug pushed the ledger to float
 						// Infinity holds the literal "Infinity" in its monetary fields
 						// (parseFloat re-imports it as Infinity, so the damage was

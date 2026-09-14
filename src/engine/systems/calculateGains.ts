@@ -118,6 +118,7 @@ export function CalculateGains()
 			else if (godLvl==3) milkMult*=1.03;
 		}
 		milkMult*=Game.eff('milk');
+		milkMult*=1+Game.CowMilkBonus();//CC3 feature: the cookie cow's share of the milk bonus (systems/cow.ts; 0 … +13%)
 		
 		var catMult=1;
 		

@@ -91,6 +91,8 @@ export function Reset(hard: any)
 	Game.dragonAura=0;
 	Game.dragonAura2=0;
 	
+	Game.cowLevel=0;//CC3 feature (systems/cow.ts): the cookie cow is a prestige asset; hard reset only
+	
 	Game.fortuneGC=0;
 	Game.fortuneCPS=0;
 	
