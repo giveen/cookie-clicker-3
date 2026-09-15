@@ -5,6 +5,21 @@ picked up, traded, or dropped as we go. Checked items are shipped.
 
 ## Recently shipped (context)
 
+- **Cookie cow** — a second companion pet mirroring the cookie dragon,
+  unlocked by "How to milk a cookie cow" (9 heavenly chips, prestige pool)
+  + "A certain cow" (25 cookies). It grows eleven times (1 million → 10
+  quadrillion cookies, ×10 per stage) and its single effect grows with it:
+  a milk bonus of +1% per stage with a +3% terminal spike (up to +13%),
+  multiplied into `milkMult` *after* the aura/gods/minigame factors, so it
+  amplifies the milk scaling of the kitten upgrades. The drawer reuses the
+  dragon's special-menu infrastructure (a 64px sprite with an idle-breath
+  animation, growth scale 0.5 → 1.0). Like the dragon it resets to stage 0
+  on every ascension — the prestige-pool tome persists, the 25-cookie
+  unlocker is re-bought. 11 stage achievements; the growth stage saves as
+  an appended field (`cowLevel`, misc field 53), so 2.048 saves stay
+  importable. Verified by `tests/cow.spec.js` (six layers, including the
+  exact milk-bonus math and the ascension-reset semantics). See
+  `src/engine/systems/cow.ts`.
 - **Click-and-hold building purchases** — press and hold a store row (mouse
   or touch) and after a short delay it repeats its purchase through the same
   `Game.ClickProduct` path a click takes, so the current bulk amount and all
