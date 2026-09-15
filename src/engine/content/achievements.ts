@@ -1,10 +1,12 @@
 /**
- * content/achievements.ts — the 641 achievement declarations
- * (222 `new Game.Achievement`, 266 `Game.TieredAchievement`, 61
+ * content/achievements.ts — the 640 achievement declarations
+ * (221 `new Game.Achievement`, 266 `Game.TieredAchievement`, 61
  * `Game.ProductionAchievement`), plus the 46 `Game.BankAchievement` and
- * 46 `Game.CpsAchievement` calls, ported verbatim from the 2.048 engine
- * (plus the 11 appended CC3 cookie-cow stage achievements, see the block
- * at the end)
+ * 46 `Game.CpsAchievement` calls: 588 ported verbatim from the 2.048
+ * engine, plus 52 CC3 additions appended at the end (the extended
+ * Cats & Farm set, the Cat Colony / Grandma's Sitting Room minigames,
+ * the challenge-mode completions, and the 11 cookie-cow stage
+ * achievements — see the blocks at the end)
  * (engine/main.ts, the ACHIEVEMENTS block inside Game.Init): the same
  * constructor calls, in the same order, with the same `order`
  * bookkeeping — only the file moved.

@@ -2672,9 +2672,10 @@ window.loadMinigameModule!(me.minigameUrl).then(function(){
 		Game.AchievementsById={};
 		Game.AchievementsN=0;
 		Game.AchievementsOwned=0;
-		// CC3 rewrite (slice 4): the achievement ctors/factories and the 641
-		// achievement declarations (630 from 2.048 + 11 CC3 cookie-cow stage
-		// achievements) now live in the typed content layer
+		// CC3 rewrite (slice 4): the achievement ctors/factories and the 640
+		// achievement declarations (588 from 2.048 + 52 CC3 additions: the
+		// extended Cats & Farm set, both minigames, the challenge completions
+		// and the cookie-cow stage achievements) now live in the typed content layer
 		// (content/achievements.ts). They run at this exact point in Init, so
 		// declaration order (and every id, save slot and Game.last hand-off)
 		// is unchanged; the order bookkeeping inherits the slice-3
