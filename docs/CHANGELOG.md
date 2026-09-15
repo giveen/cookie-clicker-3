@@ -11,6 +11,10 @@ upstream Cookie Clicker 2.048 patch notes that the engine also displays
 (31/05/2022 back to 05/08/2013) are Orteil's, shown verbatim in the
 in-game log, and are not duplicated here.
 
+## 15/09/2026 - cookie cow: a note on ascension
+
+- a note on the cookie cow: like the cookie dragon, the cow resets to stage 0 on every ascend — the 9 heavenly-chip tome **How to milk a cookie cow** is kept, but the 25-cookie **A certain cow** purchase is not, so after each ascend the cow is back to adopting at stage 0 until you buy it again
+
 ## 13/09/2026 - the cookie cow
 
 - adopted a cookie cow: buy **How to milk a cookie cow** (9 heavenly chips) and then **A certain cow** to unlock the cow tab — it grows in size eleven times, from 1 million cookies up to a final 10 quadrillion

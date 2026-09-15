@@ -67,6 +67,9 @@ export function declareVanillaChangelog(Game: EngineGame) {
 	
 	Game.updateLog+=
 	
+	'</div><div class="subsection update small">' +
+	'<div class="title">15/09/2026 - cookie cow: a note on ascension</div>' +
+	'<div class="listing">&bull; a note on the cookie cow: like the cookie dragon, the cow resets to stage 0 on every ascend — the 9 heavenly-chip tome <b>How to milk a cookie cow</b> is kept, but the 25-cookie <b>A certain cow</b> purchase is not, so after each ascend the cow is back to adopting at stage 0 until you buy it again</div>' +
 	'</div><div class="subsection update">' +
 	'<div class="title">13/09/2026 - the cookie cow</div>' +
 	'<div class="listing">&bull; adopted a cookie cow: buy <b>How to milk a cookie cow</b> (9 heavenly chips) and then <b>A certain cow</b> to unlock the cow tab — it grows in size eleven times, from 1 million cookies up to a final 10 quadrillion</div>' +
