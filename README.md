@@ -115,13 +115,14 @@ a fresh production build and asserts its PASS report.
 
 ```
 npx playwright install chromium   # once, per machine
-npm test                          # builds dist/ itself, serves it, runs the 29 QA probes (tests/qa.spec.js)
+npm test                          # builds dist/ itself, serves it, runs the 30 QA probes (tests/qa.spec.js)
 ```
 
 Each test gets a fresh browser profile (the first load picks English, as a new
 player would). The `offline` and `a11y` probes reload the page themselves to
-exercise the persist-then-reboot path; the suite runs serially in one worker
-because the probes are stateful. CI runs the same suite on every push and PR
+exercise the persist-then-reboot path (the `minigamepersist` test reloads it
+between its seed and check phases the same way); the suite runs serially in
+one worker because the probes are stateful. CI runs the same suite on every push and PR
 and gates the GitHub Pages deploy on it (`.github/workflows/ci.yml`).
 
 **Deploy is `master`-gated.** The workflow's deploy job runs only on pushes to

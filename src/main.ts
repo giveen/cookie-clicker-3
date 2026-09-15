@@ -82,7 +82,7 @@ if (debugSurface) {
  *                  engine state (Game.cookiesPs) and the rendered counter
  *                  (#cookiesPerSecond) take to reflect each
  * Never active in a plain production load. */
-if (debugSurface && params.has('qa') && params.get('qa') !== 'golden' && params.get('qa') !== 'save' && params.get('qa') !== 'backup' && params.get('qa') !== 'sound' && params.get('qa') !== 'perf' && params.get('qa') !== 'ascend' && params.get('qa') !== 'ascendbrowse' && params.get('qa') !== 'arrange' && params.get('qa') !== 'offline' && params.get('qa') !== 'special' && params.get('qa') !== 'a11y' && params.get('qa') !== 'wrinkler' && params.get('qa') !== 'icon' && params.get('qa') !== 'onecol' && params.get('qa') !== 'anim' && params.get('qa') !== 'binverter' && params.get('qa') !== 'content' && params.get('qa') !== 'destiny' && params.get('qa') !== 'amseason' && params.get('qa') !== 'casino' && params.get('qa') !== 'dailycrumb' && params.get('qa') !== 'minipanel' && params.get('qa') !== 'cpslatency') {
+if (debugSurface && params.has('qa') && params.get('qa') !== 'golden' && params.get('qa') !== 'save' && params.get('qa') !== 'backup' && params.get('qa') !== 'sound' && params.get('qa') !== 'perf' && params.get('qa') !== 'ascend' && params.get('qa') !== 'ascendbrowse' && params.get('qa') !== 'arrange' && params.get('qa') !== 'offline' && params.get('qa') !== 'special' && params.get('qa') !== 'a11y' && params.get('qa') !== 'wrinkler' && params.get('qa') !== 'icon' && params.get('qa') !== 'onecol' && params.get('qa') !== 'anim' && params.get('qa') !== 'binverter' && params.get('qa') !== 'content' && params.get('qa') !== 'destiny' && params.get('qa') !== 'amseason' && params.get('qa') !== 'casino' && params.get('qa') !== 'dailycrumb' && params.get('qa') !== 'minipanel' && params.get('qa') !== 'cpslatency' && params.get('qa') !== 'minigamepersist') {
 	const qaMode = params.get('qa'); // null for bare ?qa, else the value
 	const MINIGAME_BUILDINGS = ['Farm', 'Bank', 'Temple', 'Wizard tower'];
 	const tick = window.setInterval(() => {
@@ -377,6 +377,7 @@ if (debugSurface && params.get('qa') === 'save') {
 			G.Objects['Grandma'].amount = GRANDMAS; G.Objects['Grandma'].unlocked = 1; G.Objects['Grandma'].bought = 1;
 			G.Objects['Cats'].amount = CATS; G.Objects['Cats'].unlocked = 1; G.Objects['Cats'].bought = CATS;
 			G.Upgrades['Cardboard box basics'].unlocked = 1; G.Upgrades['Cardboard box basics'].bought = 1;
+			G.cowLevel = 4;//the cow's appended save field (section 5, load index 53)
 			G.Achievements['Cat nap council'].won = 1;
 			G.Achievements['One thousand paws'].won = 1;
 			G.recalculateGains = 1; G.CalculateGains();
@@ -385,6 +386,7 @@ if (debugSurface && params.get('qa') === 'save') {
 			const saveStr = G.WriteSave(1)!;
 			// 3. corrupt the live state (so the import must do real work)
 			G.cookies = 7;
+			G.cowLevel = 0;
 			G.Objects['Cursor'].amount = 0;
 			G.Objects['Grandma'].amount = 0;
 			G.Objects['Cats'].amount = 0;
@@ -403,6 +405,7 @@ if (debugSurface && params.get('qa') === 'save') {
 			const catsOk = G.Objects['Cats'].amount === CATS;
 			const catUpgradeOk = G.Upgrades['Cardboard box basics'].bought === 1;
 			const catAchievementOk = G.Achievements['Cat nap council'].won === 1;
+			const cowOk = G.cowLevel === 4;
 			const newCatAchievementOk = G.Achievements['One thousand paws'].won === 1;
 			const cpsOk = Math.abs(G.cookiesPs - cpsA) < 0.01;
 			// 6. verify the export prompt's copy-to-clipboard button: open the
@@ -427,14 +430,14 @@ if (debugSurface && params.get('qa') === 'save') {
 				} catch (e: any) { return 'error:' + e.message; }
 			})();
 			if (realWriteText) Object.defineProperty(navigator, 'clipboard', { value: { writeText: realWriteText }, configurable: true });
-			const pass = ok && cookiesOk && cursorsOk && grandmasOk && catsOk && catUpgradeOk && catAchievementOk && newCatAchievementOk && cpsOk && copyBtnOk === true;
+			const pass = ok && cookiesOk && cursorsOk && grandmasOk && catsOk && catUpgradeOk && catAchievementOk && newCatAchievementOk && cowOk && cpsOk && copyBtnOk === true;
 			out.textContent =
 				'[QA-save] export length=' + saveStr.length +
 				'\n[QA-save] ImportSaveCode returned=' + ok +
 				'\n[QA-save] state A: cookies=' + COOKIES + ' cursors=' + CURSORS + ' grandmas=' + GRANDMAS + ' cats=' + CATS + ' cps=' + cpsA.toFixed(2) +
 				'\n[QA-save] corrupted: cookies=7 cursors=0 grandmas=0 cats=0 cps=' + cpsCorrupt.toFixed(2) +
 				'\n[QA-save] after import: cookies=' + G.cookies.toFixed(3) + ' cursors=' + G.Objects['Cursor'].amount + ' grandmas=' + G.Objects['Grandma'].amount + ' cats=' + G.Objects['Cats'].amount + ' cps=' + G.cookiesPs.toFixed(2) +
-				'\n[QA-save] checks: cookies=' + cookiesOk + ' cursors=' + cursorsOk + ' grandmas=' + grandmasOk + ' cats=' + catsOk + ' cat upgrade=' + catUpgradeOk + ' cat achievement=' + catAchievementOk + ' new cat achievement=' + newCatAchievementOk + ' cps=' + cpsOk +
+				'\n[QA-save] checks: cookies=' + cookiesOk + ' cursors=' + cursorsOk + ' grandmas=' + grandmasOk + ' cats=' + catsOk + ' cat upgrade=' + catUpgradeOk + ' cat achievement=' + catAchievementOk + ' new cat achievement=' + newCatAchievementOk + ' cowLevel=' + cowOk + ' cps=' + cpsOk +
 				'\n[QA-save] copy-to-clipboard button=' + copyBtnOk +
 				'\n[QA-save] ' + (pass ? 'PASS: export->import round-trip restored state' : 'FAIL: state mismatch');
 		} catch (e: any) {
@@ -2901,6 +2904,80 @@ if (debugSurface && params.get('qa') === 'catcolony') {
 			out.textContent = lines.join('\n') + '\n[QA-catcolony] ' + (pass ? 'PASS: Cat Colony minigame + repeatable treat upgrades verified end to end' : 'FAIL: see checks above');
 		} catch (e: any) {
 			out.textContent = '[QA-catcolony] ERROR: ' + e.constructor.name + ': ' + e.message;
+		}
+		window.clearInterval(tick);
+	}, 250);
+}
+
+// QA: CC3 minigame state persistence across a REAL save -> reload -> import
+// round trip. The symmetric save-compat diff cannot catch a bug that both
+// branches share (a bug already in master), and the catcolony/sittingroom
+// probes never leave the page — this is the persistence gate with ground
+// truth. phase=seed arms both building-row minigame slots (level >= 1),
+// seeds non-default state through each game's own load(), and writes the
+// localStorage save (away/rest left empty: expedition timestamps drift with
+// the live clock and would break the exact-value compare after the reload);
+// the test then loads phase=check, whose fresh boot must restore every field
+// through the full import path (localStorage -> ImportSave -> building row
+// -> minigame module load).
+// Usage: ?debug=1&qa=minigamepersist&phase=seed  /  &phase=check
+if (debugSurface && params.get('qa') === 'minigamepersist') {
+	const PHASE = params.get('phase') || 'check';
+	const COLONY = '7 3 100 - - 2:1:0:0:0:0';   // treats missions treatsEarnedTotal away rest stacks
+	const ROOM = '4 55 2:0:-1:-1:-1:-1 1:0:0:0:0:0'; // yarn yarnEarned seats stacks
+	const tick = window.setInterval(() => {
+		const G = window.Game;
+		if (!G || !G.ready || !G.Objects) return;
+		const cats = G.Objects['Cats'], grandma = G.Objects['Grandma'];
+		// the slots (and the modules behind them) only arm at level >= 1;
+		// before the reload this is the seed, after it the import must
+		// have restored the level
+		if (PHASE === 'seed') {
+			if (cats.level < 1) cats.level = 1;
+			if (grandma.level < 1) grandma.level = 1;
+		}
+		if (cats.level < 1 || grandma.level < 1) {
+			if (PHASE === 'check') {
+				const out = document.createElement('div');
+				out.id = '__dbgqa';
+				out.style.cssText = 'position:fixed;top:0;left:0;z-index:99999;background:#fff;color:#060;font:12px monospace;white-space:pre-wrap;max-width:640px;';
+				document.body.appendChild(out);
+				out.textContent = '[QA-minigamepersist] FAIL: building level not restored (cats=' + cats.level + ' grandma=' + grandma.level + ' — the level field is what arms the minigame slots)';
+				window.clearInterval(tick);
+			}
+			return;
+		}
+		G.LoadMinigames();
+		if (!cats.minigameLoaded || !grandma.minigameLoaded) return;
+		if (G.__qaMinigamePersist) return;
+		G.__qaMinigamePersist = 1;
+		const out = document.createElement('div');
+		out.id = '__dbgqa';
+		out.style.cssText = 'position:fixed;top:0;left:0;z-index:99999;background:#fff;color:#060;font:12px monospace;white-space:pre-wrap;max-width:640px;';
+		document.body.appendChild(out);
+		try {
+			if (PHASE === 'seed') {
+				cats.minigame.load(COLONY);
+				grandma.minigame.load(ROOM);
+				const colony = cats.minigame.save(), room = grandma.minigame.save();
+				if (!colony.startsWith('7 3 100') || !room.startsWith('4 55 2:0'))
+					throw new Error('minigame seed did not land: colony=' + colony + ' room=' + room);
+				G.WriteSave(0);
+				const saved = G.lastSaveData ? G.lastSaveData.length : -1;
+				out.textContent =
+					'[QA-minigamepersist] phase=seed colony=' + colony + '\n[QA-minigamepersist] phase=seed room=' + room +
+					'\n[QA-minigamepersist] save length=' + saved +
+					'\n[QA-minigamepersist] ' + (saved > 0 ? 'SAVED: minigames seeded and persisted (reload to check)' : 'FAIL: WriteSave produced nothing');
+			} else {
+				const colony = cats.minigame.save(), room = grandma.minigame.save();
+				const colonyOk = colony === COLONY, roomOk = room === ROOM;
+				out.textContent =
+					'[QA-minigamepersist] phase=check restored colony=' + colony + '\n[QA-minigamepersist] phase=check restored room=' + room +
+					'\n[QA-minigamepersist] checks: colony=' + colonyOk + ' room=' + roomOk +
+					'\n[QA-minigamepersist] ' + (colonyOk && roomOk ? 'PASS: minigame state survived the save -> reload round-trip' : 'FAIL: minigame state did not survive the reload');
+			}
+		} catch (e: any) {
+			out.textContent = '[QA-minigamepersist] ERROR: ' + e.constructor.name + ': ' + e.message;
 		}
 		window.clearInterval(tick);
 	}, 250);

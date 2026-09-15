@@ -530,7 +530,24 @@ test('?qa=save: save export -> import round-trip restores state', async ({ page 
 	expect(report).toMatch(/cats=7/);
 	expect(report).toMatch(/cat upgrade=true/);
 	expect(report).toMatch(/cat achievement=true/);
+	expect(report).toMatch(/cowLevel=true/);
 	expect(report).toMatch(/copy-to-clipboard button=true/);
+});
+
+test('?qa=minigamepersist: CC3 minigame state survives a real save -> reload round-trip', async ({ page }) => {
+	await boot(page, '&qa=minigamepersist&phase=seed');
+	const seed = await qaReport(page, /SAVED: minigames seeded and persisted/);
+	expect(seed).not.toMatch(/ERROR/);
+	expect(seed).toMatch(/colony=7 3 100/);
+	expect(seed).toMatch(/room=4 55 2:0/);
+	// fresh boot off the same profile: the game must import the
+	// localStorage save and restore both minigames through the full path
+	// (building row -> minigame module load)
+	await page.goto('/?debug=1&qa=minigamepersist&phase=check', { waitUntil: 'load', timeout: BOOT.timeout });
+	const check = await qaReport(page, /PASS: minigame state survived/);
+	expect(check).not.toMatch(/ERROR/);
+	expect(check).toMatch(/colony=true/);
+	expect(check).toMatch(/room=true/);
 });
 
 test('?qa=backup: rolling save backups capture, prune, restore, and download', async ({ page }) => {
