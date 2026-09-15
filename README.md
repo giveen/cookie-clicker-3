@@ -129,19 +129,39 @@ and gates the GitHub Pages deploy on it (`.github/workflows/ci.yml`).
 branch's work goes live only when it is merged into `master` — a separate,
 explicit step that also runs the full QA gate on the merge commit.
 
-`npm test` (and CI) is scoped to `tests/qa.spec.js` on purpose. Two further
-specs live in `tests/` as **explicit extras**, run on demand and never part of
-the gate:
+`npm test` (and CI) is scoped to `tests/qa.spec.js` on purpose. Further
+specs live in `tests/` as **explicit extras**, run on demand against the
+default :4173 preview (`npx playwright test tests/<name>.spec.js`) and never
+part of the gate:
 
 - `tests/save-compat.spec.js` — the cross-branch save-format check: imports a
   `master`-built save on `rewrite` and diffs the re-export. Needs a `master`
-  build served on :4174 in addition to the :4173 preview.
+  build served on :4174 in addition to the :4173 preview (`npm run
+  test:compat` provisions the baseline); skips itself without one.
 - `tests/playthrough.spec.js` — an end-to-end playthrough smoke test that
   drives the real UI (big-cookie clicks, store purchases, a hold-to-buy
-  repeat purchase, a golden-cookie
-  pop, the menu tabs, a preference toggle, a bakery rename, the news ticker)
-  and verifies persistence across a full page reload. Runs against the
-  default :4173 preview (`npx playwright test tests/playthrough.spec.js`).
+  repeat purchase, a golden-cookie pop, the menu tabs, a preference toggle,
+  a bakery rename, the news ticker) and verifies persistence across a full
+  page reload.
+- `tests/upgrades-fingerprint.spec.js` — the golden content gate: serializes
+  every registered upgrade and diffs it against
+  `tests/upgrades-baseline.json` (regenerate with
+  `UPGRADES_UPDATE=1 npx playwright test tests/upgrades-fingerprint.spec.js`);
+  see `docs/biome.md` for when the baseline must change.
+- `tests/balance.spec.js` — the building balance regression gate
+  (regenerate the baseline with `BALANCE_UPDATE=1 …`).
+- `tests/cow.spec.js` — the cookie cow, in six layers: bonus table, the
+  exact milk-bonus math (value and position), the buy path, save round-trip
+  + legacy import, the drawer UI, and the ascension reset semantics.
+- `tests/overflow.spec.js` — P0 regression pins for the float / dungeon
+  overflow fixes.
+- `tests/dungeon.spec.js` — functional (tier-2) coverage of the Factory
+  Dungeon minigame.
+- `tests/music-picker.spec.js` — the background-music picker UI.
+- `tests/touch-hold.spec.js` — touch detection + hold-to-buy repeat purchases
+  (Chromium-only: it dispatches real `TouchEvent`s).
+- `tests/cat-upgrades.spec.js` / `tests/cat-upgrades-deep.spec.js` — quick
+  and deep diagnostics for the Cats upgrade set.
 
 ## Security
 
