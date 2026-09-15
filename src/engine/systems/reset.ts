@@ -91,7 +91,7 @@ export function Reset(hard: any)
 	Game.dragonAura=0;
 	Game.dragonAura2=0;
 	
-	Game.cowLevel=0;//CC3 feature (systems/cow.ts): the cookie cow is a prestige asset; hard reset only
+	Game.cowLevel=0;//CC3 feature (systems/cow.ts): the cookie cow resets with the dragon on EVERY ascension (hard=0) and on hard reset — like the dragon, only the prestige-pool tome persists across milk (the 25-cookie unlocker resets), so the cow is re-unlocked at stage 0 after each milk
 	
 	Game.fortuneGC=0;
 	Game.fortuneCPS=0;
