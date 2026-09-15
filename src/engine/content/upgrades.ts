@@ -2,7 +2,9 @@
  * content/upgrades.ts: the vanilla upgrade declarations (the 2.048
  * //define upgrades block, ported verbatim) plus the non-cat CC3
  * additions (sitting-room and dungeon minigame rewards, Astral
- * Reliquary, challenge rewards, Deep Delve, the mortal staircase).
+ * Reliquary, challenge rewards, Deep Delve, the mortal staircase, and
+ * the cookie-cow unlock pair "How to milk a cookie cow" / "A certain
+ * cow" — systems/cow.ts).
  * The CC3 cat content (cats-synergy factory, 24-upgrade Cat
  * collection, 8 cat synergies, 6 Cat Colony rewards, 10 "Nine
  * Lives" heavenly upgrades) now lives in content/cats.ts;
