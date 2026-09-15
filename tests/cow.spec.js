@@ -18,6 +18,8 @@
 //   2 — the buy path (UpgradeCow spend/level/terminal achievement)
 //   3 — save round-trip + legacy save (no cow field) import
 //   4 — light UI smoke (special tab, growing drawer sprite, cost display)
+//   5 — ascension (Reset(0)): the cow resets with the dragon; the
+//       prestige-pool unlock upgrades persist
 
 import { expect, test } from '@playwright/test';
 
@@ -378,6 +380,54 @@ test.describe('cookie cow', () => {
 		const scale1 = parseFloat(picStyle1.match(/scale\(([\d.]+)\)/)[1]);
 		expect(Math.abs(scale1 - (0.5 + 1 / 22))).toBeLessThan(1e-9); // visibly bigger
 		expect(grown.cookies).toBe(0);
+
+		expectNoUncaughtErrors(errors);
+	});
+
+	test('layer 5: the cow resets with the dragon on every ascension', async ({ page }) => {
+		const errors = [];
+		page.on('pageerror', (e) => errors.push(String(e)));
+		await boot(page);
+
+		// A mid-ladder cow, a grown dragon, and the unlock pair: the tome is
+		// pool='prestige' (survives milk); the 25-cookie unlocker is in the
+		// default pool (resets) — the same split as the dragon's pair.
+		await page.evaluate(() => {
+			const G = window.Game;
+			G.cowLevel = 7;
+			G.dragonLevel = 2;
+			G.Upgrades['How to milk a cookie cow'].bought = 1;
+			G.Upgrades['A certain cow'].bought = 1;
+		});
+
+		// Milk (ascend, hard=0): the cow's growth stage is wiped in the same
+		// unconditional block as the dragon (reset.ts). The unlock pair
+		// splits exactly like the dragon's ("How to bake your dragon" /
+		// "A crumbly egg"): the prestige-pool tome persists (re-bought with
+		// heavenly chips), the default-pool unlocker is re-bought for 25
+		// cookies — until then the cow tab is gone (UpdateSpecial only
+		// pushes 'cow' while Game.Has('A certain cow')), and the bonus is
+		// inert anyway at stage 0.
+		const after = await page.evaluate(() => {
+			const G = window.Game;
+			G.Reset(0);
+			G.UpdateSpecial(); // Reset() doesn't rebuild the tabs; the page
+			// would on the next tick — build them now to observe the tab set
+			return {
+				cowLevel: G.cowLevel,
+				bonus: G.CowMilkBonus(),
+				dragonLevel: G.dragonLevel,
+				unlockBought: G.Upgrades['A certain cow'].bought,
+				tomeBought: G.Upgrades['How to milk a cookie cow'].bought,
+				cowTab: G.specialTabs.indexOf('cow')
+			};
+		});
+		expect(after.cowLevel).toBe(0);
+		expect(after.bonus).toBe(0);
+		expect(after.dragonLevel).toBe(0); // the cow resets WITH the dragon
+		expect(after.tomeBought).toBe(1); // prestige-pool tome persists
+		expect(after.unlockBought).toBe(0); // default-pool unlocker resets (like 'A crumbly egg')
+		expect(after.cowTab).toBe(-1); // no unlock → no cow tab
 
 		expectNoUncaughtErrors(errors);
 	});
