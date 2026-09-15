@@ -73,6 +73,11 @@ async function seedRichState(page) {
 		G.heavenlyCookies = 0;
 		G.ascensionMode = 0;
 		G.dragonLevel = 8;
+		// the cow is CC3's appended save field (section 5, load index 53) —
+		// seed it so the round-trip actually exercises that slot (a save
+		// written without the field imports as 0, so an unseeded cow can
+		// never catch a mis-shifted index)
+		G.cowLevel = 7;
 		G.dragonAura = 5;
 		G.dragonAura2 = 0;
 		G.chimeType = 1;
@@ -181,7 +186,8 @@ test('save compat: master export -> rewrite import -> re-export diff (symmetric)
 			// [note] asserted against masterExport.state (captured at export time)
 				cookies: G.cookies, cookiesEarned: G.cookiesEarned, cookieClicks: G.cookieClicks,
 				goldenClicks: G.goldenClicks, resets: G.resets,
-				heavenlyChips: G.heavenlyChips, lumps: G.lumps, dragonLevel: G.dragonLevel,
+						heavenlyChips: G.heavenlyChips, lumps: G.lumps, dragonLevel: G.dragonLevel,
+						cowLevel: G.cowLevel,
 				cursorAmt: G.Objects['Cursor'].amount, grandmaAmt: G.Objects['Grandma'].amount,
 				farmAmt: G.Objects['Farm'].amount,
 				catsAmt: G.Objects['Cats'].amount,
@@ -211,6 +217,7 @@ test('save compat: master export -> rewrite import -> re-export diff (symmetric)
 	expect(rw.state.heavenlyChips).toBe(42);
 	expect(rw.state.lumps).toBe(3);
 	expect(rw.state.dragonLevel).toBe(8);
+	expect(rw.state.cowLevel).toBe(7);
 	expect(rw.state.cursorAmt).toBe(10);
 	expect(rw.state.grandmaAmt).toBe(5);
 	expect(rw.state.farmAmt).toBe(3);
