@@ -115,7 +115,7 @@ a fresh production build and asserts its PASS report.
 
 ```
 npx playwright install chromium   # once, per machine
-npm test                          # builds dist/ itself, serves it, runs the 21 QA probes (tests/qa.spec.js)
+npm test                          # builds dist/ itself, serves it, runs the 29 QA probes (tests/qa.spec.js)
 ```
 
 Each test gets a fresh browser profile (the first load picks English, as a new
