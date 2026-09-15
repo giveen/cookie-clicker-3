@@ -97,19 +97,57 @@ async function seedRichState(page) {
 		// buildings
 		const objs = G.Objects;
 		objs['Cursor'].amount = 10; objs['Cursor'].bought = 10; objs['Cursor'].unlocked = 1; objs['Cursor'].totalCookies = 1000; objs['Cursor'].level = 1; objs['Cursor'].highest = 10;
-		objs['Grandma'].amount = 5; objs['Grandma'].bought = 5; objs['Grandma'].unlocked = 1; objs['Grandma'].totalCookies = 500; objs['Grandma'].level = 0; objs['Grandma'].highest = 5;
+		// Grandma and Cats sit at level 1: minigame slots (and the modules
+		// behind them) only arm at level >= 1 — level 0 leaves the CC3
+		// minigame save/load path (Cat Colony, Sitting Room) entirely
+		// unexercised. The level field is part of the building row, so both
+		// branches import the same value.
+		objs['Grandma'].amount = 5; objs['Grandma'].bought = 5; objs['Grandma'].unlocked = 1; objs['Grandma'].totalCookies = 500; objs['Grandma'].level = 1; objs['Grandma'].highest = 5;
 		objs['Farm'].amount = 3; objs['Farm'].bought = 3; objs['Farm'].unlocked = 1; objs['Farm'].totalCookies = 300; objs['Farm'].level = 0; objs['Farm'].highest = 3;
-		objs['Cats'].amount = 7; objs['Cats'].bought = 7; objs['Cats'].unlocked = 1; objs['Cats'].totalCookies = 700; objs['Cats'].level = 0; objs['Cats'].highest = 7;
+		objs['Cats'].amount = 7; objs['Cats'].bought = 7; objs['Cats'].unlocked = 1; objs['Cats'].totalCookies = 700; objs['Cats'].level = 1; objs['Cats'].highest = 7;
 		// upgrades (unlocked + bought)
 		G.Upgrades['Reinforced index finger'].unlocked = 1; G.Upgrades['Reinforced index finger'].bought = 1;
 		G.Upgrades['Carpal tunnel prevention cream'].unlocked = 1; G.Upgrades['Carpal tunnel prevention cream'].bought = 1;
 		G.Upgrades['Thumbprint cookies'].unlocked = 1; G.Upgrades['Thumbprint cookies'].bought = 1;
 		G.Upgrades['Cardboard box basics'].unlocked = 1; G.Upgrades['Cardboard box basics'].bought = 1;
+		// CC3 upgrades are registered AFTER every 2.048 entry — left
+		// unpurchased, their region of the packed upgrade section is all
+		// zeros and a dropped or shifted CC3 slot can never surface in the
+		// section diff. Buy one per pool (default + prestige):
+		G.Upgrades['A certain cow'].unlocked = 1; G.Upgrades['A certain cow'].bought = 1;                 // systems/cow.ts, default pool
+		G.Upgrades['Communion of whiskers'].unlocked = 1; G.Upgrades['Communion of whiskers'].bought = 1; // content/cats.ts, prestige pool
 		// achievements (won)
 		G.Achievements['Wake and bake'].won = 1;
 		G.Achievements['Making some dough'].won = 1;
 		G.Achievements['One with everything'].won = 1;
+		// Same all-zeros masking for the CC3 achievement region — win one per block
+		G.Achievements['First growth'].won = 1;  // CC3 cookie-cow stage achievement
+		G.Achievements['Barnstormer'].won = 1;   // CC3 Farm milestone
 		G.recalculateGains = 1; G.CalculateGains();
+	});
+
+	// The CC3 minigames (Cat Colony on Cats, Grandma's Sitting Room) save
+	// through their building row's minigame slot; wait for their modules to
+	// load, then seed via each game's own load() so the slot carries
+	// non-default data. away/rest are left empty: expedition timestamps
+	// would drift with the live clock and break the export-time symmetry.
+	await page.waitForFunction(() => {
+		const G = window.Game;
+		return G.Objects['Cats'].minigameLoaded && G.Objects['Grandma'].minigameLoaded;
+	}, null, BOOT);
+	await page.evaluate(() => {
+		const G = window.Game;
+		// Cat Colony: treats missions treatsEarnedTotal away rest upgradeStacks
+		G.Objects['Cats'].minigame.load('7 3 100 - - 2:1:0:0:0:0');
+		// Sitting Room: yarn yarnEarned seats upgradeStacks
+		G.Objects['Grandma'].minigame.load('4 55 2:0:-1:-1:-1:-1 1:0:0:0:0:0');
+		// fail fast if a minigame's save format ever drifts from the seed:
+		// the section diff alone only proves both sides agree, not that the
+		// slot actually carried the seeded data
+		const colony = G.Objects['Cats'].minigame.save();
+		const room = G.Objects['Grandma'].minigame.save();
+		if (!colony.startsWith('7 3 100') || !room.startsWith('4 55 2:0'))
+			throw new Error('minigame seed did not land: colony=' + colony + ' room=' + room);
 	});
 }
 
@@ -194,7 +232,11 @@ test('save compat: master export -> rewrite import -> re-export diff (symmetric)
 				up1: G.Upgrades['Reinforced index finger'].bought,
 				up2: G.Upgrades['Thumbprint cookies'].bought,
 				catUp: G.Upgrades['Cardboard box basics'].bought,
+				cowUp: G.Upgrades['A certain cow'].bought,
+				catPrestigeUp: G.Upgrades['Communion of whiskers'].bought,
 				ach1: G.Achievements['Wake and bake'].won,
+				achCow: G.Achievements['First growth'].won,
+				achFarm: G.Achievements['Barnstormer'].won,
 			},
 		};
 	}, masterExport.exp);
@@ -226,6 +268,12 @@ test('save compat: master export -> rewrite import -> re-export diff (symmetric)
 	expect(rw.state.up2).toBe(1);
 	expect(rw.state.catUp).toBe(1);
 	expect(rw.state.ach1).toBe(1);
+	// CC3 bitfield regions (the minigame slot round-trip is covered by the
+	// byte-exact section diff — its live M state is module-load-timed)
+	expect(rw.state.cowUp).toBe(1);
+	expect(rw.state.catPrestigeUp).toBe(1);
+	expect(rw.state.achCow).toBe(1);
+	expect(rw.state.achFarm).toBe(1);
 
 	// 3) section-by-section diff: master self-import (baseline) vs rewrite import.
 	//    Both sides go through the identical import path, so this isolates the
