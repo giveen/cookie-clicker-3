@@ -390,15 +390,15 @@ function makeMap(w: number, h: number, _seed: number, params: Record<string, any
 				let type = Tiles[0];
 				const tile = this.data[t.x][t.y][0];
 				const ct = (v: number, n: string) => { if (tile === v && tiles[n]) return TilesByName[tiles[n]]; return 0; };
-				type = ct(tile, "wall corner") || type;
-				type = ct(tile, "wall") || type;
-				type = ct(tile, "floor edges") || type;
-				type = ct(tile, "floor") || type;
-				type = ct(tile, "pillar") || type;
-				type = ct(tile, "door") || type;
-				type = ct(tile, "water") || type;
-				type = ct(tile, "entrance") || type;
-				type = ct(tile, "exit") || type;
+				type = ct(TILE_WALL_CORNER, "wall corner") || type;
+				type = ct(TILE_WALL, "wall") || type;
+				type = ct(TILE_FLOOR_EDGE, "floor edges") || type;
+				type = ct(TILE_FLOOR_CENTER, "floor") || type;
+				type = ct(TILE_PILLAR, "pillar") || type;
+				type = ct(TILE_DOOR, "door") || type;
+				type = ct(TILE_WATER, "water") || type;
+				type = ct(TILE_ENTRANCE, "entrance") || type;
+				type = ct(TILE_EXIT, "exit") || type;
 				this.data[t.x][t.y][2] = type ? type.id : 0;
 			}
 		},
