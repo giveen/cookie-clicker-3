@@ -130,15 +130,19 @@ and gates the GitHub Pages deploy on it (`.github/workflows/ci.yml`).
 branch's work goes live only when it is merged into `master` — a separate,
 explicit step that also runs the full QA gate on the merge commit.
 
-`npm test` (and CI) is scoped to `tests/qa.spec.js` on purpose. Further
-specs live in `tests/` as **explicit extras**, run on demand against the
-default :4173 preview (`npx playwright test tests/<name>.spec.js`) and never
-part of the gate:
+`npm test` is scoped to `tests/qa.spec.js` on purpose. CI runs three gates
+(`.github/workflows/ci.yml`): the QA suite, the save-format compat check
+(`tests/save-compat.spec.js` against a pristine `master` build), and the
+perf regression gate (`tests/perf.spec.js` — boot speed plus a sustained
+4-minigame load). The remaining specs in `tests/` are **explicit extras**,
+run on demand against the default :4173 preview
+(`npx playwright test tests/<name>.spec.js`) and never part of the gate:
 
-- `tests/save-compat.spec.js` — the cross-branch save-format check: imports a
-  `master`-built save on `rewrite` and diffs the re-export. Needs a `master`
-  build served on :4174 in addition to the :4173 preview (`npm run
-  test:compat` provisions the baseline); skips itself without one.
+- `tests/save-compat.spec.js` — the cross-branch save-format gate: imports a
+  `master`-built save on `rewrite` and diffs the re-export. Locally it needs
+  a `master` build served on :4174 in addition to the :4173 preview (`npm
+  run test:compat` provisions the baseline); the spec skips itself without
+  one.
 - `tests/playthrough.spec.js` — an end-to-end playthrough smoke test that
   drives the real UI (big-cookie clicks, store purchases, a hold-to-buy
   repeat purchase, a golden-cookie pop, the menu tabs, a preference toggle,
