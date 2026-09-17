@@ -137,7 +137,10 @@ export function DrawBackground()
 					Game.bgFade=Game.bg;
 				}
 				
-				Game.Background.fillPattern(Pic(Game.bg+'.webp'),0,0,Game.Background.canvas.width,Game.Background.canvas.height,512,512,0,0);
+				//CC3: a few wallpapers (Clay/Marble/Mystic/Money chart) ship as 512x128
+				//strips; honour their per-bg tileH so they repeat instead of stretching.
+				var bgTileH=(Game.bgType!=0 && Game.ascensionMode!=1 && Game.BGsByChoice[Game.bgType] && Game.BGsByChoice[Game.bgType].tileH)||512;
+				Game.Background.fillPattern(Pic(Game.bg+'.webp'),0,0,Game.Background.canvas.width,Game.Background.canvas.height,512,bgTileH,0,0);
 				if (Game.bgR>0)
 				{
 					Game.Background.globalAlpha=Game.bgR;
@@ -681,10 +684,16 @@ export function DrawBackground()
 			}
 			
 			var pic: any=Game.Milk.pic;
-			if (Game.milkType!=0 && Game.ascensionMode!=1) pic=Game.AllMilks[Game.milkType].pic;
+			var wave: any=Game.Milk.wave;
+			if (Game.milkType!=0 && Game.ascensionMode!=1) {pic=Game.AllMilks[Game.milkType].pic;wave=Game.AllMilks[Game.milkType].wave;}
 			ctx.globalAlpha=0.95*a;
 			ctx.fillPattern(Pic(pic),0,height-y,width+480,1,480,480,x,0);
-			
+			//CC3: the 5 base milks ship a scrolling "*Wave" surface texture; paint it
+			//over the flat color with the same 480px tile/scroll as the base milk.
+			//No-op (via fillPattern's blank-image guard) while the wave art is still
+			//loading or for milks that have no wave texture.
+			if (wave) ctx.fillPattern(Pic(wave),0,height-y,width+480,1,480,480,x,0);
+
 			ctx.fillStyle='#000';
 			ctx.fillRect(0,height-y+480,width,Math.max(0,(y-480)));
 			ctx.globalAlpha=1;

@@ -15,11 +15,11 @@ import type { Game as EngineGame } from "../types";
 export function declareVanillaMilks(Game: EngineGame) {
 	Game.AllMilks=[
 		{name:'Automatic',icon:[0,7],type:-1,pic:'milkPlain'},
-		{name:'Plain milk',icon:[1,8],type:0,pic:'milkPlain'},
-		{name:'Chocolate milk',icon:[2,8],type:0,pic:'milkChocolate'},
-		{name:'Raspberry milk',icon:[3,8],type:0,pic:'milkRaspberry'},
-		{name:'Orange milk',icon:[4,8],type:0,pic:'milkOrange'},
-		{name:'Caramel milk',icon:[5,8],type:0,pic:'milkCaramel'},
+		{name:'Plain milk',icon:[1,8],type:0,pic:'milkPlain',wave:'milkWave'},
+		{name:'Chocolate milk',icon:[2,8],type:0,pic:'milkChocolate',wave:'chocolateMilkWave'},
+		{name:'Raspberry milk',icon:[3,8],type:0,pic:'milkRaspberry',wave:'raspberryWave'},
+		{name:'Orange milk',icon:[4,8],type:0,pic:'milkOrange',wave:'orangeWave'},
+		{name:'Caramel milk',icon:[5,8],type:0,pic:'milkCaramel',wave:'caramelWave'},
 		{name:'Banana milk',icon:[6,8],type:0,pic:'milkBanana'},
 		{name:'Lime milk',icon:[7,8],type:0,pic:'milkLime'},
 		{name:'Blueberry milk',icon:[8,8],type:0,pic:'milkBlueberry'},
@@ -55,6 +55,9 @@ export function declareVanillaMilks(Game: EngineGame) {
 		Game.AllMilks[i].bname=Game.AllMilks[i].name;
 		Game.AllMilks[i].name=loc(Game.AllMilks[i].name);
 		Game.AllMilks[i].pic+='.webp';
+		//CC3: the 5 base milks ship a matching "*Wave" surface texture (480x480
+		//scrolling overlay); give it the same .webp suffix as pic.
+		if (Game.AllMilks[i].wave) Game.AllMilks[i].wave+='.webp';
 		if (Game.AllMilks[i].type==0)
 		{
 			Game.AllMilks[i].rank=Game.Milks.length;

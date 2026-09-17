@@ -1000,6 +1000,20 @@ export function declareVanillaUpgrades(Game: EngineGame) {
 			{pic:'bgSky',name:'Sky',icon:[29,22]},
 			{pic:'bgStars',name:'Night',icon:[31,22]},
 			{pic:'bgFoil',name:'Foil',icon:[25,34]},
+			//CC3: five wallpapers that ship in the asset pack but were never wired
+			//into the picker. Icons point at the actual wallpaper image (the 4-arg
+			//[col,row,url,cell] form writeIcon() supports) since there are no
+			//dedicated swatches for them in icons.webp. No explicit `order`, so they
+			//inherit their index (>=4.9) and gate behind "Distinguished wallpaper
+			//assortment" exactly like Candy/Biscuit/Chocolate/.../Foil above.
+			{pic:'bgCoarse',name:'Coarse',icon:[0,0,'img/bgCoarse.webp',48]},
+			//4 of the new wallpapers ship as 512x128 horizontal strips; tile them at
+			//natural height (128) so they repeat 4x vertically instead of being
+			//stretched into the default 512x512 slot.
+			{pic:'clayBG',name:'Clay',icon:[0,0,'img/clayBG.webp',48],tileH:128},
+			{pic:'marbleBG',name:'Marble',icon:[0,0,'img/marbleBG.webp',48],tileH:128},
+			{pic:'mysticBG',name:'Mystic',icon:[0,0,'img/mysticBG.webp',48],tileH:128},
+			{pic:'bgMoneyChart',name:'Money chart',icon:[0,0,'img/bgMoneyChart.webp',48],tileH:128},
 		];
 		Game.BGsByChoice={};
 		for (var i=0;i<Game.AllBGs.length;i++)
