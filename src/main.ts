@@ -2108,14 +2108,22 @@ if (debugSurface && params.get('qa') === 'special') {
 		G.__qaSpecialDone = 1;
 		try {
 			const lines = [];
-			// Unlock both specials.
+			// Unlock specials (Santa, Dragon, Cow).
+			G.ascensionMode = 0;
 			G.Upgrades['A festive hat'].bought = 1;
 			G.Upgrades['A crumbly egg'].bought = 1;
+			G.Upgrades['How to milk a cookie cow'].bought = 1;
+			G.cookiesEarned = 2000000;
+			G.T = 150;
+			G.Logic();
+			const cowUnlocked = G.Upgrades['A certain cow'].unlocked === 1;
+			G.Upgrades['A certain cow'].bought = 1;
 			G.UpdateSpecial();
 			const hasSanta = G.specialTabs.indexOf('santa') >= 0;
 			const hasDragon = G.specialTabs.indexOf('dragon') >= 0;
+			const hasCow = G.specialTabs.indexOf('cow') >= 0;
 			lines.push('specialTabs = [' + G.specialTabs.join(', ') + ']');
-			lines.push((hasSanta ? 'PASS' : 'FAIL') + ': Santa tab present   ' + (hasDragon ? 'PASS' : 'FAIL') + ': Dragon tab present');
+			lines.push((hasSanta ? 'PASS' : 'FAIL') + ': Santa tab present   ' + (hasDragon ? 'PASS' : 'FAIL') + ': Dragon tab present   ' + (hasCow && cowUnlocked ? 'PASS' : 'FAIL') + ': Cow tab present');
 			// Seed cookies (Dragon egg chip costs 1e6).
 			G.cookies = 1e7;
 			// Santa: bump santaLevel + drop a present.
@@ -2128,10 +2136,10 @@ if (debugSurface && params.get('qa') === 'special') {
 			G.UpgradeDragon();
 			const dragonOk = G.dragonLevel === dragonBefore + 1;
 			lines.push('dragonLevel ' + dragonBefore + ' -> ' + G.dragonLevel + (dragonOk ? '   (PASS: +1, egg chipped)' : '   (FAIL)'));
-			lines.push(hasSanta && hasDragon && santaOk && dragonOk
-				? '[QA-special] PASS: seasonal specials (Santa + Dragon) unlock and act'
+			lines.push(hasSanta && hasDragon && hasCow && cowUnlocked && santaOk && dragonOk
+				? '[QA-special] PASS: seasonal specials (Santa + Dragon + Cow) unlock and act'
 				: '[QA-special] CHECK: see above');
-			out().textContent = '[QA-special] seasonal specials (Santa + Dragon tabs)\n' + lines.join('\n');
+			out().textContent = '[QA-special] seasonal specials (Santa + Dragon + Cow tabs)\n' + lines.join('\n');
 		} catch (e: any) { out().textContent = '[QA-special] ERROR: ' + e.message + '\n' + (e.stack || ''); }
 		window.clearInterval(tick);
 	}, 250);

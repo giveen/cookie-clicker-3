@@ -322,6 +322,7 @@ export function Logic()
 				if (Game.wrinklersPopped>=200) Game.Win('Moistburster');
 				
 				if (Game.cookiesEarned>=1000000 && Game.Has('How to bake your dragon')) Game.Unlock('A crumbly egg');
+				if (Game.cookiesEarned>=1000000 && Game.Has('How to milk a cookie cow')) Game.Unlock('A certain cow');
 				
 				if (Game.cookiesEarned>=25 && Game.season=='christmas') Game.Unlock('A festive hat');
 				if (Game.Has('Christmas tree biscuits') && Game.Has('Snowflake biscuits') && Game.Has('Snowman biscuits') && Game.Has('Holly biscuits') && Game.Has('Candy cane biscuits') && Game.Has('Bell biscuits') && Game.Has('Present biscuits')) Game.Win('Let it snow');

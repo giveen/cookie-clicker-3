@@ -643,12 +643,13 @@ test('?qa=offline: offline gain (timeOffline x CpS) granted on load', async ({ p
 	expect(report).not.toMatch(/ERROR/);
 });
 
-test('?qa=special: seasonal specials (Santa + Dragon) unlock and act', async ({ page }) => {
+test('?qa=special: seasonal specials (Santa + Dragon + Cow) unlock and act', async ({ page }) => {
 	await boot(page, '&qa=special');
 	const report = await qaReport(page, /\[QA-special\] PASS: seasonal specials/);
 	expect(report).not.toMatch(/ERROR/);
 	expect(report).toMatch(/PASS: Santa tab present/);
 	expect(report).toMatch(/PASS: Dragon tab present/);
+	expect(report).toMatch(/PASS: Cow tab present/);
 });
 
 test('?qa=a11y: screen-reader mode renders store products as accessible buttons', async ({ page }) => {
