@@ -115,6 +115,9 @@ export function declareCats(Game: EngineGame) {
 				for (var i2 in Game.CatSynergies) { if (Game.Has(Game.CatSynergies[i2])) catSynergiesOwned++; }
 				catMult*=1+0.05*catSynergiesOwned;
 			}
+			if (colonyMG && typeof colonyMG.getMorale === 'function') {
+				catMult *= (colonyMG.getMorale() / 100);
+			}
 			// CC3: the wrath-cookie Hairball debuff cuts cat production only
 			// (the buff carries no multCpS; this reads its `power` directly).
 			var hairballBuff=Game.hasBuff('Hairball');

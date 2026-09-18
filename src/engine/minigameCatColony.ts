@@ -103,10 +103,17 @@ interface CatColonyMinigame {
 	/* parent's cat count at the last refresh (draw() re-renders on change) */
 	lastAmount: number;
 	tutorialOpen: boolean;
+	autoRepeat: Record<string, boolean>;
+	shopBulkMode: 1 | 10 | 'max';
 
 	/* --- derived values / actions --- */
 	bulkDispatchMode: 1 | 5 | 10 | 'max';
 	setBulkDispatchMode: (mode: 1 | 5 | 10 | 'max') => void;
+	setShopBulkMode: (mode: 1 | 10 | 'max') => void;
+	toggleAutoRepeat: (id: string) => void;
+	getMorale: () => number;
+	claimAndReroute: () => void;
+	spawnCatBubble: (el: HTMLElement, text: string) => void;
 	effectiveStacks: (name: string) => number;
 	awayCount: () => number;
 	restingCount: () => number;
@@ -195,6 +202,23 @@ M.launch = function (this: CatColonyMinigame) {
 		M.restingCount = function () { var n = 0; for (var i = 0; i < M.resting.length; i++) n += M.resting[i].count; return n; };
 		M.idleCats = function () { return Math.max(0, Math.floor(M.parent.amount) - M.awayCount() - M.restingCount()); };
 
+		M.autoRepeat = {};
+		M.shopBulkMode = 1;
+
+		M.setShopBulkMode = function (mode: 1 | 10 | 'max') {
+			M.shopBulkMode = mode;
+			M.refresh();
+		};
+
+		M.toggleAutoRepeat = function (id: string) {
+			M.autoRepeat[id] = !M.autoRepeat[id];
+			M.refresh();
+		};
+
+		M.getMorale = function () {
+			return 100 + Math.min(30, Math.floor(M.idleCats() / 2)) + Math.min(20, Math.floor(M.missionsCompleted / 10));
+		};
+
 		// Each Nine-lives insurance stack multiplies risk by 0.7 (0.7^n —
 		// it approaches zero but never hits it, so no floor needed).
 		M.hurtChanceFor = function (mission: ColonyMission) { return mission.hurtChance * Math.pow(0.7, M.effectiveStacks('Nine-lives insurance')) * (Game.Has('Nap discipline') ? 0.8 : 1); };
@@ -255,14 +279,19 @@ M.launch = function (this: CatColonyMinigame) {
 					PlaySound('snd/squeak2.mp3', 0.75);
 				}
 				else if (mission) {
-					var reward = Math.floor(Math.random() * (mission.treatsMax - mission.treatsMin + 1)) + mission.treatsMin;
-					if (Game.Has('Generous strangers')) reward = Math.ceil(reward * 1.2);
+					var rawReward = Math.floor(Math.random() * (mission.treatsMax - mission.treatsMin + 1)) + mission.treatsMin;
+					if (Game.Has('Generous strangers')) rawReward = Math.ceil(rawReward * 1.2);
+					var reward = Math.ceil(rawReward * (M.getMorale() / 100));
 					M.treats += reward;
 					M.treatsEarnedTotal += reward;
 					M.missionsCompleted++;
 					Game.Notify(loc("Expedition complete"), (mission.name) + ' brought home <b>' + reward + ' treats</b>.', [4, 26]);
 					PlaySound('snd/harvest1.mp3', 0.75);
 					M.checkExpeditionAchievements();
+
+					if (M.autoRepeat[mission.id] && M.idleCats() >= mission.catCost) {
+						M.dispatch(mission.id, 1);
+					}
 				}
 			}
 			for (var j = M.resting.length - 1; j >= 0; j--) {
@@ -273,6 +302,21 @@ M.launch = function (this: CatColonyMinigame) {
 			if (changed) M.refresh();
 		};
 
+		M.claimAndReroute = function () {
+			M.resolveExpeditions();
+			var dispatchedAny = false;
+			for (var i = M.missions.length - 1; i >= 0; i--) {
+				var m = M.missions[i];
+				if (M.parent.amount >= m.unlock && (M.autoRepeat[m.id] || dispatchedAny === false)) {
+					if (M.idleCats() >= m.catCost) {
+						if (M.dispatch(m.id, 'max')) dispatchedAny = true;
+					}
+				}
+			}
+			Game.Notify(loc("Claimed & Rerouted"), "Expeditions claimed & idle cats dispatched.", [4, 26]);
+			PlaySound('snd/tick.mp3', 0.75);
+		};
+
 		M.checkExpeditionAchievements = function () {
 			if (M.missionsCompleted >= 1) Game.Win('First expedition');
 			if (M.missionsCompleted >= 50) Game.Win('Seasoned adventurers');
@@ -280,28 +324,36 @@ M.launch = function (this: CatColonyMinigame) {
 			if (M.treatsEarnedTotal >= 1000) Game.Win('Pocketful of treats');
 		};
 
-		// Repeatable: no bought check, flat price every time. The main-save
-		// bought flag (via earn) is only set on the first stack — it exists
-		// for save continuity (the pre-stacking effect code path reads it),
-		// not as a purchase cap.
 		M.buyUpgrade = function (name: string) {
 			var up = Game.Upgrades[name];
 			var i = M.upgradeNames.indexOf(name);
 			if (!up || i < 0) return false;
 			var price = up.treatsPrice || 0;
-			if (M.treats < price) return false;
-			M.treats -= price;
-			// Increment from the effective count so a lazily-migrated
-			// one-time purchase (bought flag, 0 stacks) counts as stack 1.
+			if (price <= 0 || M.treats < price) return false;
+
+			var mode = M.shopBulkMode || 1;
+			var maxAffordable = Math.floor(M.treats / price);
+			var stacksToBuy = (mode === 'max') ? maxAffordable : Math.min(mode, maxAffordable);
+			if (stacksToBuy <= 0) return false;
+
+			M.treats -= price * stacksToBuy;
 			var n = M.effectiveStacks(name);
-			if (n < 1) up.earn(); // first-ever stack → mark in the main save
-			M.upgradeStacks[i] = n + 1;
+			if (n < 1) up.earn();
+			M.upgradeStacks[i] = n + stacksToBuy;
 			PlaySound('snd/buy' + (Math.floor(Math.random() * 4) + 1) + '.mp3', 0.75);
 			var allOwned = true;
 			for (var j = 0; j < M.upgradeNames.length; j++) { if (M.effectiveStacks(M.upgradeNames[j]) < 1) allOwned = false; }
 			if (allOwned) Game.Win('Fully catified');
 			M.refresh();
 			return true;
+		};
+
+		M.spawnCatBubble = function (el: HTMLElement, text: string) {
+			var bubble = document.createElement('div');
+			bubble.className = 'colonyBubble';
+			bubble.textContent = text;
+			el.appendChild(bubble);
+			setTimeout(function () { if (bubble.parentNode) bubble.parentNode.removeChild(bubble); }, 1200);
 		};
 
 		var str = '';
@@ -322,17 +374,23 @@ M.launch = function (this: CatColonyMinigame) {
 			'.colonyChipGray{background:rgba(200,200,200,0.2);color:#aaa;}' +
 			/* ---- roster / cat strip ---- */
 			'.colonyCatStrip{display:flex;flex-wrap:wrap;gap:2px;min-height:36px;align-items:center;margin-top:4px;}' +
-			// Source strips are 8 frames of 80x64 (640x64 total). Halved via
-			// background-size to a 320x32 sheet so the 40x32 box shows one
-			// frame exactly — no transform needed, unlike the scaled-icon
-			// idiom elsewhere (tinyIcon()) which shrinks a fixed 48x48 icon.
-			'.colonyCat{width:40px;height:32px;background-image:url(img/cats/idle.png);background-repeat:no-repeat;background-size:320px 32px;}' +
+			'.colonyCat{width:40px;height:32px;background-image:url(img/cats/idle.png);background-repeat:no-repeat;background-size:320px 32px;position:relative;cursor:pointer;}' +
 			'.colonyCatResting{background-image:url(img/cats/sleep.png);}' +
+			'.colonyCatCoat0{filter:none;}' +
+			'.colonyCatCoat1{filter:hue-rotate(30deg) saturate(1.3);}' +
+			'.colonyCatCoat2{filter:hue-rotate(180deg) brightness(0.85);}' +
+			'.colonyCatCoat3{filter:hue-rotate(280deg) saturate(0.9);}' +
+			'.colonyCatCoat4{filter:sepia(0.6) contrast(1.15);}' +
+			'.colonyBubble{position:absolute;top:-18px;left:50%;transform:translateX(-50%);background:rgba(255,255,255,0.95);color:#111;font-weight:bold;font-size:10px;padding:2px 6px;border-radius:8px;pointer-events:none;box-shadow:0 2px 6px rgba(0,0,0,0.4);animation:colonyFloatUp 1.2s ease-out forwards;z-index:100;white-space:nowrap;}' +
+			'@keyframes colonyFloatUp{0%{opacity:1;transform:translate(-50%,0);}100%{opacity:0;transform:translate(-50%,-20px);}}' +
 			'.colonyEmpty{font-size:11px;opacity:0.6;font-style:italic;}' +
 			'@keyframes colonyCatIdleAnim{0%,12.5%{background-position:0px 0px;}12.5%,25%{background-position:-40px 0px;}25%,37.5%{background-position:-80px 0px;}37.5%,50%{background-position:-120px 0px;}50%,62.5%{background-position:-160px 0px;}62.5%,75%{background-position:-200px 0px;}75%,87.5%{background-position:-240px 0px;}87.5%,100%{background-position:-280px 0px;}}' +
 			'body:not(.noMotion) .colonyCat{animation:colonyCatIdleAnim 1.6s steps(1) infinite;}' +
 			'.colonyRosterLegend{font-size:9px;opacity:0.6;text-align:center;margin-top:2px;}' +
 			'.colonyTimers{font-size:10px;opacity:0.8;text-align:center;margin-top:4px;}' +
+			'.colonyProgressBar{width:100%;height:5px;background:rgba(255,255,255,0.15);border-radius:3px;overflow:hidden;margin-top:3px;box-shadow:inset 0 1px 2px rgba(0,0,0,0.5);}' +
+			'.colonyProgressFill{height:100%;background:linear-gradient(90deg,#4a90e2,#7ed321);width:0%;transition:width 0.2s linear;}' +
+			'.colonyProgressCard{background:rgba(0,0,0,0.35);border-radius:6px;padding:4px 8px;margin-top:4px;font-size:10px;text-align:left;}' +
 			/* ---- mission cards ---- */
 			'.colonyMissionList{display:flex;flex-direction:column;gap:4px;margin:4px 0;}' +
 			'.colonyMission{display:flex;align-items:center;gap:8px;padding:4px 6px;border-radius:8px;background:rgba(255,255,255,0.06);font-size:10px;line-height:1.3;}' +
@@ -371,8 +429,6 @@ M.launch = function (this: CatColonyMinigame) {
 		M.refresh();
 	};
 
-	// Static single-frame sprite backgrounds for the mission cards — each
-	// shows one cat pose from the existing sheets, no new art.
 	M.missionArt = [
 		{ sheet: 'idle.png', size: '320px 32px', pos: '0px 0px' },        // yarn ball — loafing around
 		{ sheet: 'walk.png', size: '480px 32px', pos: '-160px 0px' },     // sunbeam — stalking
@@ -386,23 +442,52 @@ M.launch = function (this: CatColonyMinigame) {
 		var idle = M.idleCats();
 		var away = M.awayCount();
 		var resting = M.restingCount();
+		var morale = M.getMorale();
+
 		var str = '<div class="colonyBox">';
-		str += '<div class="colonyTitle">Cat Colony <span id="colonyHelpBtn" class="colonyHelpBtn" title="How to play" style="float:right;">How to play</span></div>';
+		str += '<div class="colonyTitle">Cat Colony ' +
+			'<span id="colonyHelpBtn" class="colonyHelpBtn" title="How to play" style="float:right;">How to play</span>' +
+			'<span id="colonyClaimRerouteBtn" class="colonyHelpBtn" title="Claim returned & dispatch idle cats" style="float:right;background:rgba(255,200,80,0.3);color:#ffea78;">⚡ Claim & Reroute</span>' +
+			'</div>';
 		str += '<div class="colonyStats">🐾 Treats: <b>' + Beautify(M.treats) + '</b></div>';
 		str += '<div style="text-align:center;font-size:10px;margin-bottom:2px;">' +
 			'<span class="colonyChip colonyChipGreen">' + idle + ' idle</span>' +
 			'<span class="colonyChip colonyChipBlue">' + away + ' away</span>' +
-			'<span class="colonyChip colonyChipGray">' + resting + ' resting</span></div>';
+			'<span class="colonyChip colonyChipGray">' + resting + ' resting</span>' +
+			'<span class="colonyChip colonyChipAmber" title="Boosts Cats CpS and Expedition Treat Rewards">♥ Morale: ' + morale + '%</span>' +
+			'</div>';
 		str += '<div class="colonyCatStrip">';
 		var idleShown = Math.min(idle, 24);
-		for (var i = 0; i < idleShown; i++) { str += '<div class="colonyCat"></div>'; }
+		for (var i = 0; i < idleShown; i++) {
+			str += '<div class="colonyCat colonyCatCoat' + (i % 5) + '" title="Click to pet!"></div>';
+		}
 		var restingShown = Math.min(resting, 12);
-		for (var j = 0; j < restingShown; j++) { str += '<div class="colonyCat colonyCatResting"></div>'; }
+		for (var j = 0; j < restingShown; j++) {
+			str += '<div class="colonyCat colonyCatResting colonyCatCoat' + ((j + 1) % 5) + '" title="Resting..."></div>';
+		}
 		if (idle === 0 && resting === 0) { str += '<div class="colonyEmpty">Every cat is out on an expedition.</div>'; }
 		str += '</div>';
-		if (idle > 0 || resting > 0) { str += '<div class="colonyRosterLegend">Awake cats roam the yard; sleeping cats are resting after a scuffle.</div>'; }
+		if (idle > 0 || resting > 0) { str += '<div class="colonyRosterLegend">Awake cats roam the yard (click to pet!); sleeping cats rest after a scuffle.</div>'; }
+		
 		if (M.away.length > 0) {
-			str += '<div class="colonyTimers" id="colonyTimers"></div>';
+			str += '<div class="colonyTimers" id="colonyTimers">';
+			var now = Date.now();
+			for (var a = 0; a < M.away.length; a++) {
+				var entry = M.away[a];
+				var mission = M.missionsById[entry.id];
+				if (!mission) continue;
+				var durMs = M.durationFor(mission) * 1000;
+				var remainMs = Math.max(0, entry.returnAt - now);
+				var pct = Math.min(100, Math.max(0, 100 * (1 - remainMs / durMs)));
+				str += '<div class="colonyProgressCard">';
+				str += '<div style="display:flex;justify-content:space-between;align-items:center;">';
+				str += '<span><b>' + mission.name + '</b> (' + entry.count + ' cats)</span>';
+				str += '<span>⏱ ' + Game.sayTime(Math.ceil(remainMs / 1000) * Game.fps, -1) + '</span>';
+				str += '</div>';
+				str += '<div class="colonyProgressBar"><div class="colonyProgressFill" style="width:' + pct.toFixed(1) + '%;"></div></div>';
+				str += '</div>';
+			}
+			str += '</div>';
 		}
 		str += '</div>';
 		return str;
@@ -410,17 +495,15 @@ M.launch = function (this: CatColonyMinigame) {
 
 	M.tutorialOpen = false;
 
-	// How-to-play panel, toggled by the "How to play" button in the roster header.
 	M.renderTutorial = function () {
 		var str = '<div class="colonyBox" style="margin:0;max-width:none;">';
 		str += '<div class="colonyTitle">How to play <span id="colonyHelpClose" class="colonyHelpBtn" title="Close" style="float:right;">✕</span></div>';
 		str += '<ul>';
-		str += '<li><b>Dispatch expeditions</b> — click Dispatch on a mission to send its cats out. They return after the listed duration and bring home treats. A few of the cats shown are resting (sleeping) — they come back on their own.</li>';
-		str += '<li><b>Cat capacity</b> — a mission only dispatches if you have enough <b>idle</b> cats (total cats − away − resting). Buy more cats to keep more expeditions running at once.</li>';
-		str += '<li><b>Risk</b> — each mission has a small chance its cats come home scuffed up and need a nap. <b>Nine-lives insurance</b> stacks each cut that risk by 30%.</li>';
-		str += '<li><b>Unlock missions</b> — bigger expeditions unlock at more owned cats (1, 10, 25, 50, 100, 200); the bigger ones are slower but pay far more treats.</li>';
-		str += '<li><b>Spend treats</b> — buy the colony upgrades below; each is repeatable at a flat price, and every stack adds its full effect to your cats, with stacks kept in your save.</li>';
-		str += '<li><b>Goals</b> — complete 1 / 50 / 250 expeditions ("First expedition", "Seasoned adventurers", "The nine-lives guild"), bank 1000 treats ("Pocketful of treats"), and buy every upgrade to become "Fully catified".</li>';
+		str += '<li><b>Dispatch expeditions</b> — click Dispatch on a mission to send its cats out. They return after the listed duration and bring home treats.</li>';
+		str += '<li><b>Auto-Repeat & Claim & Reroute</b> — toggle <b>↺ Auto</b> to auto-redispatch missions upon return, or click <b>⚡ Claim & Reroute</b> to process all completed runs and auto-dispatch idle cats instantly.</li>';
+		str += '<li><b>Colony Morale</b> — rested cats and completed expeditions boost Morale (up to +50%), increasing both Cats CpS and Expedition Treat rewards!</li>';
+		str += '<li><b>Click Cats!</b> — click roaming yard cats to hear them purr and meow with speech bubbles.</li>';
+		str += '<li><b>Spend treats</b> — buy repeatable colony upgrades in bulk (x1, x10, Max); every stack adds its full effect to your cats and persists in your save.</li>';
 		str += '</ul>';
 		str += '</div>';
 		return str;
@@ -450,13 +533,14 @@ M.launch = function (this: CatColonyMinigame) {
 			'<span class="colonyChip ' + (mode === 10 ? 'colonyChipAmber' : 'colonyChipBlue') + '" id="colonyBulk10" style="cursor:pointer;">x10</span>' +
 			'<span class="colonyChip ' + (mode === 'max' ? 'colonyChipAmber' : 'colonyChipBlue') + '" id="colonyBulkMax" style="cursor:pointer;">Max</span>' +
 			'</span></div>';
-		str += '<div style="font-size:10px;opacity:0.7;margin-bottom:4px;">Send idle cats on timed expeditions to bring back treats. Bigger missions unlock at more cats and pay more — but carry more risk.</div>';
+		str += '<div style="font-size:10px;opacity:0.7;margin-bottom:4px;">Send idle cats on timed expeditions to bring back treats. Toggle Auto-Repeat to continuously patrol!</div>';
 		str += '<div class="colonyMissionList">';
 		for (var i = 0; i < M.missions.length; i++) {
 			var mission = M.missions[i];
 			var locked = M.parent.amount < mission.unlock;
 			var canGo = !locked && M.idleCats() >= mission.catCost;
 			var art = M.missionArt[i] || M.missionArt[0];
+			var auto = !!M.autoRepeat[mission.id];
 
 			var dispatchLabel = 'Dispatch';
 			if (mode === 'max') dispatchLabel = 'Dispatch Max';
@@ -479,7 +563,8 @@ M.launch = function (this: CatColonyMinigame) {
 			}
 			str += '</div>';
 			if (!locked) {
-				str += '<div style="display:flex;gap:4px;flex:none;">';
+				str += '<div style="display:flex;gap:4px;align-items:center;flex:none;">';
+				str += '<div class="colonyBtn" id="colonyAutoRepeat' + mission.id + '" style="' + (auto ? 'background:rgba(255,200,80,0.4);color:#ffea78;' : '') + '" title="Toggle Auto-Repeat Patrol Mode">' + (auto ? '↺ Auto: ON' : '↺ Auto: OFF') + '</div>';
 				str += '<div class="colonyBtn' + (canGo ? '' : ' colonyBtnDisabled') + '" id="colonyDispatch' + mission.id + '">' + dispatchLabel + '</div>';
 				str += '<div class="colonyBtn' + (canGo ? '' : ' colonyBtnDisabled') + '" id="colonyDispatchMax' + mission.id + '" title="Dispatch all available idle cats for this mission">Max</div>';
 				str += '</div>';
@@ -492,8 +577,14 @@ M.launch = function (this: CatColonyMinigame) {
 	};
 
 	M.renderShop = function () {
-		var str = '<div class="colonyBox"><div class="colonyTitle">Colony Upgrades</div>';
-		str += '<div style="font-size:10px;opacity:0.7;margin-bottom:4px;">Each upgrade is repeatable — every stack boosts your Cats\' output, and stacks persist in your save.</div>';
+		var shopMode = M.shopBulkMode || 1;
+		var str = '<div class="colonyBox"><div class="colonyTitle">Colony Upgrades ' +
+			'<span style="float:right;font-size:10px;font-weight:normal;">Buy: ' +
+			'<span class="colonyChip ' + (shopMode === 1 ? 'colonyChipAmber' : 'colonyChipBlue') + '" id="colonyShopBulk1" style="cursor:pointer;">x1</span>' +
+			'<span class="colonyChip ' + (shopMode === 10 ? 'colonyChipAmber' : 'colonyChipBlue') + '" id="colonyShopBulk10" style="cursor:pointer;">x10</span>' +
+			'<span class="colonyChip ' + (shopMode === 'max' ? 'colonyChipAmber' : 'colonyChipBlue') + '" id="colonyShopBulkMax" style="cursor:pointer;">Max</span>' +
+			'</span></div>';
+		str += '<div style="font-size:10px;opacity:0.7;margin-bottom:4px;">Each upgrade is repeatable — buy in bulk to boost your Cats\' output rapidly!</div>';
 		str += '<div class="colonyShopList">';
 		for (var i = 0; i < M.upgradeNames.length; i++) {
 			var name = M.upgradeNames[i];
@@ -501,11 +592,16 @@ M.launch = function (this: CatColonyMinigame) {
 			if (!up) continue;
 			var price = up.treatsPrice || 0;
 			var stacks = M.effectiveStacks(name);
+
+			var maxAfford = Math.floor(M.treats / price);
+			var countToBuy = (shopMode === 'max') ? Math.max(1, maxAfford) : shopMode;
+			var totalPrice = price * countToBuy;
 			var canBuy = M.treats >= price;
+
 			str += '<div class="colonyShopItem">';
 			str += '<div class="icon shadowFilter" style="flex:none;margin:0;' + writeIcon(up.icon) + '"></div>';
 			str += '<div class="colonyShopInfo"><span class="colonyShopName">' + name + '</span>' + (stacks > 0 ? ' <span class="colonyShopStack">×' + stacks + '</span>' : '') + '<br><span class="colonyShopDesc">' + up.baseDesc + '</span></div>';
-			str += '<div class="colonyBtn' + (canBuy ? '' : ' colonyBtnDisabled') + '" id="colonyBuy' + i + '">' + price + ' 🍬</div>';
+			str += '<div class="colonyBtn' + (canBuy ? '' : ' colonyBtnDisabled') + '" id="colonyBuy' + i + '">' + Beautify(totalPrice) + ' 🍬' + (countToBuy > 1 ? ' (x' + countToBuy + ')' : '') + '</div>';
 			str += '</div>';
 		}
 		str += '</div>';
@@ -514,14 +610,17 @@ M.launch = function (this: CatColonyMinigame) {
 	};
 
 	M.refresh = function () {
-		if (!l('colonyRoster')) return; //not on this view yet
+		if (!l('colonyRoster')) return;
 		l('colonyRoster')!.innerHTML = M.renderRoster();
 		l('colonyMissions')!.innerHTML = M.renderMissions();
 		l('colonyShop')!.innerHTML = M.renderShop();
-		// Bind the How-to-play button (the roster re-renders every refresh).
+
 		var helpBtn = l('colonyHelpBtn');
 		if (helpBtn) AddEvent(helpBtn, 'click', function () { M.toggleTutorial(); });
-		
+
+		var claimBtn = l('colonyClaimRerouteBtn');
+		if (claimBtn) AddEvent(claimBtn, 'click', function () { M.claimAndReroute(); });
+
 		var b1 = l('colonyBulk1');
 		if (b1) AddEvent(b1, 'click', function () { M.setBulkDispatchMode(1); });
 		var b5 = l('colonyBulk5');
@@ -531,8 +630,28 @@ M.launch = function (this: CatColonyMinigame) {
 		var bMax = l('colonyBulkMax');
 		if (bMax) AddEvent(bMax, 'click', function () { M.setBulkDispatchMode('max'); });
 
+		var sb1 = l('colonyShopBulk1');
+		if (sb1) AddEvent(sb1, 'click', function () { M.setShopBulkMode(1); });
+		var sb10 = l('colonyShopBulk10');
+		if (sb10) AddEvent(sb10, 'click', function () { M.setShopBulkMode(10); });
+		var sbMax = l('colonyShopBulkMax');
+		if (sbMax) AddEvent(sbMax, 'click', function () { M.setShopBulkMode('max'); });
+
+		// Attach cat purr click handlers & speech bubbles
+		var meows = ["Meow!", "Purrrr...", "Zzz...", "Prrbt!", "🐾", "😸"];
+		var catEls = document.querySelectorAll('#colonyRoster .colonyCat');
+		catEls.forEach(function (catEl) {
+			AddEvent(catEl as HTMLElement, 'click', function () {
+				var text = meows[Math.floor(Math.random() * meows.length)];
+				PlaySound('snd/squeak1.mp3', 0.5);
+				M.spawnCatBubble(catEl as HTMLElement, text);
+			});
+		});
+
 		for (var i = 0; i < M.missions.length; i++) {
 			var mission = M.missions[i];
+			var btnAuto = l('colonyAutoRepeat' + mission.id);
+			if (btnAuto) { AddEvent(btnAuto, 'click', function (id: string) { return function () { M.toggleAutoRepeat(id); }; }(mission.id)); }
 			var btn = l('colonyDispatch' + mission.id);
 			if (btn) { AddEvent(btn, 'click', function (id: string) { return function () { M.dispatch(id); }; }(mission.id)); }
 			var btnMax = l('colonyDispatchMax' + mission.id);
@@ -546,7 +665,6 @@ M.launch = function (this: CatColonyMinigame) {
 	};
 
 	M.save = function () {
-		//output cannot use "," ";" or "|"
 		var awayStr = '-';
 		if (M.away.length > 0) {
 			var awayParts = [];
@@ -559,12 +677,11 @@ M.launch = function (this: CatColonyMinigame) {
 			for (var j = 0; j < M.resting.length; j++) { restParts.push(M.resting[j].count + ':' + M.resting[j].returnAt); }
 			restStr = restParts.join('/');
 		}
-		// stacks last: appended after the launch-era fields so pre-stacking
-		// save strings (5 fields) still parse with spl[5] undefined.
-		return parseFloat(M.treats) + ' ' + parseFloat(M.missionsCompleted) + ' ' + parseFloat(M.treatsEarnedTotal) + ' ' + awayStr + ' ' + restStr + ' ' + M.upgradeStacks.join(':');
+		var autoStr = M.missions.map(function (m) { return M.autoRepeat[m.id] ? '1' : '0'; }).join('');
+		return parseFloat(M.treats) + ' ' + parseFloat(M.missionsCompleted) + ' ' + parseFloat(M.treatsEarnedTotal) + ' ' + awayStr + ' ' + restStr + ' ' + M.upgradeStacks.join(':') + ' ' + autoStr;
 	};
+
 	M.load = function (str: string) {
-		//interpret str; called after .init
 		if (!str) return false;
 		var spl = str.split(' ');
 		var i = 0;
@@ -595,16 +712,21 @@ M.launch = function (this: CatColonyMinigame) {
 			var stackParts = stackStr.split(':');
 			for (var s = 0; s < M.upgradeStacks.length; s++) { M.upgradeStacks[s] = Math.floor(parseFloat(stackParts[s] || 0) || 0); }
 		}
-		// Pre-stacking saves: each one-time-bought colony upgrade migrates to
-		// exactly one stack, so old saves keep their effect value. Runs after
-		// the stack field (usually absent) has been read.
 		for (var u = 0; u < M.upgradeNames.length; u++) {
 			var mUp = Game.Upgrades[M.upgradeNames[u]];
 			if (mUp && mUp.bought && M.upgradeStacks[u] < 1) M.upgradeStacks[u] = 1;
 		}
+		var autoStr = spl[i++] || '';
+		M.autoRepeat = {};
+		if (autoStr) {
+			for (var mIdx = 0; mIdx < M.missions.length; mIdx++) {
+				if (autoStr[mIdx] === '1') M.autoRepeat[M.missions[mIdx].id] = true;
+			}
+		}
 		M.refresh();
 		return;
 	};
+
 	M.reset = function (_hard?: boolean) {
 		M.treats = 0;
 		M.missionsCompleted = 0;
@@ -613,13 +735,15 @@ M.launch = function (this: CatColonyMinigame) {
 		M.resting = [];
 		M.treatTrickle = 0;
 		M.upgradeStacks = [0,0,0,0,0,0];
+		M.autoRepeat = {};
+		M.shopBulkMode = 1;
 		M.tutorialOpen = false;
 		M.refresh();
 		var t = l('colonyTutorial');
 		if (t) { t.innerHTML = ''; t.style.display = 'none'; }
 	};
+
 	M.logic = function () {
-		//run each game tick, whether or not the panel is open
 		M.resolveExpeditions();
 		if (Game.Has('Bottomless treat jar')) {
 			M.treatTrickle += 1 / (60 * Game.fps);
@@ -628,27 +752,32 @@ M.launch = function (this: CatColonyMinigame) {
 				M.treats += gained;
 				M.treatsEarnedTotal += gained;
 				M.treatTrickle -= gained;
-				// Mirror the sitting-room yarn trickle: a threshold crossed
-				// purely by jar drip (no expedition in flight) still fires
-				// its achievement on the spot, not at the next resolution.
 				M.checkExpeditionAchievements();
 				M.refresh();
 			}
 		}
 	};
-	M.draw = function () {
-		//run each frame, only while the panel is visible
 
-		// Buying/selling cats only updates the store row (core/building.ts),
-		// never this panel's roster/missions HTML — refresh here so newly
-		// bought cats show up without needing a page reload.
+	M.draw = function () {
 		if (M.parent.amount !== M.lastAmount) M.refresh();
 
 		if (M.away.length > 0 && l('colonyTimers')) {
-			var soonest = M.away[0].returnAt;
-			for (var i = 1; i < M.away.length; i++) { if (M.away[i].returnAt < soonest) soonest = M.away[i].returnAt; }
-			var remain = Math.max(0, soonest - Date.now());
-			l('colonyTimers')!.textContent = 'Next return in ' + Game.sayTime(Math.ceil(remain / 1000) * Game.fps, -1) + '.';
+			var now = Date.now();
+			for (var a = 0; a < M.away.length; a++) {
+				var entry = M.away[a];
+				var mission = M.missionsById[entry.id];
+				if (!mission) continue;
+				var durMs = M.durationFor(mission) * 1000;
+				var remainMs = Math.max(0, entry.returnAt - now);
+				var pct = Math.min(100, Math.max(0, 100 * (1 - remainMs / durMs)));
+				var cards = document.querySelectorAll('#colonyTimers .colonyProgressCard');
+				if (cards[a]) {
+					var fill = cards[a].querySelector('.colonyProgressFill') as HTMLElement;
+					if (fill) fill.style.width = pct.toFixed(1) + '%';
+					var timeSpan = cards[a].querySelector('span:last-child') as HTMLElement;
+					if (timeSpan) timeSpan.textContent = '⏱ ' + Game.sayTime(Math.ceil(remainMs / 1000) * Game.fps, -1);
+				}
+			}
 		}
 	};
 	M.init(l('rowSpecial' + M.parent.id)!);
