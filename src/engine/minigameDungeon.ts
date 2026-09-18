@@ -1064,20 +1064,20 @@ M.launch = function (this: DungeonMinigame) {
 .dungeonHeader{position:absolute;top:8px;right:16px;display:flex;gap:8px;z-index:300;}
 .dungeonBtn{display:inline-block;padding:4px 12px;background:#1b1528;border:1px solid #5a4a2a;border-color:#dfbc9a #875526 #a44e36 #dfbc9a;border-radius:4px;color:#ffd9a0;font-size:11px;font-weight:bold;cursor:pointer;text-decoration:none;box-shadow:0 1px 3px rgba(0,0,0,0.5);transition:background .1s,border-color .1s;}
 .dungeonBtn:hover{background:#2c203f;border-color:#ffd9a0;color:#fff;}
-.dungeonLog{font-size:11px;width:${9 * 16}px;height:72px;overflow-y:scroll;position:absolute;bottom:0px;left:0px;background:rgba(0,0,0,0.5);}
-.dungeonFullscreen .dungeonLog{position:absolute!important;bottom:16px!important;left:20px!important;width:320px!important;height:144px!important;z-index:200!important;background:rgba(0,0,0,0.75)!important;border:1px solid #5a4a2a!important;border-radius:4px!important;padding:4px!important;}
+.dungeonLog{font-size:11px;width:304px;height:178px;overflow-y:scroll;position:absolute;bottom:0px;left:0px;background:rgba(0,0,0,0.5);border:1px solid #3a2a1a;border-radius:4px;padding:4px;box-sizing:border-box;}
+.dungeonFullscreen .dungeonLog{position:absolute!important;top:515px!important;left:680px!important;width:320px!important;height:220px!important;z-index:200!important;background:rgba(0,0,0,0.75)!important;border:1px solid #5a4a2a!important;border-radius:4px!important;padding:6px!important;box-sizing:border-box!important;}
 .map{overflow:hidden;position:absolute;left:0px;top:0px;border:2px solid #000;background:#000;margin:0px;}
-.dungeonFullscreen .map{position:absolute!important;left:20px!important;top:44px!important;width:calc(100vw - 340px)!important;height:calc(100vh - 220px)!important;max-width:640px!important;max-height:640px!important;border:2px solid #5a4a2a!important;box-shadow:0 0 16px rgba(0,0,0,0.9)!important;}
+.dungeonFullscreen .map{position:absolute!important;left:20px!important;top:44px!important;width:640px!important;height:640px!important;border:2px solid #5a4a2a!important;box-shadow:0 0 16px rgba(0,0,0,0.9)!important;}
 .mapContainer{position:absolute;}
 .mobSlot{width:64px;height:96px;position:absolute;top:24px;}
-.mobPic{width:48px;height:48px;background:url(img/dungeonFoes.webp);background-size:cover;background-position:center;position:absolute;top:0px;left:8px;}
+.mobPic{width:48px;height:48px;background-size:contain;background-repeat:no-repeat;background-position:center;position:absolute;top:0px;left:8px;}
 .mobName{position:absolute;top:54px;text-align:center;width:100%;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .hpmBar{width:48px;height:4px;border:1px solid #666;position:absolute;top:72px;left:8px;background:#000;}
 .hpBar{height:100%;background:#0f0;}
 #hpMonster{background:#f00;}
 .dungeonName{font-size:11px;text-align:center;white-space:nowrap;margin:8px 0px;}
 .controlPad{position:absolute;width:144px;height:144px;z-index:20;}
-.dungeonFullscreen .controlPad{position:absolute!important;top:auto!important;bottom:20px!important;left:50%!important;transform:translateX(-50%)!important;z-index:300!important;}
+.dungeonFullscreen .controlPad{position:absolute!important;top:690px!important;left:320px!important;transform:none!important;z-index:300!important;}
 .control{width:48px;height:48px;display:block;background:url(img/control.webp);background-size:144px 144px;cursor:pointer;position:absolute;z-index:20;}
 .control.north{background-position:-48px 0px;top:0px;left:48px;}
 .control.west{background-position:0px -48px;top:48px;left:0px;}
@@ -1087,14 +1087,10 @@ M.launch = function (this: DungeonMinigame) {
 .thing{width:16px;height:16px;position:absolute;background:url(img/dungeonIcons.webp);}
 .dungeonCard{position:absolute;width:176px;background:#15101f;border:1px solid #5a4a2a;border-color:#dfbc9a #875526 #a44e36 #dfbc9a;border-radius:4px;box-shadow:0px 0px 1px 2px rgba(0,0,0,0.5),0px 2px 4px rgba(0,0,0,0.4),0px 0px 2px 2px rgba(0,0,0,0.5) inset;padding:6px 8px;font-size:11px;color:#ddd;line-height:1.35;}
 .dungeonInfoCard{left:320px;top:128px;}
-.dungeonFullscreen .dungeonInfoCard{position:absolute!important;right:20px!important;left:auto!important;top:44px!important;width:260px!important;z-index:200!important;}
-/* The shop card's content is text-driven (row wrapping varies with the relic
-   count and font metrics), so pin it to the panel's bottom edge and let it
-   scroll internally instead of growing the panel or overflowing it. top:240px
-   clears the delve-status card (top:128px + ~105px of content). */
+.dungeonFullscreen .dungeonInfoCard{position:absolute!important;left:680px!important;right:auto!important;top:150px!important;width:320px!important;z-index:200!important;}
 .dungeonShopCard{left:320px;top:240px;bottom:8px;overflow-y:auto;overflow-x:hidden;}
-.dungeonFullscreen .dungeonShopCard{position:absolute!important;right:20px!important;left:auto!important;top:176px!important;bottom:20px!important;width:260px!important;z-index:200!important;}
-.dungeonFullscreen .dungeonHeroPicker{position:absolute!important;bottom:170px!important;left:20px!important;top:auto!important;z-index:200!important;}
+.dungeonFullscreen .dungeonShopCard{position:absolute!important;left:680px!important;right:auto!important;top:270px!important;height:230px!important;bottom:auto!important;width:320px!important;z-index:200!important;}
+.dungeonFullscreen .dungeonHeroPicker{position:absolute!important;top:690px!important;left:120px!important;bottom:auto!important;z-index:200!important;}
 .dungeonCardTitle{font-weight:bold;color:#ffd9a0;font-size:10px;letter-spacing:.5px;text-transform:uppercase;margin-bottom:4px;border-bottom:1px solid #5a4a2a;padding-bottom:3px;}
 .dungeonInfoRow{display:flex;justify-content:space-between;align-items:baseline;gap:6px;margin:2px 0;}
 .dungeonInfoRow span:first-child{color:#bba;}
@@ -1103,11 +1099,14 @@ M.launch = function (this: DungeonMinigame) {
 .dungeonInfoRelics,.dungeonShopRelics{color:#ffd9a0;font-weight:bold;margin:4px 0 2px;}
 .dungeonShopRow{margin-top:3px;}
 .dungeonShopBtn{display:block;}
-.dungeonHeroPicker{position:absolute;left:160px;top:152px;display:flex;gap:4px;z-index:50;}
+.dungeonHeroPicker{position:absolute;left:160px;top:176px;display:flex;gap:4px;z-index:50;}
 .dungeonHeroChip{width:32px;height:32px;background-size:cover;background-position:center;opacity:.5;cursor:pointer;border:1px solid #5a4a2a;border-radius:3px;transition:opacity .1s,box-shadow .1s;}
 .dungeonHeroChip:hover{opacity:.85;}
 .dungeonHeroChip.selected{opacity:1;border-color:#ffd9a0;box-shadow:0 0 3px #ffd9a0;}
-.dungeonAutoBadge{position:absolute;left:160px;top:196px;z-index:60;display:none;padding:2px 8px;border-radius:10px;background:#2a6e3a;color:#bfffce;font-weight:bold;font-size:11px;letter-spacing:1px;box-shadow:0 0 6px #2a6e3a;border:1px solid #4caf6a;}
+.dungeonAutoBadge{position:absolute;left:160px;top:148px;z-index:60;display:none;padding:2px 8px;border-radius:10px;background:#2a6e3a;color:#bfffce;font-weight:bold;font-size:11px;letter-spacing:1px;box-shadow:0 0 6px #2a6e3a;border:1px solid #4caf6a;}
+.dungeonFullscreen .dungeonAutoBadge{position:absolute!important;left:20px!important;top:694px!important;z-index:300!important;}
+.dungeonHeaderGroup{position:absolute;left:320px;top:0px;bottom:16px;}
+.dungeonFullscreen .dungeonHeaderGroup{position:absolute!important;left:680px!important;top:44px!important;bottom:auto!important;}
 `;
 
 		// Create the dungeon state
@@ -1178,7 +1177,16 @@ M.launch = function (this: DungeonMinigame) {
 			},
 			RemoveEntities: function (x: number, y: number) { const entities = this.GetEntities(x, y); for (const e of entities) e.Destroy(); },
 			DrawEntities: function () {
-				return [...this.entities].sort((a: Entity, b: Entity) => a.zIndex - b.zIndex).map((e: Entity) => e.Draw()).join("");
+				return [...this.entities]
+					.filter((e: Entity) => {
+						if (!this.map) return true;
+						const room = this.map.getRoom(e.x, e.y);
+						if (room !== -1 && (room as RoomData).hidden) return false;
+						return true;
+					})
+					.sort((a: Entity, b: Entity) => a.zIndex - b.zIndex)
+					.map((e: Entity) => e.Draw())
+					.join("");
 			},
 			CheckObstacle: function (x: number, y: number) {
 				if (x < 0 || x >= this.map.w || y < 0 || y >= this.map.h) return -1;
@@ -1263,12 +1271,14 @@ M.launch = function (this: DungeonMinigame) {
 			},
 			Draw: function () {
 				if (!this.map || !this.hero) return;
-				const viewSize = this.fullscreen ? 21 : 9;
-				const halfView = Math.floor(viewSize / 2);
-				const x = halfView - this.hero.x;
-				const y = halfView - this.hero.y;
-				const mapW = viewSize * 16;
-				const mapH = viewSize * 16;
+				const viewW = this.fullscreen ? 40 : 9;
+				const viewH = this.fullscreen ? 40 : 9;
+				const halfW = Math.floor(viewW / 2);
+				const halfH = Math.floor(viewH / 2);
+				const x = halfW - this.hero.x;
+				const y = halfH - this.hero.y;
+				const mapW = this.fullscreen ? 640 : 144;
+				const mapH = this.fullscreen ? 640 : 144;
 
 				const fsText = this.fullscreen ? loc('Exit Fullscreen') : loc('Fullscreen');
 				const headerStr = `<div class="dungeonHeader">` +
@@ -1276,25 +1286,24 @@ M.launch = function (this: DungeonMinigame) {
 					`</div>`;
 
 				let str = `<div id="map${this.id}" class="map" style="width:${mapW}px;height:${mapH}px;"><div class="mapContainer" id="mapcontainer${this.id}" style="position:absolute;left:${x * 16}px;top:${y * 16}px;"><div id="mapitems${this.id}"></div>${this.map.str}</div><div class="mapOverlay" style="position:absolute;left:0px;top:0px;width:100%;height:100%;background:url(img/dungeonOverlay.webp);background-size:100% 100%;pointer-events:none;z-index:1000;"></div></div>`;
-				str += `<div class="controlPad" style="position:absolute;left:${mapW + 16}px;top:0px;">` +
+				str += `<div class="controlPad">` +
 					`<a class="control north" title="Move North" onclick="document.getElementById('dungeonP${this.id}').value='north';document.getElementById('dungeonP${this.id}').dispatchEvent(new Event('change',{bubbles:true}));"></a>` +
 					`<a class="control west" title="Move West" onclick="document.getElementById('dungeonP${this.id}').value='west';document.getElementById('dungeonP${this.id}').dispatchEvent(new Event('change',{bubbles:true}));"></a>` +
 					`<a class="control middle" title="Wait" onclick="document.getElementById('dungeonP${this.id}').value='wait';document.getElementById('dungeonP${this.id}').dispatchEvent(new Event('change',{bubbles:true}));"></a>` +
 					`<a class="control east" title="Move East" onclick="document.getElementById('dungeonP${this.id}').value='east';document.getElementById('dungeonP${this.id}').dispatchEvent(new Event('change',{bubbles:true}));"></a>` +
 					`<a class="control south" title="Move South" onclick="document.getElementById('dungeonP${this.id}').value='south';document.getElementById('dungeonP${this.id}').dispatchEvent(new Event('change',{bubbles:true}));"></a>` +
 					`</div>`;
-				const leftCol2 = mapW + 16 + 144 + 16;
-				str += `<div style="position:absolute;left:${leftCol2}px;top:0px;bottom:16px;">` +
+				str += `<div class="dungeonHeaderGroup">` +
 					`<div class="dungeonName"><a onclick="Game.ObjectsById[${this.id}].switchMinigame(0,1);">${loc('Exit')}</a> - <span class="title" style="font-size:12px;">${this.name}</span> lvl.${this.level + 1}</div>` +
-					`<div id="dungeonAuto${this.id}" class="dungeonAutoBadge" style="display:${this.auto ? 'block' : 'none'};left:${mapW + 16}px;top:196px;">${loc('AUTO')}</div>` +
+					`<div id="dungeonAuto${this.id}" class="dungeonAutoBadge" style="display:${this.auto ? 'block' : 'none'};">${loc('AUTO')}</div>` +
 					`<div id="heroSlot${this.id}" class="mobSlot"><div id="picHero${this.id}" class="mobPic"></div><div id="nameHero${this.id}" class="title mobName"></div><div class="hpmBar"><div id="hpHero${this.id}" class="hpBar"></div></div></div>` +
 					`<div id="monsterSlot${this.id}" class="mobSlot" style="left:128px;"><div id="picMonster${this.id}" class="mobPic"></div><div id="nameMonster${this.id}" class="title mobName"></div><div class="hpmBar"><div id="hpMonster${this.id}" class="hpBar"></div></div></div>` +
 					`</div>` +
-					`<div id="dungeonLog${this.id}" class="dungeonLog" style="width:${mapW}px;"></div>`;
-				str += `<div id="dungeonInfo${this.id}" class="dungeonCard dungeonInfoCard" style="left:${leftCol2}px;">${this.infoHTML()}</div>`;
-				str += `<div id="dungeonShop${this.id}" class="dungeonCard dungeonShopCard" style="left:${leftCol2}px;">${this.shopHTML()}</div>`;
+					`<div id="dungeonLog${this.id}" class="dungeonLog"></div>`;
+				str += `<div id="dungeonInfo${this.id}" class="dungeonCard dungeonInfoCard">${this.infoHTML()}</div>`;
+				str += `<div id="dungeonShop${this.id}" class="dungeonCard dungeonShopCard">${this.shopHTML()}</div>`;
 
-				let pickerStr = `<div class="dungeonHeroPicker" style="left:${mapW + 16}px;top:152px;">`;
+				let pickerStr = `<div class="dungeonHeroPicker">`;
 				for (let pi = 0; pi < DungeonHeroes.length; pi++) {
 					const h = DungeonHeroes[pi];
 					pickerStr += `<a class="dungeonHeroChip${pi === self.selectedHero ? ' selected' : ''}" title="${h.name}" style="background-image:url(img/${h.portrait}.webp);" onclick="Game.ObjectsById[${this.id}].minigame.setHero(${pi});"></a>`;
@@ -1312,10 +1321,12 @@ M.launch = function (this: DungeonMinigame) {
 			},
 			Refresh: function () {
 				if (!l("mapcontainer" + this.id)) this.Draw();
-				const viewSize = this.fullscreen ? 21 : 9;
-				const halfView = Math.floor(viewSize / 2);
-				const x = halfView - this.hero.x;
-				const y = halfView - this.hero.y;
+				const viewW = this.fullscreen ? 40 : 9;
+				const viewH = this.fullscreen ? 40 : 9;
+				const halfW = Math.floor(viewW / 2);
+				const halfH = Math.floor(viewH / 2);
+				const x = halfW - this.hero.x;
+				const y = halfH - this.hero.y;
 				const mc = l("mapcontainer" + this.id);
 				if (mc) { mc.style.left = (x * 16) + "px"; mc.style.top = (y * 16) + "px"; }
 				const mi = l("mapitems" + this.id);
