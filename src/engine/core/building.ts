@@ -925,11 +925,14 @@ export class Building {
 				this.draw=function()
 				{
 					if (this.amount<=0) return false;
-					if (this.toResize)
+					if (this.toResize || this.canvas.width === 0)
 					{
-						this.canvas.width=this.canvas.clientWidth;
-						this.canvas.height=this.canvas.clientHeight;
-						this.toResize=false;
+						if (this.canvas.clientWidth > 0)
+						{
+							this.canvas.width=this.canvas.clientWidth;
+							this.canvas.height=this.canvas.clientHeight;
+							this.toResize=false;
+						}
 					}
 					var ctx=this.ctx;
 					//clear

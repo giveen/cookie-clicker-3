@@ -104,11 +104,13 @@ export function stackPosition(
 export function makeStackDraw(Game: EngineGame) {
 	return function (this: Building) {
 		if (this.amount <= 0 || !this.canvas || !this.ctx) return false;
-		if (this.toResize) {
-			this.canvas.width = this.canvas.clientWidth;
-			this.canvas.height = this.canvas.clientHeight;
-			this.pics = []; // canvas re-sized: recompute centred positions next
-			this.toResize = false;
+		if (this.toResize || this.canvas.width === 0) {
+			if (this.canvas.clientWidth > 0) {
+				this.canvas.width = this.canvas.clientWidth;
+				this.canvas.height = this.canvas.clientHeight;
+				this.pics = []; // canvas re-sized: recompute centred positions next
+				this.toResize = false;
+			}
 		}
 		const ctx = this.ctx;
 		ctx.globalAlpha = 1;

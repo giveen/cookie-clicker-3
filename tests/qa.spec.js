@@ -495,7 +495,7 @@ test('Cats and Farms: mobile and reduced-motion renderers stay visible', async (
 	await mobilePage.evaluate(() => document.querySelector('#oneColTabs button[data-col="middle"]').click());
 	await mobilePage.waitForFunction(() => {
 		const cats = window.Game.Objects.Cats;
-		return document.body.classList.contains('oneColumn') && cats.canvas.clientWidth > 0 && cats.canvas.clientHeight > 0;
+		return document.body.classList.contains('oneColumn') && cats.canvas.clientWidth > 0 && cats.canvas.clientHeight > 0 && cats.canvas.width > 0;
 	}, null, BOOT);
 	const mobileState = await mobilePage.evaluate(() => {
 		const cats = window.Game.Objects.Cats;
@@ -514,7 +514,7 @@ test('Cats and Farms: mobile and reduced-motion renderers stay visible', async (
 	await reducedPage.evaluate(() => document.querySelector('#oneColTabs button[data-col="middle"]').click());
 	await reducedPage.waitForFunction(() => {
 		const cats = window.Game.Objects.Cats;
-		return document.body.classList.contains('noMotion') && cats.canvas.clientWidth > 0 && cats.canvas.clientHeight > 0;
+		return document.body.classList.contains('noMotion') && cats.canvas.clientWidth > 0 && cats.canvas.clientHeight > 0 && cats.canvas.width > 0;
 	}, null, BOOT);
 	const reducedState = await reducedPage.evaluate(() => {
 		const cats = window.Game.Objects.Cats;

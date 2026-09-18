@@ -28,12 +28,15 @@ export function declareMine(Game: EngineGame) {
 		mineObj.draw=function(this: Building)
 		{
 			if (this.amount<=0||!this.canvas||!this.ctx) return false;
-			if (this.toResize)
+			if (this.toResize || this.canvas.width === 0)
 			{
-				this.canvas.width=this.canvas.clientWidth;
-				this.canvas.height=this.canvas.clientHeight;
-				this.pics=[];//canvas re-sized: recompute centred positions next
-				this.toResize=false;
+				if (this.canvas.clientWidth > 0)
+				{
+					this.canvas.width=this.canvas.clientWidth;
+					this.canvas.height=this.canvas.clientHeight;
+					this.pics=[];//canvas re-sized: recompute centred positions next
+					this.toResize=false;
+				}
 			}
 			var ctx=this.ctx;
 			ctx.globalAlpha=1;
