@@ -237,18 +237,21 @@
 						var posY=me.posY;//Math.round(me.posY/Game.AscendGridSnap)*Game.AscendGridSnap;
 						l('heavenlyUpgrade'+me.id).style.left=Math.floor(posX)+'px';
 						l('heavenlyUpgrade'+me.id).style.top=Math.floor(posY)+'px';
+						const rootNode = Game.Upgrades['Legacy'] || Game.PrestigeUpgrades[0];
+						const rootPosX = rootNode ? rootNode.posX : 0;
+						const rootPosY = rootNode ? rootNode.posY : 0;
 						for (var ii in me.parents)
 						{
-							var origX=0;
-							var origY=0;
-							var targX=me.posX+28;
-							var targY=me.posY+28;
-							if (me.parents[ii]!=-1) {origX=me.parents[ii].posX+28;origY=me.parents[ii].posY+28;}
-							var rot=-(Math.atan((targY-origY)/(origX-targX))/Math.PI)*180;
-							if (targX<=origX) rot+=180;
-							var dist=Math.floor(Math.sqrt((targX-origX)*(targX-origX)+(targY-origY)*(targY-origY)));
+							var origX = rootPosX + 24;
+							var origY = rootPosY + 24;
+							var targX = me.posX + 24;
+							var targY = me.posY + 24;
+							if (me.parents[ii] != -1) { origX = me.parents[ii].posX + 24; origY = me.parents[ii].posY + 24; }
+							var rot = -(Math.atan((targY - origY) / (origX - targX)) / Math.PI) * 180;
+							if (targX <= origX) rot += 180;
+							var dist = Math.floor(Math.sqrt((targX - origX) * (targX - origX) + (targY - origY) * (targY - origY)));
 							
-							l('heavenlyLink'+me.id+'-'+ii).style='width:'+dist+'px;transform:rotate('+rot+'deg);left:'+(origX)+'px;top:'+(origY)+'px;';
+							l('heavenlyLink' + me.id + '-' + ii).style = 'width:' + dist + 'px;transform:rotate(' + rot + 'deg);left:' + (origX) + 'px;top:' + (origY) + 'px;';
 						}
 					}
 					}
@@ -374,7 +377,10 @@
 			{
 				setTimeout(function(){PlaySound('snd/pop'+Math.floor(Math.random()*3+1)+'.mp3',0.5);},(0.2+i2*0.1)*1000);
 			}
-			str+='<div class="crate upgrade heavenly enabled" style="position:absolute;left:-30px;top:-30px;opacity:0.8;pointer-events:none;transform:scale(1.3);background:transparent;"></div>';
+			var rootNode = Game.Upgrades['Legacy'] || Game.PrestigeUpgrades[0];
+			var rootPosX = rootNode ? rootNode.posX : 0;
+			var rootPosY = rootNode ? rootNode.posY : 0;
+			str+='<div class="crate upgrade heavenly enabled" style="position:absolute;left:'+rootPosX+'px;top:'+rootPosY+'px;opacity:0.8;pointer-events:none;transform:scale(1.3);background:transparent;"></div>';
 			str+='<div class="crateBox" style="filter:none;-webkit-filter:none;">';//chrome is still bad at these
 			for (var i in Game.PrestigeUpgrades)
 			{
@@ -411,11 +417,11 @@
 				{
 					if (me.parents[ii]!=-1 && (me.canBePurchased || ghosted))
 					{
-						var origX=0;
-						var origY=0;
-						var targX=me.posX+28;
-						var targY=me.posY+28;
-						if (me.parents[ii]!=-1) {origX=me.parents[ii].posX+28;origY=me.parents[ii].posY+28;}
+						var origX=rootPosX+24;
+						var origY=rootPosY+24;
+						var targX=me.posX+24;
+						var targY=me.posY+24;
+						if (me.parents[ii]!=-1) {origX=me.parents[ii].posX+24;origY=me.parents[ii].posY+24;}
 						var rot=-(Math.atan((targY-origY)/(origX-targX))/Math.PI)*180;
 						if (targX<=origX) rot+=180;
 						var dist=Math.floor(Math.sqrt((targX-origX)*(targX-origX)+(targY-origY)*(targY-origY)));
