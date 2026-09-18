@@ -66,6 +66,20 @@ const TILE_WALL_CORNER = 510;
 const TILE_ENTRANCE = 250;
 const TILE_EXIT = 260;
 
+const colors: Record<number, string> = {
+	[TILE_EMPTY]: "00061b",
+	[TILE_LIMIT]: "200000",
+	[TILE_FLOOR_EDGE]: "15101f",
+	[TILE_FLOOR_CENTER]: "15101f",
+	[TILE_DOOR]: "3a2010",
+	[TILE_PILLAR]: "2a1810",
+	[TILE_WATER]: "10203a",
+	[TILE_WALL]: "4a2818",
+	[TILE_WALL_CORNER]: "3a1c10",
+	[TILE_ENTRANCE]: "15101f",
+	[TILE_EXIT]: "15101f",
+};
+
 function rand(a: number, b: number): number {
 	return Math.floor(Math.random() * (b - a + 1) + a);
 }
@@ -373,15 +387,27 @@ function makeMap(w: number, h: number, _seed: number, params: Record<string, any
 		},
 		isObstacle: function (x, y) { const free = [TILE_FLOOR_EDGE, TILE_FLOOR_CENTER, TILE_DOOR, TILE_ENTRANCE, TILE_EXIT]; for (const f of free) if (this.data[x]?.[y]?.[0] === f) return 0; return 1; },
 		getPic: function (x, y) {
-			const tileData = Tiles[this.data[x][y][2]];
+			let tileData = Tiles[this.data[x][y][2]];
+			const tileType = this.data[x][y][0];
+			if (!tileData || tileData.id === 0) {
+				if (tileType === TILE_WALL) tileData = TilesByName["wall"] || Tiles[0];
+				else if (tileType === TILE_WALL_CORNER) tileData = TilesByName["wall corner"] || Tiles[0];
+				else if (tileType === TILE_FLOOR_EDGE) tileData = TilesByName["floor edges"] || TilesByName["floor"] || Tiles[0];
+				else if (tileType === TILE_FLOOR_CENTER) tileData = TilesByName["floor"] || Tiles[0];
+				else if (tileType === TILE_DOOR) tileData = TilesByName["door"] || Tiles[0];
+				else if (tileType === TILE_WATER) tileData = TilesByName["water"] || Tiles[0];
+				else if (tileType === TILE_ENTRANCE) tileData = TilesByName["entrance"] || Tiles[0];
+				else if (tileType === TILE_EXIT) tileData = TilesByName["exit"] || Tiles[0];
+				else if (tileType === TILE_LIMIT) tileData = TilesByName["wall"] || Tiles[0];
+			}
 			if (!tileData) return [0, 0];
 			if (tileData.joinType === "join") {
 				const joinWith: number[] = [];
-				if (this.data[x][y][0] === TILE_WALL) joinWith.push(TILE_WALL_CORNER);
-				else if (this.data[x][y][0] === TILE_DOOR) joinWith.push(TILE_WALL, TILE_WALL_CORNER);
+				if (tileType === TILE_WALL || tileType === TILE_LIMIT) joinWith.push(TILE_WALL_CORNER, TILE_LIMIT);
+				else if (tileType === TILE_DOOR) joinWith.push(TILE_WALL, TILE_WALL_CORNER, TILE_LIMIT);
 				return [tileData.pic[0] + joinTile(this, x, y, joinWith) - 1, tileData.pic[1]];
 			} else if (tileData.joinType === "random3") {
-				return [tileData.pic[0] + Math.floor(Math.random() * 3), tileData.pic[1]];
+				return [tileData.pic[0] + ((x + y * 7) % 3), tileData.pic[1]];
 			}
 			return tileData.pic;
 		},
@@ -402,6 +428,7 @@ function makeMap(w: number, h: number, _seed: number, params: Record<string, any
 				this.data[t.x][t.y][2] = type ? type.id : 0;
 			}
 		},
+
 		drawDetailed: function () {
 			const size = 16; let str = "";
 			for (let y = 0; y < this.h; y++) for (let x = 0; x < this.w; x++) {
@@ -413,7 +440,7 @@ function makeMap(w: number, h: number, _seed: number, params: Record<string, any
 					title = `${(room as RoomData).corridor ? "corridor" : "room"} ${(room as RoomData).id} | depth : ${(room as RoomData).gen} | children : ${(room as RoomData).children.length}`;
 				}
 				const pic = this.getPic(x, y);
-				str += `<div style="opacity:${opacity};width:${size}px;height:${size}px;position:absolute;left:${x * size}px;top:${y * size}px;display:block;padding:0px;margin:0px;background:#000 url(img/dungeonTiles.webp) ${-pic[0] * 16}px ${-pic[1] * 16}px;color:#999;" title="${title}"></div>`;
+				str += `<div style="opacity:${opacity};width:${size}px;height:${size}px;position:absolute;left:${x * size}px;top:${y * size}px;display:block;padding:0px;margin:0px;background:#${colors[this.data[x][y][0]] || "000"} url(img/dungeonTiles.webp) ${-pic[0] * 16}px ${-pic[1] * 16}px;color:#999;" title="${title}"></div>`;
 			}
 			return `<div style="box-shadow:0px 0px 12px 6px #00061b;position:relative;width:${this.w * size}px;height:${this.h * size}px;background:#00061b;font-family:Courier;font-size:${size}px;float:left;margin:10px;">${str}</div>`;
 		},
@@ -423,7 +450,9 @@ function makeMap(w: number, h: number, _seed: number, params: Record<string, any
 				const room = this.getRoom(x, y);
 				let pic = this.getPic(x, y);
 				if (room !== -1 && (room as RoomData).hidden) pic = [0, 0];
-				str += `<div style="opacity:1;width:${size}px;height:${size}px;position:absolute;left:${x * size}px;top:${y * size}px;display:block;padding:0px;margin:0px;background:#000 url(img/dungeonTiles.webp) ${-pic[0] * 16}px ${-pic[1] * 16}px;color:#999;"></div>`;
+				const tileType = this.data[x][y][0];
+				const bg = colors[tileType] || "000";
+				str += `<div style="opacity:1;width:${size}px;height:${size}px;position:absolute;left:${x * size}px;top:${y * size}px;display:block;padding:0px;margin:0px;background:#${bg} url(img/dungeonTiles.webp) ${-pic[0] * 16}px ${-pic[1] * 16}px;color:#999;"></div>`;
 			}
 			return str;
 		},
@@ -911,6 +940,7 @@ interface DungeonMinigame {
 	effectiveStacks: (name: string) => number;
 	buyUpgrade: (name: string) => boolean;
 	grantUpgrade: (name: string) => boolean;
+	toggleFullscreen: () => void;
 	refresh: () => void;
 	/* Lifetime bests (Tier 3) — persisted in the minigame save so the info
 	 * panel's "best" readouts survive reloads/ascensions. */
@@ -993,11 +1023,14 @@ M.launch = function (this: DungeonMinigame) {
 			if (d) d.Draw();
 		};
 
-		// Inject CSS once
-		if (!document.getElementById("dungeonStyle")) {
-			const style = document.createElement("style");
+		// Inject CSS
+		let style = document.getElementById("dungeonStyle") as HTMLStyleElement;
+		if (!style) {
+			style = document.createElement("style");
 			style.id = "dungeonStyle";
-			style.textContent = `
+			document.head.appendChild(style);
+		}
+		style.textContent = `
 #dungeonLog .new{color:#ff0;}
 /* CC3: the panel wrapper follows the convention every other minigame uses
    (#casinoContent, #gardenContent, #colonyContent...): an in-flow, position:relative
@@ -1007,36 +1040,42 @@ M.launch = function (this: DungeonMinigame) {
    leaving the whole board (map, controls, cards) rendered against the .row
    instead of the panel. With this in-flow wrapper the panel's natural height is
    400px and every absolutely-positioned child below resolves against it. */
-#dungeonContent{position:relative;width:100%;height:400px;box-sizing:border-box;}
+#dungeonContent{position:relative;width:100%;height:400px;box-sizing:border-box;background:#15101f;border:1px solid #5a4a2a;border-radius:6px;overflow:hidden;padding:8px;}
+#dungeonContent.dungeonFullscreen{position:fixed!important;top:0!important;left:0!important;width:100vw!important;height:100vh!important;z-index:10000!important;background:#090610!important;border:none!important;border-radius:0!important;padding:16px!important;box-sizing:border-box!important;overflow:hidden!important;}
+.dungeonHeader{position:absolute;top:8px;right:16px;display:flex;gap:8px;z-index:300;}
+.dungeonBtn{display:inline-block;padding:4px 12px;background:#1b1528;border:1px solid #5a4a2a;border-color:#dfbc9a #875526 #a44e36 #dfbc9a;border-radius:4px;color:#ffd9a0;font-size:11px;font-weight:bold;cursor:pointer;text-decoration:none;box-shadow:0 1px 3px rgba(0,0,0,0.5);transition:background .1s,border-color .1s;}
+.dungeonBtn:hover{background:#2c203f;border-color:#ffd9a0;color:#fff;}
 .dungeonLog{font-size:11px;width:${9 * 16}px;height:72px;overflow-y:scroll;position:absolute;bottom:0px;left:0px;background:rgba(0,0,0,0.5);}
-.dungeonLog div{width:100%;}
+.dungeonFullscreen .dungeonLog{position:absolute!important;bottom:16px!important;left:20px!important;width:320px!important;height:144px!important;z-index:200!important;background:rgba(0,0,0,0.75)!important;border:1px solid #5a4a2a!important;border-radius:4px!important;padding:4px!important;}
 .map{overflow:hidden;position:absolute;left:0px;top:0px;border:2px solid #000;background:#000;margin:0px;}
+.dungeonFullscreen .map{position:absolute!important;left:20px!important;top:44px!important;width:calc(100vw - 340px)!important;height:calc(100vh - 220px)!important;max-width:640px!important;max-height:640px!important;border:2px solid #5a4a2a!important;box-shadow:0 0 16px rgba(0,0,0,0.9)!important;}
 .mapContainer{position:absolute;}
 .mobSlot{width:64px;height:96px;position:absolute;top:24px;}
-.mobPic{width:48px;height:48px;background:url(img/dungeonFoes.webp);position:absolute;top:0px;left:8px;}
-.mobName{position:absolute;top:52px;text-align:center;width:100%;}
+.mobPic{width:48px;height:48px;background:url(img/dungeonFoes.webp);background-size:cover;background-position:center;position:absolute;top:0px;left:8px;}
+.mobName{position:absolute;top:54px;text-align:center;width:100%;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .hpmBar{width:48px;height:4px;border:1px solid #666;position:absolute;top:72px;left:8px;background:#000;}
 .hpBar{height:100%;background:#0f0;}
 #hpMonster{background:#f00;}
 .dungeonName{font-size:11px;text-align:center;white-space:nowrap;margin:8px 0px;}
-.control{width:48px;height:48px;display:block;background:url(img/dungeonPictos.webp);background-size:144px 144px;cursor:pointer;position:absolute;}
-/* CC2 stacked the D-pad vertically with <br>s between the (non-positioned)
-   anchors; the port made them position:absolute, which collapsed all five
-   onto the same pixel — only the last one was reachable. Restore the 48px
-   vertical steps. */
-.control.west{background-position:0px 0px;top:0px;left:0px;}
-.control.east{background-position:-48px 0px;top:48px;left:0px;}
-.control.north{background-position:0px -48px;top:96px;left:0px;}
-.control.south{background-position:-48px -48px;top:144px;left:0px;}
-.control.middle{background-position:-96px 0px;top:192px;left:0px;}
+.controlPad{position:absolute;width:144px;height:144px;z-index:20;}
+.dungeonFullscreen .controlPad{position:absolute!important;top:auto!important;bottom:20px!important;left:50%!important;transform:translateX(-50%)!important;z-index:300!important;}
+.control{width:48px;height:48px;display:block;background:url(img/control.webp);background-size:144px 144px;cursor:pointer;position:absolute;z-index:20;}
+.control.west{background-position:0px -48px;top:0px;left:0px;}
+.control.east{background-position:-96px -48px;top:48px;left:0px;}
+.control.north{background-position:-48px 0px;top:96px;left:0px;}
+.control.south{background-position:-48px -96px;top:144px;left:0px;}
+.control.middle{background-position:-48px -48px;top:192px;left:0px;}
 .thing{width:16px;height:16px;position:absolute;background:url(img/dungeonItems.webp);}
 .dungeonCard{position:absolute;width:176px;background:#15101f;border:1px solid #5a4a2a;border-color:#dfbc9a #875526 #a44e36 #dfbc9a;border-radius:4px;box-shadow:0px 0px 1px 2px rgba(0,0,0,0.5),0px 2px 4px rgba(0,0,0,0.4),0px 0px 2px 2px rgba(0,0,0,0.5) inset;padding:6px 8px;font-size:11px;color:#ddd;line-height:1.35;}
-.dungeonInfoCard{left:304px;top:128px;}
+.dungeonInfoCard{left:320px;top:128px;}
+.dungeonFullscreen .dungeonInfoCard{position:absolute!important;right:20px!important;left:auto!important;top:44px!important;width:260px!important;z-index:200!important;}
 /* The shop card's content is text-driven (row wrapping varies with the relic
    count and font metrics), so pin it to the panel's bottom edge and let it
    scroll internally instead of growing the panel or overflowing it. top:240px
    clears the delve-status card (top:128px + ~105px of content). */
-.dungeonShopCard{left:304px;top:240px;bottom:8px;overflow-y:auto;overflow-x:hidden;}
+.dungeonShopCard{left:320px;top:240px;bottom:8px;overflow-y:auto;overflow-x:hidden;}
+.dungeonFullscreen .dungeonShopCard{position:absolute!important;right:20px!important;left:auto!important;top:176px!important;bottom:20px!important;width:260px!important;z-index:200!important;}
+.dungeonFullscreen .dungeonHeroPicker{position:absolute!important;bottom:170px!important;left:20px!important;top:auto!important;z-index:200!important;}
 .dungeonCardTitle{font-weight:bold;color:#ffd9a0;font-size:10px;letter-spacing:.5px;text-transform:uppercase;margin-bottom:4px;border-bottom:1px solid #5a4a2a;padding-bottom:3px;}
 .dungeonInfoRow{display:flex;justify-content:space-between;align-items:baseline;gap:6px;margin:2px 0;}
 .dungeonInfoRow span:first-child{color:#bba;}
@@ -1045,14 +1084,12 @@ M.launch = function (this: DungeonMinigame) {
 .dungeonInfoRelics,.dungeonShopRelics{color:#ffd9a0;font-weight:bold;margin:4px 0 2px;}
 .dungeonShopRow{margin-top:3px;}
 .dungeonShopBtn{display:block;}
-.dungeonHeroPicker{position:absolute;left:160px;top:252px;display:flex;gap:4px;z-index:50;}
+.dungeonHeroPicker{position:absolute;left:160px;top:152px;display:flex;gap:4px;z-index:50;}
 .dungeonHeroChip{width:32px;height:32px;background-size:cover;background-position:center;opacity:.5;cursor:pointer;border:1px solid #5a4a2a;border-radius:3px;transition:opacity .1s,box-shadow .1s;}
 .dungeonHeroChip:hover{opacity:.85;}
 .dungeonHeroChip.selected{opacity:1;border-color:#ffd9a0;box-shadow:0 0 3px #ffd9a0;}
-.dungeonAutoBadge{position:absolute;left:160px;top:230px;z-index:60;display:none;padding:2px 8px;border-radius:10px;background:#2a6e3a;color:#bfffce;font-weight:bold;font-size:11px;letter-spacing:1px;box-shadow:0 0 6px #2a6e3a;border:1px solid #4caf6a;}
+.dungeonAutoBadge{position:absolute;left:160px;top:196px;z-index:60;display:none;padding:2px 8px;border-radius:10px;background:#2a6e3a;color:#bfffce;font-weight:bold;font-size:11px;letter-spacing:1px;box-shadow:0 0 6px #2a6e3a;border:1px solid #4caf6a;}
 `;
-			document.head.appendChild(style);
-		}
 
 		// Create the dungeon state
 		const dungeon = {
@@ -1206,49 +1243,59 @@ M.launch = function (this: DungeonMinigame) {
 			},
 			Draw: function () {
 				if (!this.map || !this.hero) return;
-				const x = -this.hero.x;
-				const y = -this.hero.y;
-				let str = `<div id="map${this.id}" class="map" style="width:${9 * 16}px;height:${9 * 16}px;"><div class="mapContainer" id="mapcontainer${this.id}" style="position:absolute;left:${x * 16}px;top:${y * 16}px;"><div id="mapitems${this.id}"></div>${this.map.str}</div></div>`;
-				str += `<div style="position:absolute;left:${9 * 16 + 16}px;">` +
+				const viewSize = this.fullscreen ? 21 : 9;
+				const halfView = Math.floor(viewSize / 2);
+				const x = halfView - this.hero.x;
+				const y = halfView - this.hero.y;
+				const mapW = viewSize * 16;
+				const mapH = viewSize * 16;
+
+				const fsText = this.fullscreen ? loc('Exit Fullscreen') : loc('Fullscreen');
+				const headerStr = `<div class="dungeonHeader">` +
+					`<a class="dungeonBtn" onclick="Game.ObjectsById[${this.id}].minigame.toggleFullscreen();">${fsText}</a>` +
+					`</div>`;
+
+				let str = `<div id="map${this.id}" class="map" style="width:${mapW}px;height:${mapH}px;"><div class="mapContainer" id="mapcontainer${this.id}" style="position:absolute;left:${x * 16}px;top:${y * 16}px;"><div id="mapitems${this.id}"></div>${this.map.str}</div></div>`;
+				str += `<div class="controlPad" style="position:absolute;left:${mapW + 16}px;top:0px;">` +
 					`<a class="control west" onclick="document.getElementById('dungeonP${this.id}').value='west';document.getElementById('dungeonP${this.id}').dispatchEvent(new Event('change',{bubbles:true}));"></a><br>` +
 					`<a class="control east" onclick="document.getElementById('dungeonP${this.id}').value='east';document.getElementById('dungeonP${this.id}').dispatchEvent(new Event('change',{bubbles:true}));"></a><br>` +
 					`<a class="control north" onclick="document.getElementById('dungeonP${this.id}').value='north';document.getElementById('dungeonP${this.id}').dispatchEvent(new Event('change',{bubbles:true}));"></a><br>` +
 					`<a class="control south" onclick="document.getElementById('dungeonP${this.id}').value='south';document.getElementById('dungeonP${this.id}').dispatchEvent(new Event('change',{bubbles:true}));"></a><br>` +
 					`<a class="control middle" onclick="document.getElementById('dungeonP${this.id}').value='wait';document.getElementById('dungeonP${this.id}').dispatchEvent(new Event('change',{bubbles:true}));"></a><br>` +
 					`</div>`;
-				str += `<div style="position:absolute;left:${9 * 16 + 16 + 48 * 3}px;top:0px;bottom:16px;">` +
+				const leftCol2 = mapW + 16 + 144 + 16;
+				str += `<div style="position:absolute;left:${leftCol2}px;top:0px;bottom:16px;">` +
 					`<div class="dungeonName"><a onclick="Game.ObjectsById[${this.id}].switchMinigame(0,1);">${loc('Exit')}</a> - <span class="title" style="font-size:12px;">${this.name}</span> lvl.${this.level + 1}</div>` +
-					`<div id="dungeonAuto${this.id}" class="dungeonAutoBadge" style="display:${this.auto ? 'block' : 'none'}">${loc('AUTO')}</div>` +
+					`<div id="dungeonAuto${this.id}" class="dungeonAutoBadge" style="display:${this.auto ? 'block' : 'none'};left:${mapW + 16}px;top:196px;">${loc('AUTO')}</div>` +
 					`<div id="heroSlot${this.id}" class="mobSlot"><div id="picHero${this.id}" class="mobPic"></div><div id="nameHero${this.id}" class="title mobName"></div><div class="hpmBar"><div id="hpHero${this.id}" class="hpBar"></div></div></div>` +
 					`<div id="monsterSlot${this.id}" class="mobSlot" style="left:128px;"><div id="picMonster${this.id}" class="mobPic"></div><div id="nameMonster${this.id}" class="title mobName"></div><div class="hpmBar"><div id="hpMonster${this.id}" class="hpBar"></div></div></div>` +
 					`</div>` +
-					`<div id="dungeonLog${this.id}" class="dungeonLog"></div>`;
-			// CC3 (Tier 1 + 3): the relic workshop + delve-status cards. Both render
-			// through infoHTML()/shopHTML() so they can be refreshed live each turn
-			// (UpdateInfo) as well as on the full Draw() that buyUpgrade triggers.
-			str += `<div id="dungeonInfo${this.id}" class="dungeonCard dungeonInfoCard">${this.infoHTML()}</div>`;
-			str += `<div id="dungeonShop${this.id}" class="dungeonCard dungeonShopCard">${this.shopHTML()}</div>`;
-			// CC3 (Tier 1): hero picker — choose among the four defined heroes
-			// (distinct stats/dialogue). The selection persists via M.save/load.
-			let pickerStr = `<div class="dungeonHeroPicker">`;
-			for (let pi = 0; pi < DungeonHeroes.length; pi++) {
-				const h = DungeonHeroes[pi];
-				pickerStr += `<a class="dungeonHeroChip${pi === self.selectedHero ? ' selected' : ''}" title="${h.name}" style="background-image:url(img/${h.portrait}.webp);" onclick="Game.ObjectsById[${this.id}].minigame.setHero(${pi});"></a>`;
-			}
-			pickerStr += `</div>`;
-			str += pickerStr;
+					`<div id="dungeonLog${this.id}" class="dungeonLog" style="width:${mapW}px;"></div>`;
+				str += `<div id="dungeonInfo${this.id}" class="dungeonCard dungeonInfoCard" style="left:${leftCol2}px;">${this.infoHTML()}</div>`;
+				str += `<div id="dungeonShop${this.id}" class="dungeonCard dungeonShopCard" style="left:${leftCol2}px;">${this.shopHTML()}</div>`;
+
+				let pickerStr = `<div class="dungeonHeroPicker" style="left:${mapW + 16}px;top:152px;">`;
+				for (let pi = 0; pi < DungeonHeroes.length; pi++) {
+					const h = DungeonHeroes[pi];
+					pickerStr += `<a class="dungeonHeroChip${pi === self.selectedHero ? ' selected' : ''}" title="${h.name}" style="background-image:url(img/${h.portrait}.webp);" onclick="Game.ObjectsById[${this.id}].minigame.setHero(${pi});"></a>`;
+				}
+				pickerStr += `</div>`;
+				str += pickerStr;
 				const rowSpecial = l("rowSpecial" + this.id);
-				if (rowSpecial) rowSpecial.innerHTML = `<div id="dungeonContent">${str}</div>`;
+				if (rowSpecial) rowSpecial.innerHTML = `<div id="dungeonContent" class="${this.fullscreen ? 'dungeonFullscreen' : ''}">${headerStr}${str}</div>`;
 
 				const picHero = l("picHero" + this.id);
 				if (picHero) picHero.style.backgroundImage = `url(img/${this.hero.portrait}.webp)`;
 				const nameHero = l("nameHero" + this.id);
 				if (nameHero) nameHero.innerHTML = this.hero.name;
+				this.Refresh();
 			},
 			Refresh: function () {
 				if (!l("mapcontainer" + this.id)) this.Draw();
-				const x = 4 - this.hero.x;
-				const y = 4 - this.hero.y;
+				const viewSize = this.fullscreen ? 21 : 9;
+				const halfView = Math.floor(viewSize / 2);
+				const x = halfView - this.hero.x;
+				const y = halfView - this.hero.y;
 				const mc = l("mapcontainer" + this.id);
 				if (mc) { mc.style.left = (x * 16) + "px"; mc.style.top = (y * 16) + "px"; }
 				const mi = l("mapitems" + this.id);
@@ -1491,6 +1538,13 @@ M.logic = function (this: DungeonMinigame) {
 M.setHero = function (this: DungeonMinigame, idx: number) {
 	const d = (this.parent as any).dungeon;
 	if (d && d.setHero) d.setHero(idx);
+};
+
+M.toggleFullscreen = function (this: DungeonMinigame) {
+	const d = (this.parent as any).dungeon;
+	if (!d) return;
+	d.fullscreen = !d.fullscreen;
+	d.Draw();
 };
 
 M.draw = function (this: DungeonMinigame) {
