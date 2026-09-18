@@ -520,10 +520,12 @@ M.launch = function (this: CatColonyMinigame) {
 				var durMs = M.durationFor(mission) * 1000;
 				var remainMs = Math.max(0, grp.returnAt - now);
 				var pct = Math.min(100, Math.max(0, 100 * (1 - remainMs / durMs)));
+				var totalCats = grp.count * grp.qty;
+				var qtyStr = grp.qty > 1 ? ' <span style="opacity:0.95;color:#ffe066;font-weight:bold;">x' + grp.qty + ' (' + totalCats + ' cats total)</span>' : '';
 				str += '<div class="colonyProgressCard">';
 				str += '<div style="display:flex;justify-content:space-between;align-items:center;">';
-				str += '<span><b>' + mission.name + '</b> (' + grp.count + ' cats)' + (grp.qty > 1 ? ' <span style="opacity:0.9;color:#ffe066;font-weight:bold;">x' + grp.qty + '</span>' : '') + '</span>';
-				str += '<span>⏱ ' + Game.sayTime(Math.ceil(remainMs / 1000) * Game.fps, -1) + '</span>';
+				str += '<span class="colonyCardTitle"><b>' + mission.name + '</b> (' + grp.count + ' cats)' + qtyStr + '</span>';
+				str += '<span class="colonyCardTime">⏱ ' + Game.sayTime(Math.ceil(remainMs / 1000) * Game.fps, -1) + '</span>';
 				str += '</div>';
 				str += '<div class="colonyProgressBar"><div class="colonyProgressFill" style="width:' + pct.toFixed(1) + '%;"></div></div>';
 				str += '</div>';
@@ -821,7 +823,7 @@ M.launch = function (this: CatColonyMinigame) {
 				if (cards[g]) {
 					var fill = cards[g].querySelector('.colonyProgressFill') as HTMLElement;
 					if (fill) fill.style.width = pct.toFixed(1) + '%';
-					var timeSpan = cards[g].querySelector('span:last-child') as HTMLElement;
+					var timeSpan = cards[g].querySelector('.colonyCardTime') as HTMLElement;
 					if (timeSpan) timeSpan.textContent = '⏱ ' + Game.sayTime(Math.ceil(remainMs / 1000) * Game.fps, -1);
 				}
 			}
