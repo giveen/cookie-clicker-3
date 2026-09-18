@@ -105,13 +105,15 @@ interface CatColonyMinigame {
 	tutorialOpen: boolean;
 
 	/* --- derived values / actions --- */
+	bulkDispatchMode: 1 | 5 | 10 | 'max';
+	setBulkDispatchMode: (mode: 1 | 5 | 10 | 'max') => void;
 	effectiveStacks: (name: string) => number;
 	awayCount: () => number;
 	restingCount: () => number;
 	idleCats: () => number;
 	hurtChanceFor: (mission: ColonyMission) => number;
 	durationFor: (mission: ColonyMission) => number;
-	dispatch: (id: string) => boolean;
+	dispatch: (id: string, customAmount?: number | 'max') => boolean;
 	resolveExpeditions: () => void;
 	checkExpeditionAchievements: () => void;
 	buyUpgrade: (name: string) => boolean;
@@ -198,13 +200,41 @@ M.launch = function (this: CatColonyMinigame) {
 		M.hurtChanceFor = function (mission: ColonyMission) { return mission.hurtChance * Math.pow(0.7, M.effectiveStacks('Nine-lives insurance')) * (Game.Has('Nap discipline') ? 0.8 : 1); };
 		M.durationFor = function (mission: ColonyMission) { return Game.Has('Efficient patrols') ? Math.ceil(mission.duration * 0.85) : mission.duration; };
 
-		M.dispatch = function (id: string) {
+		M.bulkDispatchMode = 1;
+		M.setBulkDispatchMode = function (mode: 1 | 5 | 10 | 'max') {
+			M.bulkDispatchMode = mode;
+			M.refresh();
+		};
+
+		M.dispatch = function (id: string, customAmount?: number | 'max') {
 			var mission = M.missionsById[id];
 			if (!mission) return false;
 			if (M.parent.amount < mission.unlock) return false;
-			if (M.idleCats() < mission.catCost) return false;
-			M.away.push({ uid: M.uidN++, id: id, count: mission.catCost, returnAt: Date.now() + M.durationFor(mission) * 1000 });
+			var idle = M.idleCats();
+			if (idle < mission.catCost) return false;
+
+			var targetAmount: number | 'max' = customAmount !== undefined ? customAmount : (M.bulkDispatchMode || 1);
+			var maxPossible = Math.floor(idle / mission.catCost);
+			var countToDispatch = 0;
+
+			if (targetAmount === 'max') {
+				countToDispatch = maxPossible;
+			} else {
+				countToDispatch = Math.min(targetAmount, maxPossible);
+			}
+
+			if (countToDispatch <= 0) return false;
+
+			var now = Date.now();
+			var dur = M.durationFor(mission) * 1000;
+			for (var c = 0; c < countToDispatch; c++) {
+				M.away.push({ uid: M.uidN++, id: id, count: mission.catCost, returnAt: now + dur });
+			}
+
 			PlaySound('snd/harvest2.mp3', 0.75);
+			if (countToDispatch > 1) {
+				Game.Notify(loc("Expeditions dispatched"), 'Dispatched ' + countToDispatch + ' x ' + mission.name + ' (' + (countToDispatch * mission.catCost) + ' cats).', [4, 26]);
+			}
 			M.refresh();
 			return true;
 		};
@@ -412,7 +442,14 @@ M.launch = function (this: CatColonyMinigame) {
 	};
 
 	M.renderMissions = function () {
-		var str = '<div class="colonyBox"><div class="colonyTitle">Expeditions</div>';
+		var mode = M.bulkDispatchMode || 1;
+		var str = '<div class="colonyBox"><div class="colonyTitle">Expeditions ' +
+			'<span style="float:right;font-size:10px;font-weight:normal;">Bulk: ' +
+			'<span class="colonyChip ' + (mode === 1 ? 'colonyChipAmber' : 'colonyChipBlue') + '" id="colonyBulk1" style="cursor:pointer;">x1</span>' +
+			'<span class="colonyChip ' + (mode === 5 ? 'colonyChipAmber' : 'colonyChipBlue') + '" id="colonyBulk5" style="cursor:pointer;">x5</span>' +
+			'<span class="colonyChip ' + (mode === 10 ? 'colonyChipAmber' : 'colonyChipBlue') + '" id="colonyBulk10" style="cursor:pointer;">x10</span>' +
+			'<span class="colonyChip ' + (mode === 'max' ? 'colonyChipAmber' : 'colonyChipBlue') + '" id="colonyBulkMax" style="cursor:pointer;">Max</span>' +
+			'</span></div>';
 		str += '<div style="font-size:10px;opacity:0.7;margin-bottom:4px;">Send idle cats on timed expeditions to bring back treats. Bigger missions unlock at more cats and pay more — but carry more risk.</div>';
 		str += '<div class="colonyMissionList">';
 		for (var i = 0; i < M.missions.length; i++) {
@@ -420,6 +457,11 @@ M.launch = function (this: CatColonyMinigame) {
 			var locked = M.parent.amount < mission.unlock;
 			var canGo = !locked && M.idleCats() >= mission.catCost;
 			var art = M.missionArt[i] || M.missionArt[0];
+
+			var dispatchLabel = 'Dispatch';
+			if (mode === 'max') dispatchLabel = 'Dispatch Max';
+			else if (mode > 1) dispatchLabel = 'Dispatch x' + mode;
+
 			str += '<div class="colonyMission' + (locked ? ' colonyMissionLocked' : '') + '">';
 			str += '<div class="colonyMissionIcon" style="background-image:url(img/cats/' + art.sheet + ');background-size:' + art.size + ';background-position:' + art.pos + ';"></div>';
 			str += '<div class="colonyMissionInfo">';
@@ -437,7 +479,10 @@ M.launch = function (this: CatColonyMinigame) {
 			}
 			str += '</div>';
 			if (!locked) {
-				str += '<div class="colonyBtn' + (canGo ? '' : ' colonyBtnDisabled') + '" id="colonyDispatch' + mission.id + '">Dispatch</div>';
+				str += '<div style="display:flex;gap:4px;flex:none;">';
+				str += '<div class="colonyBtn' + (canGo ? '' : ' colonyBtnDisabled') + '" id="colonyDispatch' + mission.id + '">' + dispatchLabel + '</div>';
+				str += '<div class="colonyBtn' + (canGo ? '' : ' colonyBtnDisabled') + '" id="colonyDispatchMax' + mission.id + '" title="Dispatch all available idle cats for this mission">Max</div>';
+				str += '</div>';
 			}
 			str += '</div>';
 		}
@@ -476,10 +521,22 @@ M.launch = function (this: CatColonyMinigame) {
 		// Bind the How-to-play button (the roster re-renders every refresh).
 		var helpBtn = l('colonyHelpBtn');
 		if (helpBtn) AddEvent(helpBtn, 'click', function () { M.toggleTutorial(); });
+		
+		var b1 = l('colonyBulk1');
+		if (b1) AddEvent(b1, 'click', function () { M.setBulkDispatchMode(1); });
+		var b5 = l('colonyBulk5');
+		if (b5) AddEvent(b5, 'click', function () { M.setBulkDispatchMode(5); });
+		var b10 = l('colonyBulk10');
+		if (b10) AddEvent(b10, 'click', function () { M.setBulkDispatchMode(10); });
+		var bMax = l('colonyBulkMax');
+		if (bMax) AddEvent(bMax, 'click', function () { M.setBulkDispatchMode('max'); });
+
 		for (var i = 0; i < M.missions.length; i++) {
 			var mission = M.missions[i];
 			var btn = l('colonyDispatch' + mission.id);
 			if (btn) { AddEvent(btn, 'click', function (id: string) { return function () { M.dispatch(id); }; }(mission.id)); }
+			var btnMax = l('colonyDispatchMax' + mission.id);
+			if (btnMax) { AddEvent(btnMax, 'click', function (id: string) { return function () { M.dispatch(id, 'max'); }; }(mission.id)); }
 		}
 		for (var j = 0; j < M.upgradeNames.length; j++) {
 			var btn2 = l('colonyBuy' + j);
