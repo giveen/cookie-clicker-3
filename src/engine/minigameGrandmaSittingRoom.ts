@@ -497,9 +497,9 @@ M.launch = function (this: SittingRoomMinigame) {
 		str += '<div class="roomTitle">How to play <span id="roomHelpClose" class="roomHelpBtn" title="Close" style="float:right;">✕</span></div>';
 		str += '<ul>';
 		str += '<li><b>Assign activities & Room Presets</b> — click a seat to select it, then pick an activity below. Or click <b>☕ Max Cozy</b> / <b>👁 Max Eldritch</b> to auto-fill your room instantly!</li>';
+		str += '<li><b>Comfort dial</b> — cozy activities (green, +) boost Grandma CpS and calm the Grandmapocalypse; eldritch activities (red, −) cut Grandma CpS but amplify wrath-cookie and wrinkler effects while the Grandmapocalypse is active.</li>';
 		str += '<li><b>Teatime Requests</b> — grandmas will occasionally request warm tea! Click the ☕ badge above their seat to serve them for instant Yarn and a 60s Teatime Frenzy.</li>';
 		str += '<li><b>Activity Synergies</b> — pair matching activities (*Afternoon Gossip*, *Rocking Stories*, *Dark Coven*) for bonus Yarn, Grandma CpS, or Wrinkler bonuses.</li>';
-		str += '<li><b>Golden Yarn Ball</b> — look out for golden yarn balls rolling across the room! Click them for extra Yarn windfalls.</li>';
 		str += '<li><b>Interactive Chatter</b> — click seated grandmas to hear their stories (or dark whispers!).</li>';
 		str += '<li><b>Spend yarn in bulk</b> — buy repeatable sitting room upgrades in bulk (`x1`, `x10`, `Max`) to boost Grandma output exponentially.</li>';
 		str += '</ul>';
