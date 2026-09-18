@@ -41,7 +41,7 @@ import { Draw } from "./ui/draw";
 import { DrawBackground } from "./ui/drawBackground";/* CC3: the original relied on implicit globals; declare them for module strict mode. */
 import { ClickTinyCookie, ShowMenu, setVolume, setVolumeMusic, setWubMusic, showLangSelection, tinyCookie, UpdateMenu } from "./ui/menu";
 import { CloseNote, CloseNotes, ClosePrompt, ConfirmPrompt, FocusPromptOption, Note, NotesDraw, NotesLogic, Notify, NotifyTooltip, Prompt, UpdateNotes, UpdatePrompt } from "./ui/notifications";
-import { Popup, particleAdd, particlesDraw, particlesUpdate, SparkleAt, SparkleOn, textParticlesAdd, textParticlesUpdate } from "./ui/particles";
+import { Popup, particleAdd, particlesDraw, particlesUpdate, SparkleAt, SparkleOn, spawnBuildingPurchaseBurst, spawnCookieShockwave, textParticlesAdd, textParticlesUpdate } from "./ui/particles";
 import { BuildStore, ClickProduct, HoldToBuyPref, modifyBuildingPrice, RefreshStore, storeBulkButton, ToggleHoldToBuy } from "./ui/store";
 import { attachTooltip, getDynamicTooltip, getTooltip, tooltipDraw, tooltipHide, tooltipUpdate, tooltipWobble } from "./ui/tooltip";
 import { Debug, debugStr } from "./utils/debug";
@@ -1809,6 +1809,8 @@ Game.Launch=function()
 		Game.particlesUpdate=particlesUpdate;//CC3 rewrite (phase 6, slice 3): moved verbatim to ui/particles.ts; same Game slot, same Init position.
 		Game.particleAdd=particleAdd;//CC3 rewrite (phase 6, slice 3): moved verbatim to ui/particles.ts; same Game slot, same Init position.
 		Game.particlesDraw=particlesDraw;//CC3 rewrite (phase 6, slice 3): moved verbatim to ui/particles.ts; same Game slot, same Init position.
+		Game.spawnCookieShockwave=spawnCookieShockwave;
+		Game.spawnBuildingPurchaseBurst=spawnBuildingPurchaseBurst;
 		
 		//text particles (popups etc)
 		Game.textParticles=[];

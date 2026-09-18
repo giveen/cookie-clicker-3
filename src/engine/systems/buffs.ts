@@ -119,6 +119,20 @@ export function updateBuffs()//executed every logic frame
 			Game.storeToRefresh=1;
 		}
 	}
+
+	var gameEl = l('game');
+	if (gameEl)
+	{
+		var hasFrenzy = !!Game.buffs['Frenzy'];
+		var hasClickFrenzy = !!Game.buffs['Click frenzy'] || !!Game.buffs['Dragonflight'];
+		var hasElderFrenzy = !!Game.buffs['Elder frenzy'];
+		var hasClot = !!Game.buffs['Clot'];
+
+		if (hasFrenzy) gameEl.classList.add('buffAuraFrenzy'); else gameEl.classList.remove('buffAuraFrenzy');
+		if (hasClickFrenzy) gameEl.classList.add('buffAuraClickFrenzy'); else gameEl.classList.remove('buffAuraClickFrenzy');
+		if (hasElderFrenzy) gameEl.classList.add('buffAuraElderFrenzy'); else gameEl.classList.remove('buffAuraElderFrenzy');
+		if (hasClot) gameEl.classList.add('buffAuraClot'); else gameEl.classList.remove('buffAuraClot');
+	}
 }
 
 export function killBuff(what: any)//remove a buff by name

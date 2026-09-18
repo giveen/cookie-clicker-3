@@ -283,3 +283,34 @@ export function SparkleOn(el: any)
 			var rect=el.getBounds();
 			Game.SparkleAt((rect.left+rect.right)/2,(rect.top+rect.bottom)/2-24);
 		}
+
+export function spawnCookieShockwave(x: number, y: number) {
+	if (Game.prefs && Game.prefs.noMotion) return;
+	const div = document.createElement('div');
+	div.className = 'cookieShockwave';
+	div.style.left = x + 'px';
+	div.style.top = y + 'px';
+	document.body.appendChild(div);
+	setTimeout(() => {
+		if (div.parentNode) div.parentNode.removeChild(div);
+	}, 480);
+}
+
+export function spawnBuildingPurchaseBurst(x: number, y: number) {
+	if (Game.prefs && !Game.prefs.particles) return;
+	for (let i = 0; i < 8; i++) {
+		const angle = Math.random() * Math.PI * 2;
+		const speed = 2 + Math.random() * 4;
+		Game.particleAdd(
+			x + (Math.random() - 0.5) * 20,
+			y + (Math.random() - 0.5) * 20,
+			Math.cos(angle) * speed,
+			Math.sin(angle) * speed - 1,
+			1,
+			1.2,
+			1,
+			null,
+			null
+		);
+	}
+}

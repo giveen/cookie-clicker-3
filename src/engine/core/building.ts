@@ -459,6 +459,11 @@ export class Building {
 					}
 				}
 				if (success) {PlaySound('snd/buy'+choose([1,2,3,4])+'.mp3',0.75);PlaySound('snd/confirm1.mp3',0.25);//CC3: interface confirm tone layered under the buy sound
+				var prodEl = l('product' + this.id);
+				if (prodEl && Game.spawnBuildingPurchaseBurst) {
+					var rect = prodEl.getBoundingClientRect();
+					Game.spawnBuildingPurchaseBurst((rect.left + rect.right) / 2, (rect.top + rect.bottom) / 2);
+				}
 				this.refresh();}
 				else if (Game.buyMode!=-1) {PlaySound('snd/error1.mp3',0.5);}//CC3: interface error tone when nothing could be bought (can't afford)
 				//if (moni>0 && amount>1) Game.Notify(this.name,'Bought <b>'+bought+'</b> for '+Beautify(moni)+' cookies','',2);

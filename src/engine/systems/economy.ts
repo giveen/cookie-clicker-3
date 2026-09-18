@@ -264,6 +264,7 @@ export function ClickCookie(e?: Event | null,amount?: number)
 				Game.particleAdd();
 				Game.particleAdd(Game.mouseX,Game.mouseY,Math.random()*4-2,Math.random()*-2-2,Math.random()*0.5+0.75,1,2);
 			}
+			if (Game.spawnCookieShockwave) Game.spawnCookieShockwave(Game.mouseX,Game.mouseY);
 			if (Game.prefs.numbers) Game.particleAdd(Game.mouseX+Math.random()*8-4,Game.mouseY-8-4,0,-2,1,4,2,'','+'+Beautify(amt,1));
 			
 			Game.runModHook('click');
