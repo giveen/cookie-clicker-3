@@ -55,6 +55,15 @@ interface AwayEntry {
 	returnAt: number;
 }
 
+/** A grouped view of identical active expeditions returning at the same time. */
+interface GroupedAway {
+	id: string;
+	mission: ColonyMission;
+	count: number;
+	qty: number;
+	returnAt: number;
+}
+
 /** A group of cats resting after a scuffle. */
 interface RestingEntry {
 	uid: number;
@@ -118,6 +127,7 @@ interface CatColonyMinigame {
 	awayCount: () => number;
 	restingCount: () => number;
 	idleCats: () => number;
+	getGroupedAway: () => GroupedAway[];
 	hurtChanceFor: (mission: ColonyMission) => number;
 	durationFor: (mission: ColonyMission) => number;
 	dispatch: (id: string, customAmount?: number | 'max') => boolean;
@@ -201,6 +211,32 @@ M.launch = function (this: CatColonyMinigame) {
 		M.awayCount = function () { var n = 0; for (var i = 0; i < M.away.length; i++) n += M.away[i].count; return n; };
 		M.restingCount = function () { var n = 0; for (var i = 0; i < M.resting.length; i++) n += M.resting[i].count; return n; };
 		M.idleCats = function () { return Math.max(0, Math.floor(M.parent.amount) - M.awayCount() - M.restingCount()); };
+
+		M.getGroupedAway = function () {
+			var groups: GroupedAway[] = [];
+			var map: Record<string, GroupedAway> = {};
+			for (var a = 0; a < M.away.length; a++) {
+				var entry = M.away[a];
+				var mission = M.missionsById[entry.id];
+				if (!mission) continue;
+				var secKey = Math.floor(entry.returnAt / 1000);
+				var key = entry.id + '_' + entry.count + '_' + secKey;
+				if (!map[key]) {
+					map[key] = {
+						id: entry.id,
+						mission: mission,
+						count: entry.count,
+						qty: 1,
+						returnAt: entry.returnAt
+					};
+					groups.push(map[key]);
+				} else {
+					map[key].qty++;
+					map[key].returnAt = Math.max(map[key].returnAt, entry.returnAt);
+				}
+			}
+			return groups;
+		};
 
 		M.autoRepeat = {};
 		M.shopBulkMode = 1;
@@ -477,16 +513,16 @@ M.launch = function (this: CatColonyMinigame) {
 		if (M.away.length > 0) {
 			str += '<div class="colonyTimers" id="colonyTimers">';
 			var now = Date.now();
-			for (var a = 0; a < M.away.length; a++) {
-				var entry = M.away[a];
-				var mission = M.missionsById[entry.id];
-				if (!mission) continue;
+			var grouped = M.getGroupedAway();
+			for (var g = 0; g < grouped.length; g++) {
+				var grp = grouped[g];
+				var mission = grp.mission;
 				var durMs = M.durationFor(mission) * 1000;
-				var remainMs = Math.max(0, entry.returnAt - now);
+				var remainMs = Math.max(0, grp.returnAt - now);
 				var pct = Math.min(100, Math.max(0, 100 * (1 - remainMs / durMs)));
 				str += '<div class="colonyProgressCard">';
 				str += '<div style="display:flex;justify-content:space-between;align-items:center;">';
-				str += '<span><b>' + mission.name + '</b> (' + entry.count + ' cats)</span>';
+				str += '<span><b>' + mission.name + '</b> (' + grp.count + ' cats)' + (grp.qty > 1 ? ' <span style="opacity:0.9;color:#ffe066;font-weight:bold;">x' + grp.qty + '</span>' : '') + '</span>';
 				str += '<span>⏱ ' + Game.sayTime(Math.ceil(remainMs / 1000) * Game.fps, -1) + '</span>';
 				str += '</div>';
 				str += '<div class="colonyProgressBar"><div class="colonyProgressFill" style="width:' + pct.toFixed(1) + '%;"></div></div>';
@@ -770,18 +806,22 @@ M.launch = function (this: CatColonyMinigame) {
 
 		if (M.away.length > 0 && l('colonyTimers')) {
 			var now = Date.now();
-			for (var a = 0; a < M.away.length; a++) {
-				var entry = M.away[a];
-				var mission = M.missionsById[entry.id];
-				if (!mission) continue;
+			var grouped = M.getGroupedAway();
+			var cards = document.querySelectorAll('#colonyTimers .colonyProgressCard');
+			if (cards.length !== grouped.length) {
+				M.refresh();
+				return;
+			}
+			for (var g = 0; g < grouped.length; g++) {
+				var grp = grouped[g];
+				var mission = grp.mission;
 				var durMs = M.durationFor(mission) * 1000;
-				var remainMs = Math.max(0, entry.returnAt - now);
+				var remainMs = Math.max(0, grp.returnAt - now);
 				var pct = Math.min(100, Math.max(0, 100 * (1 - remainMs / durMs)));
-				var cards = document.querySelectorAll('#colonyTimers .colonyProgressCard');
-				if (cards[a]) {
-					var fill = cards[a].querySelector('.colonyProgressFill') as HTMLElement;
+				if (cards[g]) {
+					var fill = cards[g].querySelector('.colonyProgressFill') as HTMLElement;
 					if (fill) fill.style.width = pct.toFixed(1) + '%';
-					var timeSpan = cards[a].querySelector('span:last-child') as HTMLElement;
+					var timeSpan = cards[g].querySelector('span:last-child') as HTMLElement;
 					if (timeSpan) timeSpan.textContent = '⏱ ' + Game.sayTime(Math.ceil(remainMs / 1000) * Game.fps, -1);
 				}
 			}
