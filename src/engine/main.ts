@@ -1271,6 +1271,7 @@ Game.Launch=function()
 		Game.externalDataLoaded=false;
 		
 		Game.grandmaNames=['Granny','Gusher','Ethel','Edna','Doris','Maud','Hilda','Gladys','Michelle','Michele','Phyllis','Millicent','Muriel','Myrtle','Mildred','Mavis','Helen','Gloria','Sheila','Betty','Gertrude','Agatha','Beryl','Agnes','Pearl','Precious','Ruby','Vera','Bonnie','Ada','Bunny','Cookie','Darling','Gaga','GamGam','Memaw','Mimsy','Peanut','Nana','Nan','Tootsie','Warty','Stinky','Heinous'];
+		Game.catNames=['Mitten','Felix','Luna','Oliver','Mochi','Cleo','Simba','Milo','Nala','Bella','Smokey','Socks','Oreo','Whiskers','Jasper','Ginger','Shadow','Callie','Garfield','Peanut','Ziggy','Mittens','Pumpkin','Snowball','Boots','Binx','Hazel','Penny','Bandit','Charlie','Waffles','Truffle','Biscuit','Muffin','Cupcake','Noodle','Boba','Kiki','Salem','Patches','Barnaby','Figaro','Gatsby','Mallow','Buttons'];
 		Game.customGrandmaNames=[];
 		Game.heralds=0;
 		

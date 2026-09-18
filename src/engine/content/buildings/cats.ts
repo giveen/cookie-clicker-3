@@ -200,6 +200,11 @@ export function declareCats(Game: EngineGame) {
 				}
 			}
 
+			var hoveredCatIndex = -1;
+			var hoveredCatX = 0;
+			var hoveredCatY = 0;
+			var hoveredCatWidth = 80;
+
 			for (var i=0;i<count;i++)
 			{
 				// Most cats are idle; only every eighth cat walks the floor and
@@ -242,6 +247,20 @@ export function declareCats(Game: EngineGame) {
 				var groundY=Math.max(0,height-drawHeight-12);
 				var groundOffset=(i%3)*4;
 				var y=Math.max(0,groundY+groundOffset+Math.sin((Game.T+i*17)*0.05)*2);
+
+				if (this.mouseOn && this.mousePos && this.mousePos[0] >= 0)
+				{
+					var mx = this.mousePos[0];
+					var my = this.mousePos[1];
+					if (mx >= x && mx <= x + drawWidth && my >= y && my <= y + drawHeight)
+					{
+						hoveredCatIndex = i;
+						hoveredCatX = x;
+						hoveredCatY = y;
+						hoveredCatWidth = drawWidth;
+					}
+				}
+
 				// The source sprites face left. Mirror only while traveling right;
 				// idle cats stay unflipped and stationary.
 				var movingRight=!idle && !returning;
@@ -254,6 +273,40 @@ export function declareCats(Game: EngineGame) {
 				ctx.drawImage(sprite,frame*animation.width,0,animation.width,64,movingRight?0:Math.floor(x),Math.floor(y),Math.floor(drawWidth),Math.floor(drawHeight));
 				ctx.restore();
 			}
+
+			if (hoveredCatIndex >= 0)
+			{
+				Math.seedrandom(Game.seed + ' cat ' + hoveredCatIndex);
+				var catNames = Game.catNames || ['Mitten','Felix','Luna','Oliver','Mochi','Cleo','Simba','Milo','Nala','Bella','Smokey','Socks','Oreo','Whiskers','Jasper','Ginger','Shadow','Callie','Garfield','Peanut','Ziggy','Mittens','Pumpkin','Snowball','Boots','Binx','Hazel','Penny','Bandit','Charlie','Waffles','Truffle','Biscuit','Muffin','Cupcake','Noodle','Boba','Kiki','Salem','Patches','Barnaby','Figaro','Gatsby','Mallow','Buttons'];
+				var catName = catNames[Math.floor(Math.random() * catNames.length)];
+				var catAge = Math.floor(1 + Math.random() * 14);
+				var tooltipText = loc("%1, age %2", [catName, catAge]);
+				Math.seedrandom();
+
+				ctx.font = '14px Merriweather';
+				ctx.textAlign = 'center';
+				var textWidth = ctx.measureText(tooltipText).width + 16;
+				var boxWidth = Math.floor(textWidth);
+				var boxHeight = 24;
+				var boxX = Math.floor(Math.max(0, Math.min(hoveredCatX + hoveredCatWidth / 2 - boxWidth / 2, width - boxWidth)));
+				var boxY = Math.floor(Math.max(4, hoveredCatY - 26));
+
+				ctx.strokeStyle = '#000';
+				ctx.lineWidth = 6;
+				ctx.globalAlpha = 0.75;
+				ctx.beginPath();
+				ctx.moveTo(Math.floor(hoveredCatX + hoveredCatWidth / 2), Math.floor(hoveredCatY + 16));
+				ctx.lineTo(Math.floor(boxX + boxWidth / 2), Math.floor(boxY + boxHeight));
+				ctx.stroke();
+
+				ctx.fillStyle = '#000';
+				ctx.fillRect(boxX, boxY, boxWidth, boxHeight);
+
+				ctx.globalAlpha = 1.0;
+				ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+				ctx.fillText(tooltipText, Math.floor(boxX + boxWidth / 2), Math.floor(boxY + 16));
+			}
+
 			return;
 		};
 		var catRow=l('row'+cats.id);
