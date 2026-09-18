@@ -2537,6 +2537,7 @@ if (debugSurface && params.get('qa') === 'sittingroom') {
 
 			// 2. wrath integration — deterministic beats (Math.random=()=>0
 			//    makes every drift roll succeed, so only the gating matters)
+			G.ascensionMode = 0;
 			U('One mind').bought = 1;
 			G.pledgeT = 0;
 			G.cookies = 1e15;
@@ -2562,25 +2563,29 @@ if (debugSurface && params.get('qa') === 'sittingroom') {
 			U('Elder Pact').bought = 1; // wrath cap 3
 			setSeats([0, 1, 1, 0, 0, 1]);
 			U('Elder hospitality').bought = 0;
-			Math.random = lcg(12345);
+			if (G.ResetWrinklers) G.ResetWrinklers();
+			Math.random = lcg(42);
 			G.elderWrath = 3;
 			const cozyTicks = runTo((w) => w === 0, 20000);
 			chk('cozy room calmed wrath 3 -> 0 in ' + cozyTicks + ' ticks (< 2000)', G.elderWrath === 0 && cozyTicks < 2000);
 			for (let i = 0; i < 300; i++) G.UpdateGrandmapocalypse();
 			chk('cozy room holds the elders at 0', G.elderWrath === 0);
 			U('Elder hospitality').bought = 1;
-			Math.random = lcg(12345);
+			if (G.ResetWrinklers) G.ResetWrinklers();
+			Math.random = lcg(42);
 			G.elderWrath = 3;
 			const hospTicks = runTo((w) => w === 0, 20000);
 			chk("'Elder hospitality' calmed it faster (" + hospTicks + ' vs ' + cozyTicks + ' ticks, ~half)', G.elderWrath === 0 && hospTicks <= cozyTicks / 2 + 100 && hospTicks < 2000);
 			U('Elder hospitality').bought = 0;
 			setSeats([4, 4, 4, 4, 4, 4]);
-			Math.random = lcg(12345);
+			if (G.ResetWrinklers) G.ResetWrinklers();
+			Math.random = lcg(42);
 			G.elderWrath = 1;
 			const eldritchTicks = runTo((w) => w === 3, 20000);
 			chk('eldritch room climbed wrath 1 -> 3 in ' + eldritchTicks + ' ticks (< 1500)', G.elderWrath === 3 && eldritchTicks < 1500);
 			setSeats([-1, -1, -1, -1, -1, -1]);
-			Math.random = lcg(12345);
+			if (G.ResetWrinklers) G.ResetWrinklers();
+			Math.random = lcg(42);
 			G.elderWrath = 1;
 			const neutralTicks = runTo((w) => w === 3, 40000);
 			chk('neutral room took ' + neutralTicks + ' ticks to the same climb (>= 3x the eldritch room)', G.elderWrath === 3 && neutralTicks >= eldritchTicks * 3);

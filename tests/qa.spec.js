@@ -31,8 +31,14 @@ async function boot(page, query) {
  */
 async function qaReport(page, doneRe, timeout = 60_000) {
 	const el = page.locator('#__dbgqa');
-	await expect(el).toContainText(doneRe, { timeout });
-	return el.innerText();
+	const src = doneRe instanceof RegExp ? doneRe.source : String(doneRe);
+	const matchRe = new RegExp(`(?:${src})|\\[QA-\\w+\\] (?:FAIL|ERROR)`);
+	await expect(el).toContainText(matchRe, { timeout });
+	const text = await el.innerText();
+	if (text.includes('FAIL:') || text.includes('ERROR:')) {
+		throw new Error('QA probe reported failure:\n' + text);
+	}
+	return text;
 }
 
 /** No uncaught errors were painted onto the debug error surface. */
