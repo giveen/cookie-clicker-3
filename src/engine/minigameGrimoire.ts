@@ -403,7 +403,7 @@ M.launch=function(this: GrimoireMinigame)
 			if (typeof obj.failChanceMult!=='undefined') failChance*=obj.failChanceMult;
 			if (typeof obj.failChanceMax!=='undefined') failChance=Math.max(failChance,obj.failChanceMax);
 			Math.seedrandom(Game.seed+'/'+M.spellsCastTotal);
-			if (!spell.fail || Math.random()<(1-failChance)) {out=spell.win();} else {fail=true;out=spell.fail();}
+			if (!spell.fail || Math.random()<(1-failChance)) {out=spell.win();} else {fail=true;out=spell.fail();if (Game.bumpExtraAchCounter) Game.bumpExtraAchCounter('backfires');/*CC3: 'Backdraft' counter*/}
 			Math.seedrandom();
 			if (out!=-1)
 			{
@@ -433,6 +433,7 @@ M.launch=function(this: GrimoireMinigame)
 		{
 			var out=spell.costMin;
 			if (spell.costPercent) out+=M.magicM*spell.costPercent;
+			if (Game.extraAchievPerkSpell) out*=Game.extraAchievPerkSpell();//CC3: Mana efficient keystone — spells cost 5% less mana
 			return Math.floor(out);
 		}
 		M.getSpellCostBreakdown=function(spell: GrimoireSpell)

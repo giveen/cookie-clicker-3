@@ -221,6 +221,12 @@ function inRect(x: any,y: any,rect: any)
 					PlaySound('snd/error1.mp3',0.3);//CC3: interface error tone layered on the pop
 					Game.wrinklersPopped++;
 					Game.recalculateGains=1;
+					//CC3: expansion counters + keystone perk (Pest control family)
+					if (Game.bumpExtraAchCounter)
+					{
+						Game.bumpExtraAchCounter('shinyPopped',me.type==1?1:0);
+					}
+					me.sucked*=Game.extraAchievPerkWrinkler?Game.extraAchievPerkWrinkler():1;
 					me.phase=0;
 					me.close=0;
 					me.hurt=0;
@@ -261,11 +267,12 @@ function inRect(x: any,y: any,rect: any)
 							if (Math.random()>failRate)//halloween cookie drops
 							{
 								var cookie=choose(['Skull cookies','Ghost cookies','Bat cookies','Slime cookies','Pumpkin cookies','Eyeball cookies','Spider cookies']);
-								if (!Game.HasUnlocked(cookie) && !Game.Has(cookie))
-								{
-									Game.Unlock(cookie);
-									Game.Notify(Game.Upgrades[cookie].dname,loc("You also found <b>%1</b>!",Game.Upgrades[cookie].dname),Game.Upgrades[cookie].icon);
-								}
+							if (!Game.HasUnlocked(cookie) && !Game.Has(cookie))
+							{
+								Game.Unlock(cookie);
+								if (new Date().getMonth()==9) Game.Win('Spooky season');//CC3: Halloween cookie found in real-world October
+								Game.Notify(Game.Upgrades[cookie].dname,loc("You also found <b>%1</b>!",Game.Upgrades[cookie].dname),Game.Upgrades[cookie].icon);
+							}
 							}
 						}
 						Game.DropEgg(0.98);

@@ -356,6 +356,7 @@ M.launch = function (this: SittingRoomMinigame) {
 		M.checkAchievements = function () {
 			if (M.yarnEarned >= 1) Game.Win('First knit');
 			if (M.yarnEarned >= 1000) Game.Win('Yarn hoard');
+			if (M.yarnEarned >= 10000) Game.Win('The long knit');//CC3 expansion
 			var comfort = M.currentComfort();
 			if (comfort >= 6) Game.Win("Grandma's peace");
 			if (comfort <= -6) Game.Win('The elders sing');
@@ -772,6 +773,13 @@ M.launch = function (this: SittingRoomMinigame) {
 	};
 
 	M.logic = function () {
+		var rate = M.yarnPerSecond();
+		//CC3 expansion: cozy-streak clock for 'Comfort zone' — while every seat
+		//is cozy (+6 comfort) the counter accumulates seconds, else it drains.
+		if (Game.extraAchCounters) {
+			var allCozy = M.currentComfort() >= 6;
+			Game.extraAchCounters.cozyStreak = Math.max(0, Math.min(24 * 3600 + 5, Game.extraAchCounters.cozyStreak + (allCozy ? 1 : -3) / Game.fps));
+		}
 		var rate = M.yarnPerSecond();
 		if (rate > 0) {
 			M.yarnTrickle += rate / Game.fps;

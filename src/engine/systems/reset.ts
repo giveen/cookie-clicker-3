@@ -98,6 +98,10 @@ export function Reset(hard: any)
 	
 	Game.TickerClicks=0;
 	
+	//CC3: achievement-expansion counters — per-run counters zero out on
+	//ascension, permanent ones (wrath clicks, shiny pops, cat pets, …) survive
+	if (Game.resetExtraAchCounters) Game.resetExtraAchCounters();
+	
 	if (Game.gainedPrestige>0) Game.resets++;
 	if (!hard && Game.canLumps() && Game.ascensionMode!=1) Game.addClass('lumpsOn');
 	else Game.removeClass('lumpsOn');

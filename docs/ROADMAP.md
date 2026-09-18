@@ -173,9 +173,17 @@ picked up, traded, or dropped as we go. Checked items are shipped.
 
 ## Content
 
-- [ ] **More achievements** — Cats now carry the full standard set (14
-      tiered + 3 production + 1 level) plus cat-count milestones at 100,
-      450, 500 and 1000; add cookie-collection and seasonal achievements.
+- [x] **More achievements** — shipped 18/09/2026: 53 new achievements
+      (milestone tails to 1,000-of-everything and 9,000 cats, deeper
+      feature ladders for golden cookies/wrinklers/lumps/garden/grimoire/
+      casino/crumb/cracking/colony/sitting room, cookie-collection
+      completion, and shadow oddities) plus **keystone perks** — complete
+      an achievement family for a real bonus (golden duration, wrinkler
+      payouts, lump ripening, mana discounts, treat/yarn gains, +1%
+      heavenly chip power, +1% CpS building mastery). See
+      `src/engine/systems/achievementsExtra.ts` and the appended block at
+      the end of `src/engine/content/achievements.ts`. Verified by the
+      ?qa=achextra probe.
 - [ ] **Seasonal events** — the Santa/Dragon specials exist; add CC3-native
       events (e.g. a summer event using the summer backgrounds).
 - [ ] **Cat cosmetics** — alternate cat sprite palettes unlockable by milestone.

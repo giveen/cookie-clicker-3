@@ -181,6 +181,7 @@ import type { Game as EngineGame, Upgrade } from '../engine/types';
 							Game.Win('Decisive');
 							if (state.timesDecided >= 10) Game.Win('Control freak');
 							if (choice.name == 'Blab') Game.Win('Whimsical');
+							if (Game.bumpExtraAchCounter) Game.bumpExtraAchCounter('decisions');//CC3: 'Decide your destiny' lifetime shadow
 							hideSelectorBox(Game);
 						}
 					)();

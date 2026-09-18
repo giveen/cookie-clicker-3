@@ -27,6 +27,8 @@
  * CC3 addition: `CaptureSave` (systems/backup.ts) is called after each
  * successful main-slot write so the rolling backup history tracks every save.
  */
+
+import { loadExtraAchField, saveExtraAchField } from './achievementsExtra';//CC3: achievement-expansion counters (appended save field 54)
 import { CaptureSave } from './backup';
 import { clampCookies } from './economy';
 
@@ -210,6 +212,10 @@ export function WriteSave(type?: number)
 			(type==3?'\n	music volume : ':'')+parseInt(Math.floor(Game.volumeMusic), 10)+';'+
 			
 			(type==3?'\n\tcow level : ':'')+parseInt(Math.floor(Game.cowLevel), 10)+';'+
+			
+			//CC3: achievement-expansion counters — one appended field (index 54;
+			//saves without it import as all-zero). See systems/achievementsExtra.ts.
+			saveExtraAchField()+';'+
 			
 			'|';//cookies and lots of other stuff
 			
@@ -511,6 +517,7 @@ export function LoadSave(data?: any,ignoreVersionIssues?: any)
 						Game.volumeMusic=spl[52]?parseInt(spl[52], 10):50;
 						Game.cowLevel=spl[53]?parseInt(spl[53], 10):0;//CC3 feature (systems/cow.ts): appended field — saves without it import as 0
 						if (Game.cowLevel<0 || Game.cowLevel>11) Game.cowLevel=0;//clamp hand-edited saves to a valid stage
+						loadExtraAchField(spl[54]);//CC3: achievement-expansion counters (appended field 54; missing on old saves → all zero)
 						// CC3 P0: a save written while a bug pushed the ledger to float
 						// Infinity holds the literal "Infinity" in its monetary fields
 						// (parseFloat re-imports it as Infinity, so the damage was

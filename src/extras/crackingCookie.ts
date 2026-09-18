@@ -318,6 +318,11 @@ import type { Game as EngineGame } from '../engine/types';
 		if (state.totalTriggers === 1) G.Win(ACH_FIRST);
 		else if (state.totalTriggers === 10) G.Win(ACH_TEN);
 		else if (state.totalTriggers === 50) G.Win(ACH_FIFTY);
+		/* CC3 expansion: extended crack ladder (declared in the appended
+		 * achievements block, so Game.Win tolerates being called before the
+		 * content wave lands — unmet names are silently ignored). */
+		if (state.totalTriggers >= 100) G.Win('Crack shot');
+		if (state.totalTriggers >= 500) G.Win('Fracture specialist');
 		if (typeof G.SparkleAt === 'function') G.SparkleAt(G.cookieOriginX, G.cookieOriginY);
 		PlaySound('snd/cookieBreak.mp3', 0.8);
 		PlaySound('snd/cashIn.mp3', 0.6);
@@ -459,6 +464,11 @@ import type { Game as EngineGame } from '../engine/types';
 	/* Content declaration — 3 achievements (vanilla=0, 'create' hook).     */
 	/* ------------------------------------------------------------------ */
 	const declared = { done: false };
+
+	/* CC3 expansion: expose the lifetime payoff counter so the engine's
+	 * 5-second checker can backfill the crack-ladder achievements after a
+	 * save import (the payoff hook only fires on live payoffs). */
+	(window as any).__cc3CrackingCookieState = state;
 
 	function declare(G: EngineGame): void {
 		if (declared.done) return;

@@ -394,6 +394,10 @@ export function Logic()
 				if (!Game.HasAchiev('Cookie-dunker') && Game.LeftBackground && Game.milkProgress>0.1 && (Game.LeftBackground.canvas.height*0.4+256/2-16)>((1-Game.milkHd)*Game.LeftBackground.canvas.height)) Game.Win('Cookie-dunker');
 				//&& l('bigCookie').getBounds().bottom>l('milk').getBounds().top+16 && Game.milkProgress>0.1) Game.Win('Cookie-dunker');
 				
+				//CC3 achievement expansion: the appended set's 5-second checker
+				//(milestone tails, collections, keystones, fun shadows)
+				if (Game.checkExtraAchievements) Game.checkExtraAchievements();
+				
 				Game.runModHook('check');
 			}
 			

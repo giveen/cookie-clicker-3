@@ -116,6 +116,13 @@ type BoundsRect = { left: number; right: number; top: number; bottom: number };
 					{
 						Game.goldenClicks++;
 						Game.goldenClicksLocal++;
+						//CC3: expansion counters — per-ascension golden clicks for the
+						//'Golden century' shadow, wrath pops for 'Wrathful'
+						if (Game.bumpExtraAchCounter)
+						{
+							Game.bumpExtraAchCounter('goldenClicksAscend');
+							if (me.wrath) Game.bumpExtraAchCounter('wrathClicks');
+						}
 						
 						if (Game.goldenClicks>=1) Game.Win('Golden cookie');
 						if (Game.goldenClicks>=7) Game.Win('Lucky cookie');
@@ -418,6 +425,9 @@ type BoundsRect = { left: number; right: number; top: number; bottom: number };
 					if (Game.Has('Serendipity')) m/=2;
 					//CC3: Golden heart reward — golden cookies appear 5% more often
 					if (Game.Has('Golden heart')) m*=0.95;
+					//CC3: keystone perks — every-50 ladder (+1%/50, max 5%) and
+					//the every-50 achievement 'Golden god' share one number
+					m*=1/(Game.extraAchievGoldenClickMult?Game.extraAchievGoldenClickMult():1);
 					if (Game.Has('Golden goose egg')) m*=0.95;
 					if (Game.Has('Heavenly luck')) m*=0.95;
 					if (Game.Has('Morning bells')) m*=0.95;

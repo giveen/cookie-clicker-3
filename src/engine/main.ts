@@ -11,6 +11,7 @@ import { Building } from "./core/building";
 /* CC3 rewrite (phase 3): the Game singleton is now a real class instance from the typed core layer. */
 import { Game } from "./core/game";
 import { SynergyUpgrade, TieredUpgrade, Upgrade } from "./core/upgrade";
+import { installAchievementsExtra, resetExtraAchCounters } from "./systems/achievementsExtra";//CC3: achievement expansion runtime (save/load of the counter field happens in systems/save.ts)
 import { Ascend, AscendBrowseClose, AscendBrowseView, AscendRefocus, BuildAscendTree, canLumps, canRefillLump, clickLump, computeLumpTimes, computeLumpType, doLumps, gainLumps, getLumpRefillMax, getLumpRefillRemaining, harvestLumps, loadLumps, lumpTooltip, PickAscensionMode, PurchaseHeavenlyUpgrade, Reincarnate, ResetHeavenlyLayout, refillLump, SaveHeavenlyLayout, spendLump, ToggleArrangeHeavenly, UpdateAscend, UpdateAscendIntro, UpdateAscensionModePrompt, UpdateReincarnateIntro } from "./systems/ascend";
 import { CaptureSave, DownloadBackup, ListBackups, RefreshBackupList, RestoreBackup } from "./systems/backup";
 import { bakeryNamePrompt, bakeryNamePromptRandom, bakeryNameRefresh, bakeryNameSet, GetBakeryName, RandomBakeryName } from "./systems/bakeryName";
@@ -1082,6 +1083,7 @@ Game.Launch=function()
 		Game.dragonAura=0;
 		Game.dragonAura2=0;
 		Game.cowLevel=0;//CC3 feature: the cookie cow's growth stage (systems/cow.ts); 0 = un-grown, 11 = fully grown
+		resetExtraAchCounters();//CC3: achievement-expansion counters (fresh-install defaults; save load overrides below)
 		
 		Game.fortuneGC=0;
 		Game.fortuneCPS=0;
@@ -1985,6 +1987,7 @@ Game.Launch=function()
 		AddEvent(Game.tickerL,'click',function(_event: MouseEvent){
 			Game.Ticker='';
 			Game.TickerClicks++;
+			if (Game.bumpExtraAchCounter) Game.bumpExtraAchCounter('tickerClicks');//CC3: 'Tabloid addiction II'
 			if (Game.windowW<Game.tickerTooNarrow) {Game.Win('Stifling the press');}
 			else if (Game.TickerClicks>=50) {Game.Win('Tabloid addiction');}
 			
@@ -2684,6 +2687,10 @@ window.loadMinigameModule!(me.minigameUrl).then(function(){
 		// is unchanged; the order bookkeeping inherits the slice-3
 		// order/pool/power bridge.
 		vanillaContent!.declareVanillaAchievements(Game);
+		
+		//CC3: publish the achievement-expansion runtime (perk helpers, counter
+		//bumps, the 5-second checker) once the appended declarations exist.
+		installAchievementsExtra(Game);
 		
 		
 		

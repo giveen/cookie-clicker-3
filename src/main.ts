@@ -447,6 +447,74 @@ if (debugSurface && params.get('qa') === 'save') {
 	}, 250);
 }
 
+// QA: verify the achievement expansion (content/achievements.ts append block
+// + systems/achievementsExtra.ts): declarations, the 5-second checker, save
+// round-trip of the counter field, and the keystone-perk helpers.
+// Usage: ?debug=1&qa=achextra
+if (debugSurface && params.get('qa') === 'achextra') {
+	const tick = window.setInterval(() => {
+		const G = window.Game;
+		if (!G || !G.ready || typeof G.checkExtraAchievements !== 'function') return;
+		if (G.__qaAchExtra) return;
+		G.__qaAchExtra = 1;
+		const out = document.createElement('div');
+		out.id = '__dbgqa';
+		out.style.cssText = 'position:fixed;top:0;left:0;z-index:99999;background:#fff;color:#060;font:12px monospace;white-space:pre-wrap;max-width:720px;';
+		document.body.appendChild(out);
+		try {
+			const lines: string[] = [];
+			const chk = (label: string, ok: boolean) => lines.push((ok ? '  PASS  ' : '  FAIL  ') + label);
+			// 1. every new achievement is declared
+			const NEW = ['Septcentennial','Octocentennial','Nonacentennial','Kilocentennial','Overlord of Constructs','Ascendant craft','Perfectionist','The cat congregation','Nine thousand lives','Clover field','Wrathful',"Fortune's regular",'Wrinkler wrangler','The wrinkle in time','Shiny hunter','Sugar mountain','Lump sum','Every lump','Pollinator','Backdraft','The spell storm','The house always loses','Crumb de la crumb','Centurion of crumbs','Crack shot','Fracture specialist','Card leviathan','Trailblazer','Treat tycoon','No cat left behind','The long knit','Born to bake','Almost the whole tray','Crumb connoisseur','The complete crumb-ulary','Rocket scientist','Decide your destiny','Spooky season','Petting zoo','Night shift','Patience','Proud of the numbers','Tabloid addiction II','Golden century','Golden touch','Pest control','Sweet tooth','Mana efficient','Colony commander','Home comforts','Ascension architect','Golden god','Master of the line'];
+			const missing = NEW.filter((n) => !G.Achievements[n]);
+			chk('all ' + NEW.length + ' new achievements declared (missing: ' + (missing.join(',') || 'none') + ')', missing.length === 0);
+			// 2. milestone tail: seed every building to 700 and run the checker
+			for (const k in G.Objects) { G.Objects[k].amount = 700; }
+			G.checkExtraAchievements();
+			chk('700 of everything wins Septcentennial', G.Achievements['Septcentennial'].won === 1);
+			chk('700 of everything does NOT win Kilocentennial', G.Achievements['Kilocentennial'].won === 0);
+			// 3. Born-again reward wins inside a born-again run at the milestone
+			const savedMode = G.ascensionMode;
+			G.ascensionMode = 1; G.cookiesEarned = 1e9;
+			G.checkExtraAchievements();
+			chk('Born to bake won at 1e9 in Born again', G.Achievements['Born to bake'].won === 1);
+			G.ascensionMode = savedMode;
+			// 4. keystone perk helpers are live functions over achievements
+			G.Achievements['Golden god'].won = 0;
+			chk('golden-freq ladder is 0 below 50 owned', (G.extraAchievPerkGoldenFreq!() || 0) === 0);
+			const savedOwned = G.AchievementsOwned;
+			G.AchievementsOwned = 150; G.checkExtraAchievements();
+			chk('150 owned does not yet win Golden god (impl threshold 250)', G.Achievements['Golden god'].won === 0);
+			G.AchievementsOwned = 250; G.checkExtraAchievements();
+			chk('250 owned wins Golden god (+5% at cap edge)', G.Achievements['Golden god'].won === 1 && Math.abs(G.extraAchievPerkGoldenFreq!() - 0.05) < 1e-9);
+			G.AchievementsOwned = savedOwned;
+			chk('golden-freq ladder caps at 5%', Math.abs((() => { G.AchievementsOwned = 5000; const v = G.extraAchievPerkGoldenFreq!(); G.AchievementsOwned = savedOwned; return v; })() - 0.05) < 1e-9);
+			// 5. building mastery perk: grant all tiered achievements of the Farm
+			// (the Farm is a proper tiered family — Cursor's counts are plain)
+			const farm = G.Objects['Farm'];
+			const savedWon: number[] = [];
+			for (const k in farm.tieredAchievs) { savedWon.push(farm.tieredAchievs[k].won); farm.tieredAchievs[k].won = 1; }
+			G.checkExtraAchievements();
+			chk('full Farm family wins Master of the line + perk 1.01', G.Achievements['Master of the line'].won === 1 && Math.abs(G.extraAchievMasteryMult!(farm) - 1.01) < 1e-9);
+			let wi = 0;
+			for (const k in farm.tieredAchievs) { farm.tieredAchievs[k].won = savedWon[wi++]; }
+			chk('mastery perk reverts when a tier is un-won', G.extraAchievMasteryMult!(farm) === 1);
+			// 6. counters survive a save round-trip (field 54)
+			G.extraAchCounters!.wrathClicks = 99; G.extraAchCounters!.catPets = 42;
+			const saveStr2 = G.WriteSave(1)!;
+			G.extraAchCounters!.wrathClicks = 0; G.extraAchCounters!.catPets = 0;
+			G.ImportSaveCode(saveStr2);
+			chk('counters round-trip through the appended save field', G.extraAchCounters!.wrathClicks === 99 && G.extraAchCounters!.catPets === 42);
+			const pass = lines.every((l) => l.indexOf('FAIL') === -1);
+			lines.push('[QA-achextra] ' + (pass ? 'PASS: achievement expansion verified (declarations, checker, perks, save field)' : 'FAIL: see checks above'));
+			out.textContent = lines.join('\n');
+		} catch (e: any) {
+			out.textContent = '[QA-achextra] ERROR: ' + e.constructor.name + ': ' + e.message;
+		}
+		window.clearInterval(tick);
+	}, 250);
+}
+
 // QA: verify the CC3 rolling save backups (systems/backup.ts). Captures
 // several known states, checks the history (order, dedupe, prune cap), then
 // restores an older backup and verifies the live state returns to it.

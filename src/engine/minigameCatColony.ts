@@ -272,16 +272,18 @@ M.launch = function (this: CatColonyMinigame) {
 				var mission = M.missionsById[entry.id];
 				M.away.splice(i, 1);
 				changed = true;
-				if (mission && Math.random() < M.hurtChanceFor(mission)) {
-					var restSeconds = Math.max(15, Math.floor(mission.duration / 2));
-					M.resting.push({ uid: M.uidN++, count: entry.count, returnAt: now + restSeconds * 1000 });
-					Game.Notify(loc("A cat came home scuffed up"), (mission.name) + ' didn\'t go as planned. ' + entry.count + ' cat(s) are resting it off.', [6, 26]);
-					PlaySound('snd/squeak2.mp3', 0.75);
-				}
-				else if (mission) {
-					var rawReward = Math.floor(Math.random() * (mission.treatsMax - mission.treatsMin + 1)) + mission.treatsMin;
-					if (Game.Has('Generous strangers')) rawReward = Math.ceil(rawReward * 1.2);
-					var reward = Math.ceil(rawReward * (M.getMorale() / 100));
+			if (mission && Math.random() < M.hurtChanceFor(mission)) {
+				var restSeconds = Math.max(15, Math.floor(mission.duration / 2));
+				M.resting.push({ uid: M.uidN++, count: entry.count, returnAt: now + restSeconds * 1000 });
+				Game.Notify(loc("A cat came home scuffed up"), (mission.name) + ' didn\'t go as planned. ' + entry.count + ' cat(s) are resting it off.', [6, 26]);
+				PlaySound('snd/squeak2.mp3', 0.75);
+				if (Game.setCleanExpeditionStreak) Game.setCleanExpeditionStreak(false);//CC3: 'No cat left behind' streak
+			}
+			else if (mission) {
+				var rawReward = Math.floor(Math.random() * (mission.treatsMax - mission.treatsMin + 1)) + mission.treatsMin;
+				if (Game.Has('Generous strangers')) rawReward = Math.ceil(rawReward * 1.2);
+				if (Game.extraAchievPerkMinigame) rawReward = Math.ceil(rawReward * Game.extraAchievPerkMinigame('colony'));//CC3: Colony commander keystone
+				var reward = Math.ceil(rawReward * (M.getMorale() / 100));
 					M.treats += reward;
 					M.treatsEarnedTotal += reward;
 					M.missionsCompleted++;
@@ -322,6 +324,9 @@ M.launch = function (this: CatColonyMinigame) {
 			if (M.missionsCompleted >= 50) Game.Win('Seasoned adventurers');
 			if (M.missionsCompleted >= 250) Game.Win('The nine-lives guild');
 			if (M.treatsEarnedTotal >= 1000) Game.Win('Pocketful of treats');
+			if (M.missionsCompleted >= 1000) Game.Win('Trailblazer');//CC3 expansion
+			if (M.treatsEarnedTotal >= 50000) Game.Win('Treat tycoon');//CC3 expansion
+			if (Game.extraAchCounters && Game.extraAchCounters.expeditionsClean >= 100) Game.Win('No cat left behind');//CC3 expansion
 		};
 
 		M.buyUpgrade = function (name: string) {
@@ -645,6 +650,7 @@ M.launch = function (this: CatColonyMinigame) {
 				var text = meows[Math.floor(Math.random() * meows.length)];
 				PlaySound('snd/squeak1.mp3', 0.5);
 				M.spawnCatBubble(catEl as HTMLElement, text);
+				if (Game.bumpExtraAchCounter) Game.bumpExtraAchCounter('catPets');//CC3: 'Petting zoo'
 			});
 		});
 

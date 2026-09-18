@@ -55,6 +55,9 @@ export function GetHeavenlyMultiplier()
 			if (Game.Has('Heavenly bakery')) heavenlyMult+=0.25;
 			if (Game.Has('Heavenly confectionery')) heavenlyMult+=0.25;
 			if (Game.Has('Heavenly key')) heavenlyMult+=0.25;
+			//CC3: 'Ascension architect' keystone — +1% heavenly-chip power
+			//from the ascend-by-baking achievement family
+			if (Game.extraAchievPerkAscend) heavenlyMult*=Game.extraAchievPerkAscend();
 			//if (Game.hasAura('Dragon God')) heavenlyMult*=1.05;
 			heavenlyMult*=1+Game.auraMult('Dragon God')*0.05;
 			if (Game.Has('Lucky digit')) heavenlyMult*=1.01;
@@ -106,6 +109,9 @@ export function GetTieredCpsMult(me: Building)
 			// would be 0 -> Infinity/NaN for that one building.
 			if (me.cat && Game.Has(me.cat.name)) mult*=(1+Game.Objects['Cats'].amount*0.01*(1/Math.max(1,me.id-1)));
 			if (me.cat && Game.Has(me.cat.name) && Game.Has('Territorial pact')) mult*=(1+Game.Objects['Cats'].amount*0.01*(1/Math.max(1,me.id-1)));
+			//CC3: building mastery — earning every tiered achievement of a
+			//building grants it +1% CpS ('Master of <building>' keystones)
+			if (Game.extraAchievMasteryMult) mult*=Game.extraAchievMasteryMult(me);
 			return mult;
 		}
 

@@ -368,6 +368,30 @@ declare global {
 			skip: () => void;
 			advance: () => void;
 		};
+		/* CC3 achievement expansion (systems/achievementsExtra.ts): the
+		 * lifetime counters + the keystone-perk helpers, published on Game in
+		 * Init right after the achievement declarations. */
+		extraAchCounters?: {
+			wrathClicks: number; shinyPopped: number; backfires: number;
+			casinoNet: number; cozyStreak: number; catPets: number;
+			statsOpens: number; goldenClicksAscend: number; tickerClicks: number;
+			expeditionsClean: number; lumpTypes: number; decisions: number;
+		};
+		bumpExtraAchCounter?: (key: string, amount?: number) => void;
+		setCleanExpeditionStreak?: (clean: boolean) => void;
+		extraAchievPerkGoldenDur?: () => number;
+		extraAchievPerkWrinkler?: () => number;
+		extraAchievPerkLump?: () => number;
+		extraAchievPerkSpell?: () => number;
+		extraAchievPerkMinigame?: (which: 'colony' | 'sitting') => number;
+		extraAchievPerkAscend?: () => number;
+		extraAchievPerkGoldenFreq?: () => number;
+		extraAchievMasteryMult?: (me: unknown) => number;
+		extraAchievGoldenClickMult?: () => number;
+		checkExtraAchievements?: () => void;
+		saveExtraAchField?: () => string;
+		loadExtraAchField?: (str?: string) => void;
+		resetExtraAchCounters?: () => void;
 	}
 
 	/* CC3: fillPattern (engine/main.ts) caches the CanvasPattern it creates

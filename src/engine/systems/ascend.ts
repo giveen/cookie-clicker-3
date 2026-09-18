@@ -12,9 +12,12 @@
  * annotations were added (`:any` where call sites pass optional or
  * heterogeneous values).
  *
- * No runtime imports: `Game`, `l`, `loc`, `PlaySound`, `Beautify`, `tinyIcon`
- * etc resolve through src/globals.d.ts to the engine's window shim.
+ * No runtime imports except the CC3 achievement-expansion counters
+ * (systems/achievementsExtra.ts): `Game`, `l`, `loc`, `PlaySound`,
+ * `Beautify`, `tinyIcon` etc resolve through src/globals.d.ts to the
+ * engine's window shim.
  */
+import { extraAchCounters } from './achievementsExtra';
 
 		export function UpdateAscensionModePrompt()
 		{
@@ -665,6 +668,8 @@
 			//if (Game.hasAura('Dragon\'s Curve')) {Game.lumpMatureAge/=1.05;Game.lumpRipeAge/=1.05;}
 			Game.lumpMatureAge/=1+Game.auraMult('Dragon\'s Curve')*0.05;Game.lumpRipeAge/=1+Game.auraMult('Dragon\'s Curve')*0.05;
 			Game.lumpOverripeAge=Game.lumpRipeAge+hour;
+			//CC3: keystone perk (Sweet tooth lump family) — lumps ripen 5% faster
+			if (Game.extraAchievPerkLump) {Game.lumpMatureAge/=Game.extraAchievPerkLump();Game.lumpRipeAge/=Game.extraAchievPerkLump();}
 			if (Game.Has('Glucose-charged air')) {Game.lumpMatureAge/=2000;Game.lumpRipeAge/=2000;Game.lumpOverripeAge/=2000;}
 		}
 		export function loadLumps(_time: any)//CC3 rewrite: annotated+renamed _time (TS6133 unused param; callers pass positionally)
@@ -746,6 +751,12 @@
 			else if (Game.lumpCurrentType==2) Game.Win('All-natural cane sugar');
 			else if (Game.lumpCurrentType==3) Game.Win('Sweetmeats');
 			else if (Game.lumpCurrentType==4) Game.Win('Maillard reaction');
+			//CC3: 'Every lump' — track the harvested-type bitmask (bit 0 = normal)
+			if (Game.bumpExtraAchCounter)
+			{
+				var lumpBit=1<<Math.min(4,Math.max(0,Game.lumpCurrentType||0));
+				Game.bumpExtraAchCounter('lumpTypes',(extraAchCounters.lumpTypes&lumpBit)?0:lumpBit);
+			}
 			
 			if (!silent)
 			{

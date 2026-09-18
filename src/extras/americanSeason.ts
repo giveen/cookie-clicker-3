@@ -479,6 +479,7 @@
 			if (state.rocketsPopped >= 1) Game2.Win('Pyrotechnics');
 			if (state.rocketsPopped >= 74) Game2.Win('July 4th');
 			if (state.rocketsPopped >= 1776) Game2.Win('Pyromaniac');
+			if (state.rocketsPopped >= 3552) Game2.Win('Rocket scientist');//CC3 expansion
 
 			let haveAll = true;
 			for (const name of state.upgrades) {

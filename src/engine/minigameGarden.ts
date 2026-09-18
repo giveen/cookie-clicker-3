@@ -1756,6 +1756,7 @@ M.launch=function(this: GardenMinigame)
 					M.harvestsTotal++;
 					if (M.harvestsTotal>=100) Game.Win('Botany enthusiast');
 					if (M.harvestsTotal>=1000) Game.Win('Green, aching thumb');
+					if (M.harvestsTotal>=5000) Game.Win('Pollinator');//CC3 expansion
 				}
 				
 				M.plot[y][x]=[0,0];

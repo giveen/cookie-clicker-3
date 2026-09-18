@@ -1304,6 +1304,13 @@
 				if (M.games.Blackjack.winsT >= 21) G.Win('Card minnow');
 				if (M.games.Blackjack.winsT >= 210) G.Win('Card trout');
 				if (M.games.Blackjack.winsT >= 2100) G.Win('Card shark');
+				//CC3 expansion: extra casino ladder + lifetime-net shadow
+				if (M.games.Blackjack.winsT >= 5000) G.Win('Card leviathan');
+				if (typeof M.games.Blackjack.netTotal === 'number')
+				{
+					G.extraAchCounters.casinoNet = M.games.Blackjack.netTotal;
+					if (M.games.Blackjack.netTotal > 0 && M.loadedCount) G.Win('The house always loses');
+				}
 				if (M.games.Blackjack.ownLuckWins >= 13) G.Win('Ace up your sleeve');
 				if (M.games.Blackjack.ownLuckWins >= 13 * 13) G.Win('Paid off the dealer');
 				if (M.games.Blackjack.ownLuckWins >= 666) G.Win('Deal with the Devil');

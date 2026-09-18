@@ -874,6 +874,23 @@ test('challenge modes: 5 ascension modes, gameplay gates, and reward upgrades ve
 	await assertNoUncaughtErrors(page);
 });
 
+test('?qa=achextra: achievement expansion — declarations, checker, perks, save field', async ({ page }) => {
+	await boot(page, '&qa=achextra');
+	const report = await qaReport(
+		page,
+		/PASS: achievement expansion/,
+		60_000
+	);
+	expect(report).toMatch(/all 53 new achievements declared \(missing: none\)/);
+	expect(report).toMatch(/700 of everything wins Septcentennial/);
+	expect(report).toMatch(/Born to bake won at 1e9 in Born again/);
+	expect(report).toMatch(/250 owned wins Golden god/);
+	expect(report).toMatch(/full Farm family wins Master of the line \+ perk 1\.01/);
+	expect(report).toMatch(/mastery perk reverts when a tier is un-won/);
+	expect(report).toMatch(/counters round-trip through the appended save field/);
+	await assertNoUncaughtErrors(page);
+});
+
 test('?qa=catcolony: Cat Colony minigame + repeatable treat upgrades verified end to end', async ({ page }) => {
 	await boot(page, '&qa=catcolony');
 	const report = await qaReport(

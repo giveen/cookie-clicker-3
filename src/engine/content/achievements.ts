@@ -1148,5 +1148,76 @@ export function declareVanillaAchievements(Game: EngineGame) {
 		new Game.Achievement('Bovine apotheosis',loc("Grow your <b>cookie cow</b> <b>10 times</b>."),[0,0,'img/Cow.png',64]);
 		new Game.Achievement('Here be a moo',loc("Fully grow your <b>cookie cow</b>."),[0,0,'img/Cow.png',64]);
 
+		// CC3 achievement expansion (systems/achievementsExtra.ts) — appended
+		// (not interleaved) so every existing achievement id stays stable for
+		// imported saves. Icons reuse the row-26/27 shared-cell pattern plus
+		// the cow's custom-image form; no new art. Wins come from two places:
+		// the engine's 5-second check block (Game.checkExtraAchievements) and
+		// event sites (minigames, shimmer pops, wrinkler bursts, lump harvests,
+		// cookie purchases). Shadow pool = never counts toward the tally.
+		order=1200;
+		/* --- Section 1: milestone tails ---------------------------------- */
+		new Game.Achievement('Septcentennial',loc("Have at least <b>%1 of everything</b>.",700)+'<q>(getting close to a full kilo)</q>',[3,26]);
+		new Game.Achievement('Octocentennial',loc("Have at least <b>%1 of everything</b>.",800)+'<q>Many octopi.</q>',[2,26]);
+		new Game.Achievement('Nonacentennial',loc("Have at least <b>%1 of everything</b>.",900)+'<q>No, wait, nine.</q>',[8,26]);
+		new Game.Achievement('Kilocentennial',loc("Have at least <b>%1 of everything</b>.",1000)+'<q>A kilo of everything.</q>',[7,26]);
+		new Game.Achievement('Overlord of Constructs',loc("Own <b>%1</b>.",loc("%1 building",LBeautify(25000)))+'<q>The land was empty. You fixed that.</q>',[6,26]);
+		new Game.Achievement('Ascendant craft',loc("Purchase <b>%1</b>.",loc("%1 upgrade",LBeautify(700))),[13,26]);
+		new Game.Achievement('Perfectionist',loc("Purchase <b>%1</b>.",loc("%1 upgrade",LBeautify(1000)))+'<q>Are you done yet?</q>',[14,26]);
+		new Game.Achievement('The cat congregation',loc("Own <b>%1</b> cats.",2500),[2,26]);
+		new Game.Achievement('Nine thousand lives',loc("Own <b>%1</b> cats.",9000)+'<q>Statistically, nine of them are lying.</q>',[3,26]);
+
+		/* --- Section 2: feature-gap chains -------------------------------- */
+		new Game.Achievement('Clover field',loc("Have <b>%1</b> golden cookies simultaneously.",8)+'<q>The lawn is getting crowded.</q>',[4,26]);Game.last.pool='shadow';
+		new Game.Achievement('Wrathful',loc("Click <b>%1</b>.",loc("%1 wrath cookie",LBeautify(100)))+'<q>Do not taunt it.</q>',[5,26]);Game.last.pool='shadow';
+		new Game.Achievement("Fortune's regular",loc("Click <b>%1</b>.",loc("%1 golden cookie",LBeautify(500)))+'<q>See you same time tomorrow.</q>',[5,26]);
+		new Game.Achievement('Wrinkler wrangler',loc("Burst <b>%1 wrinklers</b>.",1000)+'<q>Yeehaw.</q>',[6,26]);
+		new Game.Achievement('The wrinkle in time',loc("Have <b>%1 wrinklers</b> attached at once.",12)+'<q>Full house.</q>',[7,26]);Game.last.pool='shadow';
+		new Game.Achievement('Shiny hunter',loc("Burst <b>%1 shiny wrinklers</b>.",5)+'<q>Each one sparkles a little less now.</q>',[7,26]);Game.last.pool='shadow';
+		new Game.Achievement('Sugar mountain',loc("Harvest <b>%1 coalescing sugar lumps</b>.",1000)+'<q>Firmly in the realm of the sugar barons.</q>',[15,26]);
+		new Game.Achievement('Lump sum',loc("Have <b>%1 sugar lumps</b> in storage.",150),[16,26]);
+		new Game.Achievement('Every lump',loc("Harvest <b>every type of sugar lump</b> at least once."),[18,26]);Game.last.pool='shadow';
+		new Game.Achievement('Pollinator',loc("Harvest <b>%1</b> mature garden plants.",5000),[19,26]);
+		new Game.Achievement('Backdraft',loc("Suffer <b>%1 spell backfires</b>.",100)+'<q>Never do magic you don\'t understand.</q>',[20,26]);Game.last.pool='shadow';
+		new Game.Achievement('The spell storm',loc("Cast <b>%1</b> spells.",9999),[21,26]);
+		new Game.Achievement('The house always loses',loc("Leave the casino with a <b>lifetime profit</b>."),[22,26]);Game.last.pool='shadow';
+		new Game.Achievement('Crumb de la crumb',loc("Reach a <b>28-day streak</b> with the daily crumb."),[23,26]);
+		new Game.Achievement('Centurion of crumbs',loc("Collect <b>%1</b> daily crumbs, lifetime.",100),[24,26]);
+		new Game.Achievement('Crack shot',loc("Trigger %1 cracked cookie payoffs.",'100'),[1,27]);
+		new Game.Achievement('Fracture specialist',loc("Trigger %1 cracked cookie payoffs.",'500'),[2,27]);
+		new Game.Achievement('Card leviathan',loc("Win <b>%1</b> hands of blackjack.",5000)+'<q>It steers by bank balance alone.</q>',[4,26]);
+		new Game.Achievement('Trailblazer',loc("Complete <b>%1</b> Cat Colony expeditions.",1000),[5,26]);
+		new Game.Achievement('Treat tycoon',loc("Earn <b>%1</b> treats from the Cat Colony, lifetime.",50000),[8,26]);
+		new Game.Achievement('No cat left behind',loc("Complete <b>%1</b> expeditions in a row with no cat hurt.",100)+'<q>Not a scratch.</q>',[6,26]);Game.last.pool='shadow';
+		new Game.Achievement('The long knit',loc("Earn <b>%1</b> yarn from the Sitting Room, lifetime.",10000),[9,26]);
+		new Game.Achievement('Born to bake',loc("Reach <b>%1</b> baked during a <b>Born again</b> run.",loc("%1 cookie",LBeautify(1e9)))+'<q>Some things you never outgrow.</q>',[10,26]);Game.last.pool='shadow';
+
+		/* --- Section 3: cookie-collection completion ------------------------ */
+		new Game.Achievement('Almost the whole tray',loc("Own <b>all but one</b> of the cookies in a collection."),[17,26]);
+		new Game.Achievement('Crumb connoisseur',loc("Complete <b>a cookie collection</b>."),[11,26]);
+		new Game.Achievement('The complete crumb-ulary',loc("Complete <b>every cookie collection</b>.<div class=\"line\"></div>Owning this achievement makes cookies drop more frequently in future playthroughs."),[12,26]);
+		new Game.Achievement('Rocket scientist',loc("Explode <b>%1 rockets</b>.",'3552')+'<q>Twice the fireworks, twice the patriotism.</q>',[12,26]);Game.last.pool='shadow';
+
+		/* --- Section 4: fun / shadow ---------------------------------------- */
+		new Game.Achievement('Decide your destiny',loc("Decide your destiny <b>%1 times</b>.",10)+'<q>Some doors only open once, but you found the knob.</q>',[19,26]);Game.last.pool='shadow';
+		new Game.Achievement('Spooky season',loc("Find a <b>Halloween cookie</b> during the month of October.")+'<q>The season is spooky year-round here.</q>',[17,26]);Game.last.pool='shadow';
+		new Game.Achievement('Petting zoo',loc("Pet <b>%1</b> colony cats.",100)+'<q>They appreciate it. Probably.</q>',[13,26]);Game.last.pool='shadow';
+		new Game.Achievement('Night shift',loc("Bake between <b>3 and 4 AM</b> local time."),[14,26]);Game.last.pool='shadow';
+		new Game.Achievement('Patience',loc("Leave the game open for <b>24 hours</b> without clicking the big cookie."),[3,26]);Game.last.pool='shadow';
+		new Game.Achievement('Proud of the numbers',loc("Open the stats menu <b>%1</b> times.",100),[6,26]);Game.last.pool='shadow';
+		new Game.Achievement('Tabloid addiction II',loc("Click on the news ticker <b>%1 times</b>.",500)+'<q>The sequel nobody asked for.</q>',[15,26]);Game.last.pool='shadow';
+		new Game.Achievement('Golden century',loc("Click <b>%1</b> golden cookies in a single ascension.",100),[16,26]);Game.last.pool='shadow';
+
+		/* --- Section 5: keystone achievements (perks described in-tooltip) --- */
+		new Game.Achievement('Golden touch',loc("Own <b>every golden cookie achievement</b>.<div class=\"line\"></div>Keystone perk: golden cookie effects last <b>+5% longer</b>."),[20,26]);
+		new Game.Achievement('Pest control',loc("Own <b>every wrinkler achievement</b>.<div class=\"line\"></div>Keystone perk: wrinklers pop into <b>+5% more cookies</b>."),[21,26]);
+		new Game.Achievement('Sweet tooth',loc("Own <b>every sugar lump achievement</b>.<div class=\"line\"></div>Keystone perk: sugar lumps ripen <b>5% faster</b>."),[22,26]);
+		new Game.Achievement('Mana efficient',loc("Own <b>every spell achievement</b>.<div class=\"line\"></div>Keystone perk: spells cost <b>5% less mana</b>."),[23,26]);
+		new Game.Achievement('Colony commander',loc("Own <b>every Cat Colony achievement</b>.<div class=\"line\"></div>Keystone perk: expeditions yield <b>+10% treats</b>."),[24,26]);
+		new Game.Achievement('Home comforts',loc("Own <b>every Sitting Room achievement</b>.<div class=\"line\"></div>Keystone perk: activities yield <b>+10% yarn</b>."),[25,26]);
+		new Game.Achievement('Ascension architect',loc("Own <b>every ascend-by-baking achievement</b>.<div class=\"line\"></div>Keystone perk: <b>+1% heavenly chips</b> from ascension."),[26,26]);
+		new Game.Achievement('Golden god',loc("Own <b>%1 achievements</b>.",250)+'<div class="line"></div>Keystone perk: golden cookies appear <b>+1%</b> more often per 50 achievements owned (max +5%).',[27,26]);
+		new Game.Achievement('Master of the line',loc("Earn <b>every tiered achievement</b> of at least one building.<div class=\"line\"></div>Keystone perk: that building gains <b>+1% CpS</b>."),[28,26]);
+
 		//end of achievements
 }

@@ -78,6 +78,11 @@ async function seedRichState(page) {
 		// written without the field imports as 0, so an unseeded cow can
 		// never catch a mis-shifted index)
 		G.cowLevel = 7;
+		// the achievement-expansion counters are CC3's appended save field
+		// (section 5, load index 54) — seed a couple so the round-trip
+		// exercises the slot (master's re-export must carry it too: seed
+		// directly through the same field, guarded for the master build)
+		if (G.extraAchCounters) { G.extraAchCounters.wrathClicks = 12; G.extraAchCounters.catPets = 34; }
 		G.dragonAura = 5;
 		G.dragonAura2 = 0;
 		G.chimeType = 1;
@@ -283,10 +288,15 @@ test('save compat: master export -> rewrite import -> re-export diff (symmetric)
 	//    New content is always APPENDED to the end of its registration list
 	//    (upgrade ids are the registration index), so importing an older save
 	//    leaves the new entries at 0 and re-export extends the section with
-	//    trailing '0's. Allow exactly that and nothing else.
+	//    trailing '0's. Allow exactly that and nothing else. Section 4 (misc
+	//    counters) follows the same rule for CC3's appended ';'-delimited
+	//    fields (e.g. the achievement-expansion counters — ','-packed zeros
+	//    on import of a save that predates them), hence the separator-aware
+	//    remainder check there.
 	const APPEND_ONLY_ZERO_SECTIONS = { 6: 'upgrades', 7: 'achievements' };
 	const appendOnlyZeros = (i, a, b) =>
-		i in APPEND_ONLY_ZERO_SECTIONS && b.startsWith(a) && /^[0]+$/.test(b.slice(a.length));
+		(i in APPEND_ONLY_ZERO_SECTIONS && b.startsWith(a) && /^[0]+$/.test(b.slice(a.length))) ||
+		(i === 4 && b.startsWith(a) && /^[;0,]*$/.test(b.slice(a.length)));
 	const a = normalizeLastDate(masterSelf.raw).split('|');
 	const b = normalizeLastDate(rw.raw).split('|');
 	expect(b.length).toBe(a.length);

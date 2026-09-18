@@ -167,6 +167,9 @@ import type { Game as EngineGame } from '../engine/types';
 	 * lastAnnouncement mirrors what was shown so the QA probe can assert the
 	 * rendered text. */
 	let lastAnnouncement = '';
+	/* CC3 expansion: expose the streak/claims state so the engine's 5-second
+	 * checker can backfill the crumb ladder after a save import. */
+	(window as any).__cc3DailyCrumbState = state;
 	function announce(Game: EngineGame, days: number, lines: string[]): void {
 		const title = loc("Daily crumb");
 		const body =
@@ -234,6 +237,9 @@ import type { Game as EngineGame } from '../engine/types';
 		if (state.totalClaims >= 1) Game.Win(ACHIEVEMENT_FIRST);
 		if (state.streak >= 7) Game.Win(ACHIEVEMENT_ROLL);
 		if (state.streak >= 30) Game.Win(ACHIEVEMENT_MACHINE);
+		//CC3 expansion: extended crumb ladder
+		if (state.streak >= 28) Game.Win('Crumb de la crumb');
+		if (state.totalClaims >= 100) Game.Win('Centurion of crumbs');
 
 		announce(Game, days, lines);
 		Game.toSave = true;

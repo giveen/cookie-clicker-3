@@ -67,6 +67,14 @@ export function declareVanillaChangelog(Game: EngineGame) {
 	
 	Game.updateLog+=
 	
+	'</div><div class="subsection update">' +
+	'<div class="title">18/09/2026 - 53 new achievements + keystone perks</div>' +
+	'<div class="listing">&bull; added <b>53 achievements</b> across the whole game: milestone tails (700/800/900/<b>1,000 of everything</b>, 25,000 buildings, 700/1,000 upgrades, 2,500/9,000 cats), deeper ladders for golden cookies, wrath cookies, wrinklers, sugar lumps, the garden, the grimoire, the casino, the daily crumb, the cracking cookie, the Cat Colony, the Sitting Room and Decide Your Destiny, plus a handful of shadow oddities (pet 100 colony cats, bake at 3 AM, leave the tab open for a day without clicking, and more)</div>' +
+	'<div class="listing">&bull; <b>collection completion</b>: finish any cookie collection for <i>Crumb connoisseur</i>; finish all eight for <i>The complete crumb-ulary</i> — owning it makes cookie upgrades drop more frequently in future playthroughs, like the seasonal sets</div>' +
+	'<div class="listing">&bull; <b>Born again</b> finally pays out: reach 1 billion cookies in a Born again run to earn <i>Born to bake</i> and a permanent +5% CpS</div>' +
+	'<div class="listing">&bull; <b>keystone perks</b> — complete an achievement family and earn a real bonus: every golden cookie achievement (+5% golden effect duration), every wrinkler achievement (+5% cookies when popping), every sugar lump achievement (lumps ripen 5% faster), every spell achievement (spells cost 5% less mana), every Cat Colony achievement (+10% treats), every Sitting Room achievement (+10% yarn), every ascend-by-baking achievement (+1% heavenly chip power), and 250 achievements total (golden cookies appear up to +5% more often)</div>' +
+	'<div class="listing">&bull; <b>building mastery</b>: earn every tiered achievement of a building and that building gains +1% CpS (<i>Master of the line</i>)</div>' +
+	'<div class="listing">&bull; perks you\'ve earned are listed on the Stats screen; all counters save with the game and survive import/export and ascension</div>' +
 	'</div><div class="subsection update small">' +
 	'<div class="title">15/09/2026 - cookie cow: a note on ascension</div>' +
 	'<div class="listing">&bull; a note on the cookie cow: like the cookie dragon, the cow resets to stage 0 on every ascend — the 9 heavenly-chip tome <b>How to milk a cookie cow</b> is kept, but the 25-cookie <b>A certain cow</b> purchase is not, so after each ascend the cow is back to adopting at stage 0 until you buy it again</div>' +

@@ -14,6 +14,8 @@ import { romanize } from "../utils/helpers";
 
 export function ShowMenu(what: any)
 {
+	//CC3: 'Proud of the numbers' — count stats-menu opens
+	if (what=='stats' && Game.bumpExtraAchCounter) Game.bumpExtraAchCounter('statsOpens');
 	if (!what || what=='') what=Game.onMenu;
 	if (Game.onMenu=='' && what!='') Game.addClass('onMenu');
 	else if (Game.onMenu!='' && what!=Game.onMenu) Game.addClass('onMenu');
@@ -483,6 +485,10 @@ export function UpdateMenu()
 		'<div id="statsAchievs">'+
 			'<div class="listing"><b>'+loc("Achievements unlocked:")+'</b> '+achievementsOwned+'/'+achievementsTotal+' ('+Math.floor((achievementsOwned/achievementsTotal)*100)+'%)'+(achievementsOwnedOther>0?('<span style="font-weight:bold;font-size:10px;color:#70a;"> (+'+achievementsOwnedOther+')</span>'):'')+'</div>'+
 			(Game.cookiesMultByType['kittens']>1?('<div class="listing"><b>'+loc("Kitten multiplier:")+'</b> '+Beautify((Game.cookiesMultByType['kittens'])*100)+'%</div>'):'')+
+			//CC3: keystone perks earned from achievement families/ladders
+			((Game.extraAchievPerkGoldenFreq && Game.extraAchievPerkGoldenFreq()>0)?('<div class="listing"><b>'+loc("Golden cookies appear:")+'</b> +'+Math.round(Game.extraAchievPerkGoldenFreq()*100)+'% '+loc("(keystone perks)")+'</div>'):'')+
+			((Game.extraAchievPerkGoldenDur && Game.extraAchievPerkGoldenDur()>1)?('<div class="listing"><b>'+loc("Golden effects last:")+'</b> +5% '+loc("(keystone perk)")+'</div>'):'')+
+			((Game.extraAchievPerkWrinkler && Game.extraAchievPerkWrinkler()>1)?('<div class="listing"><b>'+loc("Wrinklers pop:")+'</b> +5% '+loc("(keystone perk)")+'</div>'):'')+
 			'<div class="listing"><b>'+loc("Milk")+':</b> '+milkName+'</div>'+
 			(Game.cowLevel>0?('<div class="listing"><b>'+loc("Milk bonus")+':</b> +'+Math.round(Game.CowMilkBonus()*100)+'% '+loc("(from your cookie cow)")+'</div>'):'')+
 			(milkStr!=''?'<div class="listing"><b>'+loc("Milk flavors unlocked:")+'</b></div><div>'+milkStr+'</div>':'')+

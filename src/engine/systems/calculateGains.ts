@@ -119,6 +119,10 @@ export function CalculateGains()
 		}
 		milkMult*=Game.eff('milk');
 		milkMult*=1+Game.CowMilkBonus();//CC3 feature: the cookie cow's share of the milk bonus (systems/cow.ts; 0 … +13%)
+		//CC3: 'Born to bake' — completing the Born again challenge grants a
+		//small permanent CpS bonus (the reward-upgrade pattern the other
+		//challenge modes use, folded into the shadow achievement here)
+		if (Game.HasAchiev('Born to bake')) mult*=1.05;
 		
 		var catMult=1;
 		
