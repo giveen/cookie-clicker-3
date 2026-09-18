@@ -231,27 +231,31 @@
 						else
 						{
 						Game.AscendDragMoved=1;
-						me.posX+=(Game.mouseX-Game.AscendDragX)*(1/Game.AscendZoomT);
-						me.posY+=(Game.mouseY-Game.AscendDragY)*(1/Game.AscendZoomT);
-						var posX=me.posX;//Math.round(me.posX/Game.AscendGridSnap)*Game.AscendGridSnap;
-						var posY=me.posY;//Math.round(me.posY/Game.AscendGridSnap)*Game.AscendGridSnap;
-						l('heavenlyUpgrade'+me.id).style.left=Math.floor(posX)+'px';
-						l('heavenlyUpgrade'+me.id).style.top=Math.floor(posY)+'px';
-						const rootNode = Game.Upgrades['Legacy'] || Game.PrestigeUpgrades[0];
-						const rootPosX = rootNode ? rootNode.posX : 0;
-						const rootPosY = rootNode ? rootNode.posY : 0;
-						for (var ii in me.parents)
-						{
-							var origX = rootPosX + 24;
-							var origY = rootPosY + 24;
-							var targX = me.posX + 24;
-							var targY = me.posY + 24;
-							if (me.parents[ii] != -1) { origX = me.parents[ii].posX + 24; origY = me.parents[ii].posY + 24; }
-							var rot = -(Math.atan((targY - origY) / (origX - targX)) / Math.PI) * 180;
-							if (targX <= origX) rot += 180;
-							var dist = Math.floor(Math.sqrt((targX - origX) * (targX - origX) + (targY - origY) * (targY - origY)));
-							
-							l('heavenlyLink' + me.id + '-' + ii).style = 'width:' + dist + 'px;transform:rotate(' + rot + 'deg);left:' + (origX) + 'px;top:' + (origY) + 'px;';
+						var deltaX = (Game.mouseX - Game.AscendDragX) * (1 / Game.AscendZoomT);
+						var deltaY = (Game.mouseY - Game.AscendDragY) * (1 / Game.AscendZoomT);
+
+						// Shift+drag moves the target upgrade node + all its descendants (branch drag)
+						var targets = (Game.keys && Game.keys[16]) ? getHeavenlySubtree(me) : [me];
+
+						for (var tIdx = 0; tIdx < targets.length; tIdx++) {
+							var tNode = targets[tIdx];
+							tNode.posX += deltaX;
+							tNode.posY += deltaY;
+							if (Game.keys && Game.keys[17]) {
+								// Ctrl+drag snaps position to a 16px magnetic grid
+								tNode.posX = Math.round(tNode.posX / 16) * 16;
+								tNode.posY = Math.round(tNode.posY / 16) * 16;
+							}
+							var tEl = l('heavenlyUpgrade' + tNode.id);
+							if (tEl) {
+								tEl.style.left = Math.floor(tNode.posX) + 'px';
+								tEl.style.top = Math.floor(tNode.posY) + 'px';
+							}
+						}
+
+						// Update incoming & outgoing links live for all affected nodes
+						for (var tIdx = 0; tIdx < targets.length; tIdx++) {
+							updateNodeLinksLive(targets[tIdx]);
 						}
 					}
 					}
@@ -331,6 +335,89 @@
 			Game.AscendOffY=0;
 			Game.ascendl.className='';
 		}
+
+		/** Helper to retrieve all descendant nodes (subtree) of a root upgrade node. */
+		export function getHeavenlySubtree(root: any): any[] {
+			const list: any[] = [];
+			const visited = new Set<number>();
+			function walk(node: any) {
+				if (!node || visited.has(node.id)) return;
+				visited.add(node.id);
+				list.push(node);
+				for (var i in Game.PrestigeUpgrades) {
+					var u = Game.PrestigeUpgrades[i];
+					if (!u.parents) continue;
+					for (var pIdx = 0; pIdx < u.parents.length; pIdx++) {
+						if (u.parents[pIdx] === node || (u.parents[pIdx] !== -1 && u.parents[pIdx]?.id === node.id)) {
+							walk(u);
+						}
+					}
+				}
+			}
+			walk(root);
+			return list;
+		}
+
+		/** Update incoming & outgoing link line elements for a node live in the DOM during drag. */
+		export function updateNodeLinksLive(me: any) {
+			const rootNode = Game.Upgrades['Legacy'] || Game.PrestigeUpgrades[0];
+			const rootPosX = rootNode ? rootNode.posX : 0;
+			const rootPosY = rootNode ? rootNode.posY : 0;
+
+			// If dragging Legacy (or root node), update center ring overlay position live
+			if (me === rootNode || me.name === 'Legacy' || me.id === 0) {
+				const centerSlot = l('ascendCenterSlot');
+				if (centerSlot) {
+					centerSlot.style.left = me.posX + 'px';
+					centerSlot.style.top = me.posY + 'px';
+				}
+			}
+
+			// Update incoming links (me.parents -> me)
+			for (var ii in me.parents) {
+				var origX = rootPosX + 24;
+				var origY = rootPosY + 24;
+				var targX = me.posX + 24;
+				var targY = me.posY + 24;
+				if (me.parents[ii] != -1) { origX = me.parents[ii].posX + 24; origY = me.parents[ii].posY + 24; }
+				var rot = -(Math.atan((targY - origY) / (origX - targX)) / Math.PI) * 180;
+				if (targX <= origX) rot += 180;
+				var dist = Math.floor(Math.sqrt((targX - origX) * (targX - origX) + (targY - origY) * (targY - origY)));
+				var linkEl = l('heavenlyLink' + me.id + '-' + ii);
+				if (linkEl) {
+					linkEl.style.width = dist + 'px';
+					linkEl.style.transform = 'rotate(' + rot + 'deg)';
+					linkEl.style.left = origX + 'px';
+					linkEl.style.top = origY + 'px';
+					linkEl.classList.add('activeLink');
+				}
+			}
+
+			// Update outgoing links (me -> children)
+			for (var i in Game.PrestigeUpgrades) {
+				var child = Game.PrestigeUpgrades[i];
+				if (!child.parents) continue;
+				for (var cIdx = 0; cIdx < child.parents.length; cIdx++) {
+					if (child.parents[cIdx] === me || (child.parents[cIdx] !== -1 && child.parents[cIdx]?.id === me.id)) {
+						var origX = me.posX + 24;
+						var origY = me.posY + 24;
+						var targX = child.posX + 24;
+						var targY = child.posY + 24;
+						var rot = -(Math.atan((targY - origY) / (origX - targX)) / Math.PI) * 180;
+						if (targX <= origX) rot += 180;
+						var dist = Math.floor(Math.sqrt((targX - origX) * (targX - origX) + (targY - origY) * (targY - origY)));
+						var linkEl = l('heavenlyLink' + child.id + '-' + cIdx);
+						if (linkEl) {
+							linkEl.style.width = dist + 'px';
+							linkEl.style.transform = 'rotate(' + rot + 'deg)';
+							linkEl.style.left = origX + 'px';
+							linkEl.style.top = origY + 'px';
+							linkEl.classList.add('activeLink');
+						}
+					}
+				}
+			}
+		}
 		
 		export function PurchaseHeavenlyUpgrade(what?: any)
 		{
@@ -380,7 +467,7 @@
 			var rootNode = Game.Upgrades['Legacy'] || Game.PrestigeUpgrades[0];
 			var rootPosX = rootNode ? rootNode.posX : 0;
 			var rootPosY = rootNode ? rootNode.posY : 0;
-			str+='<div class="crate upgrade heavenly enabled" style="position:absolute;left:'+rootPosX+'px;top:'+rootPosY+'px;opacity:0.8;pointer-events:none;transform:scale(1.3);background:transparent;"></div>';
+			str+='<div id="ascendCenterSlot" class="crate upgrade heavenly enabled" style="position:absolute;left:'+rootPosX+'px;top:'+rootPosY+'px;opacity:0.8;pointer-events:none;transform:scale(1.3);background:transparent;"></div>';
 			str+='<div class="crateBox" style="filter:none;-webkit-filter:none;">';//chrome is still bad at these
 			for (var i in Game.PrestigeUpgrades)
 			{
@@ -476,6 +563,8 @@
 						{
 							var wasDrag=Game.ArrangeHeavenly && Game.AscendDragMoved;
 							Game.SelectedHeavenlyUpgrade=0;
+							var activeLinks = document.querySelectorAll('.parentLink.activeLink');
+							for (var aIdx = 0; aIdx < activeLinks.length; aIdx++) activeLinks[aIdx].classList.remove('activeLink');
 							if (wasDrag) {Game.SaveHeavenlyLayout(me);Game.BuildAscendTree();}//CC3: player arrange mode — a real drag re-renders at the new spot; rebuild also replaces the node so the pending click can't buy it
 							else if (Game.DebuggingPrestige) Game.BuildAscendTree();
 						}
@@ -490,10 +579,14 @@
 		//the save file — it's a layout preference, and the save format forbids
 		//new fields). Overrides are applied in main.ts right after the vanilla
 		//positions load, so a reload/ascension keeps the player's layout.
-		export function SaveHeavenlyLayout(me: any)
+		export function SaveHeavenlyLayout(_me?: any)
 		{
 			if (!Game.ArrangeLayout) Game.ArrangeLayout={};
-			Game.ArrangeLayout[me.id]=[Math.round(me.posX),Math.round(me.posY)];
+			for (var i in Game.PrestigeUpgrades)
+			{
+				var u = Game.PrestigeUpgrades[i];
+				Game.ArrangeLayout[u.id]=[Math.round(u.posX),Math.round(u.posY)];
+			}
 			Game.heavenlyPreset=null;//CC3: a hand-drag is a custom arrangement, not a preset
 			try{window.localStorage.setItem('cc3_heavenly_layout',JSON.stringify(Game.ArrangeLayout));}catch(e){}
 		}

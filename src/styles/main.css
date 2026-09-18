@@ -2556,6 +2556,12 @@ from {transform:translateY(20px);opacity:0;}
         animation:parentLinkPulse var(--dur-5) infinite linear;
 	*/
 }
+.parentLink.activeLink
+{
+	opacity:1 !important;
+	filter:drop-shadow(0px 0px 6px #efa438) brightness(1.6);
+	z-index:5;
+}
 @-webkit-keyframes parentLinkPulse{
 from {background-position:0px 0px;}
 	to {background-position:32px 0px;}
