@@ -3961,36 +3961,9 @@ body.oneColumn #topBar
 	100% { opacity: 1.0; }
 }
 
-/* 3. Crate Specular Hover Sheen Sweep */
-.crate:after {
-	content: '';
-	position: absolute;
-	top: -50%;
-	left: -50%;
-	width: 200%;
-	height: 200%;
-	background: linear-gradient(
-		135deg,
-		rgba(255, 255, 255, 0) 30%,
-		rgba(255, 255, 255, 0.22) 50%,
-		rgba(255, 255, 255, 0) 70%
-	);
-	transform: rotate(30deg) translateX(-100%);
-	pointer-events: none;
-	transition: transform 0.6s ease;
-	z-index: 15;
-}
-.crate:hover:after {
-	transform: rotate(30deg) translateX(100%);
-}
+/* 3. Crate Specular Hover Sheen Sweep — removed (caused shimmering when hovering the Upgrades box) */
 
-/* 4. Tooltip & Prompt Glassmorphism */
-#tooltipAnchor #tooltip,
-#prompt {
-	backdrop-filter: blur(8px);
-	-webkit-backdrop-filter: blur(8px);
-	box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.1);
-}
+/* 4. Tooltip & Prompt Glassmorphism — removed (tooltips are plain again; the blur also softened text behind them) */
 
 /* 5. Unlocked Heavenly Link Energy Pulse */
 .parentLink.unlockedLink:after {
