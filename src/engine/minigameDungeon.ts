@@ -207,7 +207,7 @@ function makeMap(w: number, h: number, _seed: number, params: Record<string, any
 		entrance: [0, 0], exit: [0, 0],
 		seed: _seed, roomSize: 10, corridorSize: 5, fillRatio: 1 / 3,
 		corridorRatio: 0.2, pillarRatio: 0.2, waterRatio: 0,
-		branching: 4, sizeVariance: 0.2, roomsAreHidden: false, str: "",
+		branching: 4, sizeVariance: 0.2, roomsAreHidden: true, str: "",
 
 		getType: function (x, y) { return this.data[x][y][0]; },
 		getRoom: function (x, y) { return this.data[x][y][1] !== -1 ? this.rooms[this.data[x][y][1]] : -1; },
@@ -597,8 +597,12 @@ function createEntity(type: string, subtype: string, dungeon: any, value?: any):
 	e.Draw = function () {
 		if (this.type === "item" && this.subtype === "cookies" && typeof this.value === "number" && this.value > 0) {
 			if (this.value < 2) this.pic = [0, 5]; else if (this.value < 4) this.pic = [2, 5]; else if (this.value < 6) this.pic = [3, 5]; else if (this.value < 10) this.pic = [4, 5]; else if (this.value < 20) this.pic = [5, 5]; else if (this.value < 30) this.pic = [7, 5]; else if (this.value < 70) this.pic = [6, 5]; else if (this.value < 200) this.pic = [8, 5]; else this.pic = [6, 6];
+		} else if (this.type === "special" && this.subtype === "upgrade") {
+			if (this.value !== "") this.pic = [7, 6]; else this.pic = [8, 6];
 		}
-		return `<div class="thing" title="${this.subtype}" style="z-index:${200 + this.zIndex};left:${this.x * 16}px;top:${this.y * 16}px;background-position:${-this.pic[0] * 16}px ${-this.pic[1] * 16}px;"></div>`;
+		let name = this.subtype;
+		if (this.subtype === "random") name = "clutter";
+		return `<div class="thing" title="${name}" style="z-index:${200 + this.zIndex};left:${this.x * 16}px;top:${this.y * 16}px;background-position:${-this.pic[0] * 16}px ${-this.pic[1] * 16}px;"></div>`;
 	};
 	e.Wander = function () { this.targets = [[-1, 0], [1, 0], [0, -1], [0, 1]]; (this as any).Move(); };
 	e.GoTo = function (x: number, y: number) {
@@ -653,8 +657,13 @@ function createEntity(type: string, subtype: string, dungeon: any, value?: any):
 			if (this.stats.hp <= 0) return;
 			by.stuck = 0;
 			const monster = this.type === "hero" ? by : this;
+			const hero = this.type === "hero" ? this : by;
 			this.dungeon.currentOpponent = monster;
-			if (monster.fighting === 0) { (this as any).Say("fight"); }
+			if (monster.fighting === 0) {
+				(this as any).Say("fight");
+				const hObj = DungeonHeroes.find(h => h.name === hero.subtype);
+				if (hObj) hObj.Say("meet " + monster.subtype);
+			}
 			if (this.fighting === 0) { this.fighting = 1; by.fighting = 1; }
 			const attackerName = by.type === "hero" ? by.subtype : (Monsters[by.subtype]?.name || by.subtype);
 			const defenderName = this.type === "hero" ? this.subtype : (Monsters[this.subtype]?.name || this.subtype);
@@ -672,12 +681,19 @@ function createEntity(type: string, subtype: string, dungeon: any, value?: any):
 			if (this.stats.hp <= 0) {
 				this.dungeon.Log(`${attackerName} crushed ${defenderName}!`);
 				if (this.type === "hero") {
+					const hObj = DungeonHeroes.find(h => h.name === this.subtype);
+					if (hObj) hObj.Say("defeat");
 					this.dungeon.Log(`<span style="color:#f66;">${defenderName} has been defeated.</span>`);
 					this.dungeon.FailLevel();
 				}
 				if (this.type === "monster" && by.type === "hero") {
 					this.dungeon.monstersKilledThisRun++;
 					playDungeonSfx('snd/squish1.mp3', 0.5); // monster defeated
+					const hObj = DungeonHeroes.find(h => h.name === by.subtype);
+					if (hObj) {
+						if (Math.random() < 0.05) hObj.Say("win");
+						hObj.Say("win against " + this.subtype);
+					}
 					// CC3 (Tier 1): bosses drop a relic bounty on death (scaling with
 					// depth), on top of the floor-clear relic the exit grants.
 					const diedMon = Monsters[this.subtype];
@@ -747,10 +763,8 @@ function createEntity(type: string, subtype: string, dungeon: any, value?: any):
 		e.zIndex = 10; e.fighting = 0;
 	} else if (type === "hero") {
 		e.obstacle = 1;
-		// CC3 (Tier 3): build the hero entity from the *selected* hero's stats, not
-		// always hero 0 — so Chip/Crumb/Doe/Lucky play distinctly (Crumb is tanky,
-		// Doe is fast, Lucky is lucky) instead of everyone silently playing as Chip.
-		const heroDef = DungeonHeroes[(dungeon as any).selectedHero || 0];
+		const heroDef = DungeonHeroes.find(h => h.name === subtype) || DungeonHeroes[(dungeon as any).selectedHero || 0];
+		e.pic = [heroDef.icon[0], heroDef.icon[1]];
 		for (const k in heroDef.stats) (e.stats as any)[k] = (heroDef.stats as any)[k];
 		e.zIndex = 100; e.fighting = 0;
 		// CC3 (Tier 3): scale the hero with the owning building's count so a larger
@@ -791,7 +805,12 @@ function defineHero(name: string, pic: string, portrait: string, icon: [number, 
 			const dungeon = (window as any).DungeonList?.[this.inDungeon];
 			if (!dungeon || !dungeon.heroEntity) return;
 			dungeon.heroEntity.targets = [[x, y] as [number, number]];
-			if (dungeon.heroEntity.Move()) { this.x = dungeon.heroEntity.x; this.y = dungeon.heroEntity.y; dungeon.Turn(); }
+			if (dungeon.heroEntity.Move()) {
+				this.x = dungeon.heroEntity.x; this.y = dungeon.heroEntity.y;
+				const room = dungeon.map.getRoom(this.x, this.y);
+				if (room !== -1 && (room as any).hidden) { (room as any).hidden = false; dungeon.RedrawMap(); }
+				dungeon.Turn();
+			}
 		},
 		Say: function (what) {
 			const dungeon = (window as any).DungeonList?.[this.inDungeon];
@@ -1060,12 +1079,12 @@ M.launch = function (this: DungeonMinigame) {
 .controlPad{position:absolute;width:144px;height:144px;z-index:20;}
 .dungeonFullscreen .controlPad{position:absolute!important;top:auto!important;bottom:20px!important;left:50%!important;transform:translateX(-50%)!important;z-index:300!important;}
 .control{width:48px;height:48px;display:block;background:url(img/control.webp);background-size:144px 144px;cursor:pointer;position:absolute;z-index:20;}
-.control.west{background-position:0px -48px;top:0px;left:0px;}
-.control.east{background-position:-96px -48px;top:48px;left:0px;}
-.control.north{background-position:-48px 0px;top:96px;left:0px;}
-.control.south{background-position:-48px -96px;top:144px;left:0px;}
-.control.middle{background-position:-48px -48px;top:192px;left:0px;}
-.thing{width:16px;height:16px;position:absolute;background:url(img/dungeonItems.webp);}
+.control.north{background-position:-48px 0px;top:0px;left:48px;}
+.control.west{background-position:0px -48px;top:48px;left:0px;}
+.control.middle{background-position:-48px -48px;top:48px;left:48px;}
+.control.east{background-position:-96px -48px;top:48px;left:96px;}
+.control.south{background-position:-48px -96px;top:96px;left:48px;}
+.thing{width:16px;height:16px;position:absolute;background:url(img/dungeonIcons.webp);}
 .dungeonCard{position:absolute;width:176px;background:#15101f;border:1px solid #5a4a2a;border-color:#dfbc9a #875526 #a44e36 #dfbc9a;border-radius:4px;box-shadow:0px 0px 1px 2px rgba(0,0,0,0.5),0px 2px 4px rgba(0,0,0,0.4),0px 0px 2px 2px rgba(0,0,0,0.5) inset;padding:6px 8px;font-size:11px;color:#ddd;line-height:1.35;}
 .dungeonInfoCard{left:320px;top:128px;}
 .dungeonFullscreen .dungeonInfoCard{position:absolute!important;right:20px!important;left:auto!important;top:44px!important;width:260px!important;z-index:200!important;}
@@ -1178,6 +1197,7 @@ M.launch = function (this: DungeonMinigame) {
 				let r = 0;
 				while (r !== 1) r = M2.dig();
 				M2.finish();
+				if (M2.rooms[0]) M2.rooms[0].hidden = false;
 				for (const door of M2.doors) this.AddEntity("destructible", "door", door[0], door[1]);
 				for (const room of M2.rooms) {
 					const altStr = choose(["alt ", "", ""]);
@@ -1255,13 +1275,13 @@ M.launch = function (this: DungeonMinigame) {
 					`<a class="dungeonBtn" onclick="Game.ObjectsById[${this.id}].minigame.toggleFullscreen();">${fsText}</a>` +
 					`</div>`;
 
-				let str = `<div id="map${this.id}" class="map" style="width:${mapW}px;height:${mapH}px;"><div class="mapContainer" id="mapcontainer${this.id}" style="position:absolute;left:${x * 16}px;top:${y * 16}px;"><div id="mapitems${this.id}"></div>${this.map.str}</div></div>`;
+				let str = `<div id="map${this.id}" class="map" style="width:${mapW}px;height:${mapH}px;"><div class="mapContainer" id="mapcontainer${this.id}" style="position:absolute;left:${x * 16}px;top:${y * 16}px;"><div id="mapitems${this.id}"></div>${this.map.str}</div><div class="mapOverlay" style="position:absolute;left:0px;top:0px;width:100%;height:100%;background:url(img/dungeonOverlay.webp);background-size:100% 100%;pointer-events:none;z-index:1000;"></div></div>`;
 				str += `<div class="controlPad" style="position:absolute;left:${mapW + 16}px;top:0px;">` +
-					`<a class="control west" onclick="document.getElementById('dungeonP${this.id}').value='west';document.getElementById('dungeonP${this.id}').dispatchEvent(new Event('change',{bubbles:true}));"></a><br>` +
-					`<a class="control east" onclick="document.getElementById('dungeonP${this.id}').value='east';document.getElementById('dungeonP${this.id}').dispatchEvent(new Event('change',{bubbles:true}));"></a><br>` +
-					`<a class="control north" onclick="document.getElementById('dungeonP${this.id}').value='north';document.getElementById('dungeonP${this.id}').dispatchEvent(new Event('change',{bubbles:true}));"></a><br>` +
-					`<a class="control south" onclick="document.getElementById('dungeonP${this.id}').value='south';document.getElementById('dungeonP${this.id}').dispatchEvent(new Event('change',{bubbles:true}));"></a><br>` +
-					`<a class="control middle" onclick="document.getElementById('dungeonP${this.id}').value='wait';document.getElementById('dungeonP${this.id}').dispatchEvent(new Event('change',{bubbles:true}));"></a><br>` +
+					`<a class="control north" title="Move North" onclick="document.getElementById('dungeonP${this.id}').value='north';document.getElementById('dungeonP${this.id}').dispatchEvent(new Event('change',{bubbles:true}));"></a>` +
+					`<a class="control west" title="Move West" onclick="document.getElementById('dungeonP${this.id}').value='west';document.getElementById('dungeonP${this.id}').dispatchEvent(new Event('change',{bubbles:true}));"></a>` +
+					`<a class="control middle" title="Wait" onclick="document.getElementById('dungeonP${this.id}').value='wait';document.getElementById('dungeonP${this.id}').dispatchEvent(new Event('change',{bubbles:true}));"></a>` +
+					`<a class="control east" title="Move East" onclick="document.getElementById('dungeonP${this.id}').value='east';document.getElementById('dungeonP${this.id}').dispatchEvent(new Event('change',{bubbles:true}));"></a>` +
+					`<a class="control south" title="Move South" onclick="document.getElementById('dungeonP${this.id}').value='south';document.getElementById('dungeonP${this.id}').dispatchEvent(new Event('change',{bubbles:true}));"></a>` +
 					`</div>`;
 				const leftCol2 = mapW + 16 + 144 + 16;
 				str += `<div style="position:absolute;left:${leftCol2}px;top:0px;bottom:16px;">` +
@@ -1305,14 +1325,17 @@ M.launch = function (this: DungeonMinigame) {
 			RedrawMap: function () { this.map.str = this.map.getStr(); this.Draw(); },
 			Turn: function () {
 				for (const e of this.entities) if (e && e.type) e.Turn();
+				const picHero = l("picHero" + this.id);
 				if (this.currentOpponent) {
 					const ms = l("monsterSlot" + this.id); if (ms) ms.style.visibility = "visible";
 					const hpM = l("hpMonster" + this.id); if (hpM) hpM.style.width = Math.round((this.currentOpponent.stats.hp / this.currentOpponent.stats.hpm) * 100) + "%";
 					const picM = l("picMonster" + this.id); if (picM) picM.style.backgroundImage = `url(img/${Monsters[this.currentOpponent.subtype]?.pic || "doughling"}.webp)`;
 					const nameM = l("nameMonster" + this.id); if (nameM) nameM.innerHTML = Monsters[this.currentOpponent.subtype]?.name || "???";
+					if (picHero && this.hero) picHero.style.backgroundImage = `url(img/${this.hero.pic}.webp)`;
 				} else {
 					const ms = l("monsterSlot" + this.id); if (ms) ms.style.visibility = "hidden";
 					const hpM = l("hpMonster" + this.id); if (hpM) hpM.style.width = "100%";
+					if (picHero && this.hero) picHero.style.backgroundImage = `url(img/${this.hero.portrait}.webp)`;
 				}
 				this.currentOpponent = null;
 				const hpH = l("hpHero" + this.id);
@@ -1527,7 +1550,11 @@ M.logic = function (this: DungeonMinigame) {
 						} else {
 							hero.Wander();
 						}
-						if (d.hero) { d.hero.x = hero.x; d.hero.y = hero.y; }
+						if (d.hero) {
+							d.hero.x = hero.x; d.hero.y = hero.y;
+							const room = d.map.getRoom(hero.x, hero.y);
+							if (room !== -1 && room.hidden) { room.hidden = false; d.RedrawMap(); }
+						}
 						d.Turn();
 					}
 				}
