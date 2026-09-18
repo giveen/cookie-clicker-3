@@ -216,7 +216,7 @@ M.launch = function (this: CatColonyMinigame) {
 		};
 
 		M.getMorale = function () {
-			return 100 + Math.min(30, Math.floor(M.idleCats() / 2)) + Math.min(20, Math.floor(M.missionsCompleted / 10));
+			return 100 + Math.min(30, Math.floor(M.restingCount() * 5)) + Math.min(20, Math.floor(M.missionsCompleted / 25));
 		};
 
 		// Each Nine-lives insurance stack multiplies risk by 0.7 (0.7^n —
@@ -678,7 +678,8 @@ M.launch = function (this: CatColonyMinigame) {
 			restStr = restParts.join('/');
 		}
 		var autoStr = M.missions.map(function (m) { return M.autoRepeat[m.id] ? '1' : '0'; }).join('');
-		return parseFloat(M.treats) + ' ' + parseFloat(M.missionsCompleted) + ' ' + parseFloat(M.treatsEarnedTotal) + ' ' + awayStr + ' ' + restStr + ' ' + M.upgradeStacks.join(':') + ' ' + autoStr;
+		var hasAuto = autoStr.indexOf('1') >= 0;
+		return parseFloat(M.treats) + ' ' + parseFloat(M.missionsCompleted) + ' ' + parseFloat(M.treatsEarnedTotal) + ' ' + awayStr + ' ' + restStr + ' ' + M.upgradeStacks.join(':') + (hasAuto ? ' ' + autoStr : '');
 	};
 
 	M.load = function (str: string) {
