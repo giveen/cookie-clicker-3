@@ -762,17 +762,19 @@ export function declareVanillaUpgrades(Game: EngineGame) {
 				choices.push({name:it.name,icon:it.icon,milk:it,order:it.type});
 			}
 			
-			choices[11].div=true;
+			if (choices[11]) choices[11].div=true;
 			
 			var maxRank=Math.floor(Game.AchievementsOwned/25);
 			for (var i=0;i<choices.length;i++)
 			{
+				if (!choices[i]) continue;
 				var it=choices[i].milk;
 				if (it.type==1 && !Game.Has('Fanciful dairy selection')) choices[i]=0;
 				if (it.rank && it.rank>maxRank) choices[i]=0;
 			}
 			
-			choices[Game.milkType].selected=1;
+			if (choices[Game.milkType]) choices[Game.milkType].selected=1;
+			else if (choices[0]) choices[0].selected=1;
 			return choices;
 		}
 		Game.last.choicesPick=function(id: any)
@@ -960,15 +962,16 @@ export function declareVanillaUpgrades(Game: EngineGame) {
 				choices[ix]={name:Game.BGsByChoice[ix].name,icon:Game.BGsByChoice[ix].icon,order:Game.BGsByChoice[ix].order||parseInt(ix, 10)};
 			}
 			
-			choices[13].div=true;
+			if (choices[13]) choices[13].div=true;
 			
 			for (var i=0;i<choices.length;i++)
 			{
 				var it=choices[i];
-				if (it.order>=4.9 && !Game.Has('Distinguished wallpaper assortment')) choices[i]=0;
+				if (it && it.order>=4.9 && !Game.Has('Distinguished wallpaper assortment')) choices[i]=0;
 			}
 			
-			choices[Game.bgType].selected=1;
+			if (choices[Game.bgType]) choices[Game.bgType].selected=1;
+			else if (choices[0]) choices[0].selected=1;
 			return choices;
 		}
 		Game.last.choicesPick=function(id: any)

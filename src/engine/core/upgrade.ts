@@ -195,36 +195,40 @@ export class Upgrade {
 						{
 							str+=choices;
 						}
-						else if (choices.length>0)
+						else if (choices.length>0 || Object.keys(choices).length>0)
 						{
-							var selected: string | 0=0;//the for-in assigns the (string) index into this 0-sentinel
-							for (var i in choices) {if (choices[i].selected) selected=i;}
-							Game.choiceSelectorChoices=choices;//this is a really dumb way of doing this i am so sorry
-							Game.choiceSelectorSelected=selected;
-							str+='<h4 id="choiceSelectedName">'+choices[selected].name+'</h4>'+
-							'<div class="line"></div>';
-							
+							var selected: any=0;
+							var validChoices: any[]=[];
 							for (var i in choices)
 							{
-								choices[i].id=i;
-								choices[i].order=choices[i].order||0;
+								if (!choices[i]) continue;
+								var item=choices[i];
+								item.id=parseInt(i as any, 10);
+								if (isNaN(item.id)) item.id=i;
+								item.order=item.order||0;
+								if (item.selected) selected=item.id;
+								validChoices.push(item);
 							}
+							Game.choiceSelectorChoices=choices;
+							Game.choiceSelectorSelected=selected;
+							var initChoice=choices[selected]||validChoices[0];
+							str+='<h4 id="choiceSelectedName">'+(initChoice?initChoice.name:'')+'</h4>'+
+							'<div class="line"></div>';
 							
-							var sortMap=function(a: {order: number},b: {order: number})
-							{
+							validChoices.sort(function(a: any, b: any){
 								if (a.order>b.order) return 1;
 								else if (a.order<b.order) return -1;
 								else return 0;
-							}
-							choices.sort(sortMap);
+							});
 							
-							for (var i2=0;i2<choices.length;i2++)//i2: original `i` — tsgo TS2403 vs the for-in `i` above
+							for (var i2=0;i2<validChoices.length;i2++)
 							{
-								if (!choices[i2]) continue;
-								var icon=choices[i2].icon;
-								var id=choices[i2].id;
-								if (choices[i2].div) str+='<div class="line"></div>';
-								str+='<div class="crate noFrame enabled'+(id==selected?' highlighted':'')+'" style="opacity:1;float:none;display:inline-block;'+writeIcon(icon)+'" '+Game.clickStr+'="Game.UpgradesById['+this.id+'].choicesPick('+id+');Game.choiceSelectorOn=-1;Game.UpgradesById['+this.id+'].buy();" onMouseOut="l(\'choiceSelectedName\').innerHTML=Game.choiceSelectorChoices[Game.choiceSelectorSelected].name;" onMouseOver="l(\'choiceSelectedName\').innerHTML=Game.choiceSelectorChoices['+i2+'].name;"'+
+								var choice=validChoices[i2];
+								var icon=choice.icon;
+								var id=choice.id;
+								if (choice.div) str+='<div class="line"></div>';
+								var escName=choice.name.replace(/"/g, '&quot;');
+								str+='<div class="crate noFrame enabled'+(id==selected?' highlighted':'')+'" style="opacity:1;float:none;display:inline-block;'+writeIcon(icon)+'" '+Game.clickStr+'="Game.UpgradesById['+this.id+'].choicesPick('+(typeof id==='string'?'\''+id+'\'':id)+');Game.choiceSelectorOn=-1;Game.UpgradesById['+this.id+'].buy();" onMouseOut="var sel=Game.choiceSelectorChoices[Game.choiceSelectorSelected];l(\'choiceSelectedName\').innerHTML=sel?sel.name:\'\';" onMouseOver="l(\'choiceSelectedName\').innerHTML=\''+escName+'\';"'+
 								'></div>';
 							}
 						}
