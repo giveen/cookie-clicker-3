@@ -84,6 +84,10 @@ interface SittingRoomMinigame {
 	/* clicked seat (0-5) or -1 for none */
 	selectedSeat: number;
 	tutorialOpen: boolean;
+	teaRequest: { seatIdx: number; teaType: string; expiresAt: number } | null;
+	teatimeFrenzyTimer: number;
+	goldenYarn: { spawnTime: number } | null;
+	shopBulkMode: 1 | 10 | 'max';
 
 	/* --- derived values / actions --- */
 	effectiveStacks: (name: string) => number;
@@ -94,6 +98,12 @@ interface SittingRoomMinigame {
 	assignSeat: (seatIdx: number, activityIdx: number) => boolean;
 	buyUpgrade: (name: string) => boolean;
 	checkAchievements: () => void;
+	setShopBulkMode: (mode: 1 | 10 | 'max') => void;
+	applyPreset: (preset: 'cozy' | 'eldritch' | 'clear') => void;
+	serveTea: () => void;
+	clickGoldenYarn: () => void;
+	spawnGrandmaBubble: (el: HTMLElement, text: string) => void;
+	getCombos: () => { name: string; desc: string; type: string }[];
 
 	/* --- rendering --- */
 	renderHeader: () => string;
@@ -133,16 +143,82 @@ M.launch = function (this: SittingRoomMinigame) {
 
 		M.yarn = 0;
 		M.yarnEarned = 0;
-		// Seats: 6 slots, each holds an activity index (0-5) or -1 (empty).
-		// Unlocked by grandma count [1,10,25,50,100,200].
 		M.seats = [-1, -1, -1, -1, -1, -1];
 		M.seatUnlocks = [1, 10, 25, 50, 100, 200];
-		// Repeatable stacks per upgrade (parallel to M.upgradeNames):
 		M.upgradeStacks = [0, 0, 0, 0, 0, 0];
-		// Fractional yarn accumulator (not persisted — small rounding).
 		M.yarnTrickle = 0;
-		// CC3: which seat the player has clicked to select (0-5, or -1 for none)
 		M.selectedSeat = -1;
+		M.teaRequest = null;
+		M.teatimeFrenzyTimer = 0;
+		M.goldenYarn = null;
+		M.shopBulkMode = 1;
+
+		M.setShopBulkMode = function (mode: 1 | 10 | 'max') {
+			M.shopBulkMode = mode;
+			M.refresh();
+		};
+
+		M.getCombos = function () {
+			var combos: { name: string; desc: string; type: string }[] = [];
+			var assignedIds: string[] = [];
+			for (var i = 0; i < M.seats.length; i++) {
+				if (M.seats[i] >= 0 && M.activities[M.seats[i]]) {
+					assignedIds.push(M.activities[M.seats[i]].id);
+				}
+			}
+			if (assignedIds.indexOf('knitting') >= 0 && assignedIds.indexOf('tea') >= 0) {
+				combos.push({ name: 'Afternoon Gossip', desc: '+20% Yarn rate', type: 'cozy' });
+			}
+			if (assignedIds.indexOf('rocking') >= 0 && assignedIds.indexOf('story') >= 0) {
+				combos.push({ name: 'Rocking Stories', desc: '+10% Grandma CpS', type: 'cozy' });
+			}
+			if (assignedIds.indexOf('chant') >= 0 && assignedIds.indexOf('choir') >= 0) {
+				combos.push({ name: 'Dark Coven', desc: '+15% Wrinkler & Wrath payout', type: 'eldritch' });
+			}
+			return combos;
+		};
+
+		M.applyPreset = function (preset: 'cozy' | 'eldritch' | 'clear') {
+			if (preset === 'clear') {
+				for (var s = 0; s < M.seats.length; s++) M.seats[s] = -1;
+			} else if (preset === 'cozy') {
+				var cozyActs = [3, 1, 2, 0];
+				for (var s = 0; s < M.seats.length; s++) {
+					if (M.parent.amount < M.seatUnlocks[s]) continue;
+					var assigned = false;
+					for (var c = 0; c < cozyActs.length; c++) {
+						var aIdx = cozyActs[c];
+						if (M.parent.amount >= M.activities[aIdx].unlock) {
+							M.seats[s] = aIdx;
+							assigned = true;
+							break;
+						}
+					}
+					if (!assigned) M.seats[s] = -1;
+				}
+			} else if (preset === 'eldritch') {
+				if (Game.elderWrath <= 0) { PlaySound('snd/error1.mp3', 0.5); return; }
+				var elActs = [5, 4, 3, 1];
+				for (var s = 0; s < M.seats.length; s++) {
+					if (M.parent.amount < M.seatUnlocks[s]) continue;
+					var assigned = false;
+					for (var e = 0; e < elActs.length; e++) {
+						var aIdx = elActs[e];
+						var act = M.activities[aIdx];
+						if (M.parent.amount >= act.unlock && (act.comfort >= 0 || Game.elderWrath > 0)) {
+							M.seats[s] = aIdx;
+							assigned = true;
+							break;
+						}
+					}
+					if (!assigned) M.seats[s] = -1;
+				}
+			}
+			M.computeEffs();
+			Game.recalculateGains = 1;
+			PlaySound('snd/tick.mp3', 0.75);
+			M.refresh();
+		};
 
 		M.effectiveStacks = function (name: string) {
 			var i = M.upgradeNames.indexOf(name);
@@ -167,26 +243,36 @@ M.launch = function (this: SittingRoomMinigame) {
 		M.yarnPerSecond = function () {
 			var r = 0;
 			for (var i = 0; i < M.seats.length; i++) { if (M.seats[i] >= 0) r += M.activities[M.seats[i]].yarnRate; }
-			// Heavenly upgrade: Grandma's knitting circle → 50% faster yarn.
 			if (Game.Has("Grandma's knitting circle")) r *= 1.5;
+			var combos = M.getCombos();
+			for (var c = 0; c < combos.length; c++) {
+				if (combos[c].name === 'Afternoon Gossip') r *= 1.2;
+			}
+			if (M.teatimeFrenzyTimer > Date.now()) r *= 1.25;
 			return r;
 		};
 
-		// Compute effs from current comfort and stash them on M so the engine
-		// picks them up in CalculateGains (the engine iterates M.effs keys).
 		M.computeEffs = function () {
 			var comfort = M.currentComfort();
 			var effs: Record<string, number> = { grandmaCps: 1, wrathCookieGain: 1, wrathCookieFreq: 1, wrathCookieDur: 1, wrinklerSpawn: 1, wrinklerEat: 1 };
 			if (comfort >= 0) {
-				effs.grandmaCps = 1 + 0.02 * comfort;           // up to +12% at +6
-				effs.wrathCookieFreq = 1 + 0.01 * comfort;       // fewer wrath cookies when cozy
+				effs.grandmaCps = 1 + 0.02 * comfort;
+				effs.wrathCookieFreq = 1 + 0.01 * comfort;
 			} else {
 				var w = -comfort;
-				effs.wrathCookieGain = 1 + 0.03 * w;             // up to +18%
-				effs.wrathCookieFreq = 1 / (1 + 0.02 * w);       // more frequent (shimmerTypes: m*=1/eff)
-				effs.wrinklerEat = 1 + 0.02 * w;                 // wrinklers eat more → bigger refund
-				effs.wrinklerSpawn = 1 + 0.03 * w;               // more wrinklers
-				effs.grandmaCps = 1 - 0.01 * w;                  // angry grandmas bake slightly less
+				effs.wrathCookieGain = 1 + 0.03 * w;
+				effs.wrathCookieFreq = 1 / (1 + 0.02 * w);
+				effs.wrinklerEat = 1 + 0.02 * w;
+				effs.wrinklerSpawn = 1 + 0.03 * w;
+				effs.grandmaCps = 1 - 0.01 * w;
+			}
+			var combos = M.getCombos();
+			for (var c = 0; c < combos.length; c++) {
+				if (combos[c].name === 'Rocking Stories') effs.grandmaCps *= 1.10;
+				if (combos[c].name === 'Dark Coven') {
+					effs.wrinklerSpawn *= 1.15;
+					effs.wrathCookieGain *= 1.10;
+				}
 			}
 			M.effs = effs;
 		};
@@ -195,11 +281,8 @@ M.launch = function (this: SittingRoomMinigame) {
 		M.assignSeat = function (seatIdx: number, activityIdx: number) {
 			if (seatIdx < 0 || seatIdx >= M.seats.length) return false;
 			if (activityIdx >= 0 && activityIdx < M.activities.length) {
-				// Check seat unlocked
 				if (M.parent.amount < M.seatUnlocks[seatIdx]) return false;
-				// Check activity unlocked
 				if (M.parent.amount < M.activities[activityIdx].unlock) return false;
-				// Eldritch activities require elder wrath active
 				if (M.activities[activityIdx].comfort < 0 && Game.elderWrath <= 0) return false;
 				M.seats[seatIdx] = activityIdx;
 			} else {
@@ -218,11 +301,17 @@ M.launch = function (this: SittingRoomMinigame) {
 			var i = M.upgradeNames.indexOf(name);
 			if (!up || i < 0) return false;
 			var price = up.yarnPrice || 0;
-			if (M.yarn < price) return false;
-			M.yarn -= price;
+			if (price <= 0 || M.yarn < price) return false;
+
+			var mode = M.shopBulkMode || 1;
+			var maxAfford = Math.floor(M.yarn / price);
+			var stacksToBuy = (mode === 'max') ? maxAfford : Math.min(mode, maxAfford);
+			if (stacksToBuy <= 0) return false;
+
+			M.yarn -= price * stacksToBuy;
 			var n = M.effectiveStacks(name);
-			if (n < 1) up.earn(); // first-ever stack → mark in the main save
-			M.upgradeStacks[i] = n + 1;
+			if (n < 1) up.earn();
+			M.upgradeStacks[i] = n + stacksToBuy;
 			Game.recalculateGains = 1;
 			PlaySound('snd/buy' + (Math.floor(Math.random() * 4) + 1) + '.mp3', 0.75);
 			var allOwned = true;
@@ -230,6 +319,38 @@ M.launch = function (this: SittingRoomMinigame) {
 			if (allOwned) Game.Win('Fully furnished');
 			M.refresh();
 			return true;
+		};
+
+		M.serveTea = function () {
+			if (!M.teaRequest) return;
+			var req = M.teaRequest;
+			M.teaRequest = null;
+			var bonusYarn = (req.seatIdx + 1) * 50;
+			M.yarn += bonusYarn;
+			M.yarnEarned += bonusYarn;
+			M.teatimeFrenzyTimer = Date.now() + 60000;
+			Game.Notify(loc("Teatime served!"), "Served " + req.teaType + "! +" + bonusYarn + " Yarn & Teatime Frenzy (+25% Yarn rate for 60s).", [4, 26]);
+			PlaySound('snd/buy1.mp3', 0.75);
+			M.refresh();
+		};
+
+		M.clickGoldenYarn = function () {
+			if (!M.goldenYarn) return;
+			M.goldenYarn = null;
+			var bonusYarn = Math.max(15, Math.floor((M.yarnEarned + 10) * 0.15));
+			M.yarn += bonusYarn;
+			M.yarnEarned += bonusYarn;
+			Game.Notify(loc("Golden Yarn Ball!"), "Caught the golden yarn ball! +" + Beautify(bonusYarn) + " Yarn!", [4, 26]);
+			PlaySound('snd/harvest1.mp3', 0.75);
+			M.refresh();
+		};
+
+		M.spawnGrandmaBubble = function (el: HTMLElement, text: string) {
+			var bubble = document.createElement('div');
+			bubble.className = 'roomBubble';
+			bubble.textContent = text;
+			el.appendChild(bubble);
+			setTimeout(function () { if (bubble.parentNode) bubble.parentNode.removeChild(bubble); }, 1400);
 		};
 
 		M.checkAchievements = function () {
@@ -240,7 +361,6 @@ M.launch = function (this: SittingRoomMinigame) {
 			if (comfort <= -6) Game.Win('The elders sing');
 		};
 
-		// Build the panel HTML
 		var str = '';
 		str += '<style>' +
 			'#roomBG{background:url(img/shadedBorders.webp),url(img/grandmaBackground.webp);background-size:100% 100%,auto;position:absolute;left:0px;right:0px;top:0px;bottom:16px;}' +
@@ -276,6 +396,14 @@ M.launch = function (this: SittingRoomMinigame) {
 			'.roomSeatClear:hover{opacity:1;background:rgba(255,80,80,0.3);}' +
 			'.roomSeatEmpty{font-size:10px;opacity:0.5;text-align:center;padding-top:16px;}' +
 			'.roomSeatLockedTxt{font-size:9px;opacity:0.6;text-align:center;padding-top:10px;font-style:italic;}' +
+			'.roomBubble{position:absolute;top:-22px;left:50%;transform:translateX(-50%);background:rgba(255,255,250,0.95);color:#222;font-weight:bold;font-size:10px;padding:3px 8px;border-radius:10px;pointer-events:none;box-shadow:0 2px 8px rgba(0,0,0,0.5);animation:roomFloatUp 1.4s ease-out forwards;z-index:100;white-space:nowrap;}' +
+			'@keyframes roomFloatUp{0%{opacity:1;transform:translate(-50%,0);}100%{opacity:0;transform:translate(-50%,-24px);}}' +
+			'.roomPresetBtn{cursor:pointer;padding:2px 6px;border-radius:4px;background:rgba(255,255,255,0.12);font-size:10px;font-weight:bold;margin-left:4px;white-space:nowrap;transition:background 0.15s;}' +
+			'.roomPresetBtn:hover{background:rgba(255,255,255,0.3);}' +
+			'.roomTeaBadge{position:absolute;top:-8px;right:-4px;background:rgba(255,200,80,0.95);color:#222;font-size:9px;font-weight:bold;padding:2px 6px;border-radius:10px;box-shadow:0 2px 6px rgba(0,0,0,0.4);cursor:pointer;animation:roomTeaPulse 1s infinite alternate;z-index:10;}' +
+			'@keyframes roomTeaPulse{0%{transform:scale(1);}100%{transform:scale(1.1);}}' +
+			'.roomGoldenYarn{position:absolute;bottom:24px;left:20px;width:32px;height:32px;background:radial-gradient(circle,#ffe066,#d4af37);border-radius:50%;box-shadow:0 0 12px #ffe066;cursor:pointer;animation:roomYarnRoll 5s linear infinite;z-index:20;}' +
+			'@keyframes roomYarnRoll{0%{transform:translateX(0) rotate(0deg);}100%{transform:translateX(450px) rotate(720deg);}}' +
 			/* ---- activity shelf ---- */
 			'.roomShelf{display:flex;flex-wrap:wrap;gap:4px;margin:4px 0;}' +
 			'.roomShelfGroup{flex:1;min-width:180px;}' +
@@ -326,7 +454,7 @@ M.launch = function (this: SittingRoomMinigame) {
 		var str = '<div class="roomBox">';
 		str += '<div class="roomTitle">' + M.name + ' <span id="roomHelpBtn" class="roomHelpBtn" title="How to play" style="float:right;">How to play</span></div>';
 		str += '<div class="roomStats">🧶 Yarn: <b>' + Beautify(M.yarn) + '</b> &nbsp;|&nbsp; Rate: <b>' + Beautify(M.yarnPerSecond(), 2) + '</b>/s</div>';
-		// Comfort bar: -6 to +6, centered at 0
+
 		var pct = 50 + (comfort / 6) * 50;
 		pct = Math.max(0, Math.min(100, pct));
 		var fillColor = comfort >= 0 ? 'rgba(100,200,100,0.8)' : 'rgba(200,100,100,0.8)';
@@ -334,7 +462,7 @@ M.launch = function (this: SittingRoomMinigame) {
 		if (comfort > 0) comfortLabel = '<span style="color:#8c8;">+' + comfort + ' (cozy)</span>';
 		else if (comfort < 0) comfortLabel = '<span style="color:#c88;">− comfort ' + comfort + ' (eldritch)</span>';
 		else comfortLabel = '<span style="color:#888;">comfort 0 (neutral)</span>';
-		// Left label: cozy, Right label: eldritch
+
 		var leftLabel = comfort >= 0 ? '<span style="color:#8c8;font-weight:bold;">+</span>' : '<span style="opacity:0.4;">+</span>';
 		var rightLabel = comfort <= 0 ? '<span style="color:#c88;font-weight:bold;">−</span>' : '<span style="opacity:0.4;">−</span>';
 		str += '<div class="roomComfortWrap">';
@@ -343,6 +471,20 @@ M.launch = function (this: SittingRoomMinigame) {
 		str += '<span class="roomComfortLabel" style="min-width:36px;text-align:left;">Eldritch ' + rightLabel + '</span>';
 		str += '</div>';
 		str += '<div style="text-align:center;font-size:10px;margin:2px 0;">' + comfortLabel + '</div>';
+
+		var combos = M.getCombos();
+		if (combos.length > 0 || M.teatimeFrenzyTimer > Date.now()) {
+			str += '<div style="text-align:center;margin:4px 0;">';
+			for (var c = 0; c < combos.length; c++) {
+				var combo = combos[c];
+				str += '<span class="roomSeatTag ' + (combo.type === 'cozy' ? 'roomSeatTagCozy' : 'roomSeatTagEldritch') + '" style="font-size:9px;padding:2px 6px;">✨ ' + combo.name + ': ' + combo.desc + '</span>';
+			}
+			if (M.teatimeFrenzyTimer > Date.now()) {
+				str += '<span class="roomSeatTag roomSeatTagCozy" style="font-size:9px;padding:2px 6px;">☕ Teatime Frenzy (+25% Yarn)</span>';
+			}
+			str += '</div>';
+		}
+
 		str += '<div class="roomWrathLabel">' + wrathLabel + '</div>';
 		str += '</div>';
 		return str;
@@ -350,18 +492,16 @@ M.launch = function (this: SittingRoomMinigame) {
 
 	M.tutorialOpen = false;
 
-	// How-to-play panel, toggled by the "How to play" button in the header.
 	M.renderTutorial = function () {
 		var str = '<div class="roomBox" style="margin:0;max-width:none;">';
 		str += '<div class="roomTitle">How to play <span id="roomHelpClose" class="roomHelpBtn" title="Close" style="float:right;">✕</span></div>';
 		str += '<ul>';
-		str += '<li><b>Assign activities</b> — click a seat card to select it, then click an activity in the shelf below to assign it there. Click ✕ on an assigned seat to empty it. Or just click an activity to fill the next empty seat automatically.</li>';
-		str += '<li><b>Unlock seats and activities</b> — each of the 6 seats and each activity unlocks at a higher number of owned Grandmas (1, 10, 25, 50, 100, 200).</li>';
-		str += '<li><b>Earn yarn</b> — every assigned seat produces yarn per second; the total is shown at the top.</li>';
-		str += '<li><b>Comfort dial</b> — cozy activities (green, +) boost Grandma CpS and calm the Grandmapocalypse; eldritch activities (red, −) cut Grandma CpS but amplify wrath-cookie and wrinkler effects while the Grandmapocalypse is active.</li>';
-		str += '<li><b>Eldritch activities</b> (Eldritch chant, Grandmapocalypse choir) can only be assigned while the Grandmapocalypse is active — own the <b>One mind</b> upgrade to get wrath.</li>';
-		str += '<li><b>Spend yarn</b> — buy the sitting room upgrades below; each is repeatable and every stack boosts Grandma output, and stacks are kept in your save.</li>';
-		str += '<li><b>Goals</b> — reach <b>+6 comfort</b> ("Grandma\'s peace") or <b>−6</b> ("The elders sing"); buy every upgrade to become "Fully furnished".</li>';
+		str += '<li><b>Assign activities & Room Presets</b> — click a seat to select it, then pick an activity below. Or click <b>☕ Max Cozy</b> / <b>👁 Max Eldritch</b> to auto-fill your room instantly!</li>';
+		str += '<li><b>Teatime Requests</b> — grandmas will occasionally request warm tea! Click the ☕ badge above their seat to serve them for instant Yarn and a 60s Teatime Frenzy.</li>';
+		str += '<li><b>Activity Synergies</b> — pair matching activities (*Afternoon Gossip*, *Rocking Stories*, *Dark Coven*) for bonus Yarn, Grandma CpS, or Wrinkler bonuses.</li>';
+		str += '<li><b>Golden Yarn Ball</b> — look out for golden yarn balls rolling across the room! Click them for extra Yarn windfalls.</li>';
+		str += '<li><b>Interactive Chatter</b> — click seated grandmas to hear their stories (or dark whispers!).</li>';
+		str += '<li><b>Spend yarn in bulk</b> — buy repeatable sitting room upgrades in bulk (`x1`, `x10`, `Max`) to boost Grandma output exponentially.</li>';
 		str += '</ul>';
 		str += '</div>';
 		return str;
@@ -390,8 +530,13 @@ M.launch = function (this: SittingRoomMinigame) {
 	};
 
 	M.renderSeats = function () {
-		var str = '<div class="roomBox"><div class="roomTitle">The Sitting Room</div>';
-		str += '<div style="font-size:10px;opacity:0.7;margin-bottom:2px;">Select a seat, then pick an activity below — or just click an activity to fill the next empty seat.</div>';
+		var str = '<div class="roomBox"><div class="roomTitle">The Sitting Room ' +
+			'<span style="float:right;font-weight:normal;">' +
+			'<span class="roomPresetBtn" id="roomPresetCozy" title="Auto-fill highest cozy activities">☕ Max Cozy</span>' +
+			'<span class="roomPresetBtn" id="roomPresetEldritch" title="Auto-fill highest eldritch activities">👁 Max Eldritch</span>' +
+			'<span class="roomPresetBtn" id="roomPresetClear" title="Clear all seats">🧹 Clear</span>' +
+			'</span></div>';
+		str += '<div style="font-size:10px;opacity:0.7;margin-bottom:2px;">Select a seat and activity, or use quick presets above. Click grandmas to chat!</div>';
 		str += '<div class="roomSeatGrid">';
 		for (var s = 0; s < M.seats.length; s++) {
 			var seatLocked = M.parent.amount < M.seatUnlocks[s];
@@ -401,6 +546,9 @@ M.launch = function (this: SittingRoomMinigame) {
 			else if (selected) cls += ' roomSeatCardSelected';
 			str += '<div class="' + cls + '" id="roomSeatCard' + s + '">';
 			str += '<span class="roomSeatNum">' + (s + 1) + '</span>';
+			if (M.teaRequest && M.teaRequest.seatIdx === s) {
+				str += '<span class="roomTeaBadge" id="roomTeaBadge' + s + '" title="Click to serve tea!">☕ Teatime!</span>';
+			}
 			if (seatLocked) {
 				str += '<div class="roomSeatLockedTxt">🔒 Requires<br><b>' + M.seatUnlocks[s] + '</b> grandmas</div>';
 			} else {
@@ -456,8 +604,14 @@ M.launch = function (this: SittingRoomMinigame) {
 	};
 
 	M.renderShop = function () {
-		var str = '<div class="roomBox"><div class="roomTitle">Sitting Room Upgrades</div>';
-		str += '<div style="font-size:10px;opacity:0.7;margin-bottom:2px;">Each upgrade is repeatable — every stack boosts Grandma output, and stacks persist in your save.</div>';
+		var shopMode = M.shopBulkMode || 1;
+		var str = '<div class="roomBox"><div class="roomTitle">Sitting Room Upgrades ' +
+			'<span style="float:right;font-size:10px;font-weight:normal;">Buy: ' +
+			'<span class="colonyChip ' + (shopMode === 1 ? 'colonyChipAmber' : 'colonyChipBlue') + '" id="roomShopBulk1" style="cursor:pointer;">x1</span>' +
+			'<span class="colonyChip ' + (shopMode === 10 ? 'colonyChipAmber' : 'colonyChipBlue') + '" id="roomShopBulk10" style="cursor:pointer;">x10</span>' +
+			'<span class="colonyChip ' + (shopMode === 'max' ? 'colonyChipAmber' : 'colonyChipBlue') + '" id="roomShopBulkMax" style="cursor:pointer;">Max</span>' +
+			'</span></div>';
+		str += '<div style="font-size:10px;opacity:0.7;margin-bottom:2px;">Each upgrade is repeatable — buy in bulk to boost Grandma output exponentially!</div>';
 		str += '<div class="roomShopList">';
 		for (var i = 0; i < M.upgradeNames.length; i++) {
 			var name = M.upgradeNames[i];
@@ -465,11 +619,16 @@ M.launch = function (this: SittingRoomMinigame) {
 			if (!up) continue;
 			var price = up.yarnPrice || 0;
 			var stacks = M.effectiveStacks(name);
+
+			var maxAfford = Math.floor(M.yarn / price);
+			var countToBuy = (shopMode === 'max') ? Math.max(1, maxAfford) : shopMode;
+			var totalPrice = price * countToBuy;
 			var canBuy = M.yarn >= price;
+
 			str += '<div class="roomShopItem">';
 			str += '<div class="icon shadowFilter" style="flex:none;margin:0;' + writeIcon(up.icon) + '"></div>';
 			str += '<div class="roomShopInfo"><span class="roomShopName">' + name + '</span>' + (stacks > 0 ? ' <span class="roomShopStack">×' + stacks + '</span>' : '') + '<br><span class="roomShopDesc">' + up.baseDesc + '</span></div>';
-			str += '<div class="roomShopBtn' + (canBuy ? '' : ' roomShopBtnLocked') + '" id="roomBuy' + i + '">' + Beautify(price) + ' 🧶</div>';
+			str += '<div class="roomShopBtn' + (canBuy ? '' : ' roomShopBtnLocked') + '" id="roomBuy' + i + '">' + Beautify(totalPrice) + ' 🧶' + (countToBuy > 1 ? ' (x' + countToBuy + ')' : '') + '</div>';
 			str += '</div>';
 		}
 		str += '</div>';
@@ -483,19 +642,54 @@ M.launch = function (this: SittingRoomMinigame) {
 		l('roomSeats')!.innerHTML = M.renderSeats();
 		l('roomShelf')!.innerHTML = M.renderShelf();
 		l('roomShop')!.innerHTML = M.renderShop();
-		// Bind the How-to-play button (the header re-renders every refresh).
+
 		var helpBtn = l('roomHelpBtn');
 		if (helpBtn) AddEvent(helpBtn, 'click', function () { M.toggleTutorial(); });
-		// Bind seat card clicks
+
+		var presetCozy = l('roomPresetCozy');
+		if (presetCozy) AddEvent(presetCozy, 'click', function () { M.applyPreset('cozy'); });
+		var presetEldritch = l('roomPresetEldritch');
+		if (presetEldritch) AddEvent(presetEldritch, 'click', function () { M.applyPreset('eldritch'); });
+		var presetClear = l('roomPresetClear');
+		if (presetClear) AddEvent(presetClear, 'click', function () { M.applyPreset('clear'); });
+
+		var sb1 = l('roomShopBulk1');
+		if (sb1) AddEvent(sb1, 'click', function () { M.setShopBulkMode(1); });
+		var sb10 = l('roomShopBulk10');
+		if (sb10) AddEvent(sb10, 'click', function () { M.setShopBulkMode(10); });
+		var sbMax = l('roomShopBulkMax');
+		if (sbMax) AddEvent(sbMax, 'click', function () { M.setShopBulkMode('max'); });
+
+		var cozyDialogues = ["Have another cookie, dearie!", "Let me knit you a warm sweater...", "Such a nice day for tea.", "Mind the doilies!", "You look a bit thin, sweetheart."];
+		var eldritchDialogues = ["Ia! Ia! The dough rises from beneath...", "The elders speak in whispers...", "More cookies for the swarm...", "Ph'nglui mglw'nafh..."];
+
 		for (var s = 0; s < M.seats.length; s++) {
 			var card = l('roomSeatCard' + s);
-			if (card) AddEvent(card, 'click', function (si: number) { return function () { M.selectSeat(si); }; }(s));
+			if (card) {
+				AddEvent(card, 'click', function (si: number) {
+					return function () {
+						if (M.seats[si] >= 0) {
+							var act = M.activities[M.seats[si]];
+							var pool = act.comfort < 0 ? eldritchDialogues : cozyDialogues;
+							var line = pool[Math.floor(Math.random() * pool.length)];
+							PlaySound(act.comfort < 0 ? 'snd/squeak2.mp3' : 'snd/squeak1.mp3', 0.5);
+							M.spawnGrandmaBubble(card as HTMLElement, line);
+						} else {
+							M.selectSeat(si);
+						}
+					};
+				}(s));
+			}
 			var clearBtn = l('roomSeatClear' + s);
 			if (clearBtn) {
 				AddEvent(clearBtn, 'click', function (si: number) { return function (e: Event) { e.stopPropagation(); M.assignSeat(si, -1); }; }(s));
 			}
+			var teaBtn = l('roomTeaBadge' + s);
+			if (teaBtn) {
+				AddEvent(teaBtn, 'click', function (e: Event) { e.stopPropagation(); M.serveTea(); });
+			}
 		}
-		// Bind activity shelf buttons — assign to selected seat or first empty unlocked seat
+
 		for (var a = 0; a < M.activities.length; a++) {
 			var btn = l('roomShelfAct' + a);
 			if (btn) {
@@ -503,7 +697,6 @@ M.launch = function (this: SittingRoomMinigame) {
 					var act = M.activities[ai];
 					if (M.parent.amount < act.unlock) return;
 					if (act.comfort < 0 && Game.elderWrath <= 0) { PlaySound('snd/error1.mp3',0.5); return; }
-					// Assign to selected seat, or first empty unlocked seat
 					var target = M.selectedSeat;
 					if (target < 0 || target >= M.seats.length || M.parent.amount < M.seatUnlocks[target]) {
 						target = -1;
@@ -516,18 +709,17 @@ M.launch = function (this: SittingRoomMinigame) {
 				}; }(a));
 			}
 		}
-		// Bind shop buttons
+
 		for (var j = 0; j < M.upgradeNames.length; j++) {
 			var btn2 = l('roomBuy' + j);
 			if (btn2) {
-				AddEvent(btn2, 'click', function (name: string) { return function () { if (M.yarn >= (Game.Upgrades[name] ? Game.Upgrades[name].yarnPrice : 0)) M.buyUpgrade(name); }; }(M.upgradeNames[j]));
+				AddEvent(btn2, 'click', function (name: string) { return function () { M.buyUpgrade(name); }; }(M.upgradeNames[j]));
 			}
 		}
 		M.computeEffs();
 	};
 
 	M.save = function () {
-		// output cannot use "," ";" or "|"
 		var seatsStr = M.seats.join(':');
 		var stacksStr = M.upgradeStacks.join(':');
 		return parseFloat(M.yarn) + ' ' + parseFloat(M.yarnEarned) + ' ' + seatsStr + ' ' + stacksStr;
@@ -552,7 +744,6 @@ M.launch = function (this: SittingRoomMinigame) {
 		for (var u = 0; u < M.upgradeStacks.length; u++) {
 			M.upgradeStacks[u] = Math.floor(parseFloat(stackParts[u] || 0) || 0);
 		}
-		// Pre-stacking saves: each one-time-bought upgrade migrates to 1 stack
 		for (var v = 0; v < M.upgradeNames.length; v++) {
 			var mUp = Game.Upgrades[M.upgradeNames[v]];
 			if (mUp && mUp.bought && M.upgradeStacks[v] < 1) M.upgradeStacks[v] = 1;
@@ -570,6 +761,10 @@ M.launch = function (this: SittingRoomMinigame) {
 		M.yarnTrickle = 0;
 		M.tutorialOpen = false;
 		M.selectedSeat = -1;
+		M.teaRequest = null;
+		M.teatimeFrenzyTimer = 0;
+		M.goldenYarn = null;
+		M.shopBulkMode = 1;
 		M.computeEffs();
 		M.refresh();
 		var t = l('roomTutorial');
@@ -577,8 +772,6 @@ M.launch = function (this: SittingRoomMinigame) {
 	};
 
 	M.logic = function () {
-		// Run each game tick, whether or not the panel is open.
-		// 1. Yarn production
 		var rate = M.yarnPerSecond();
 		if (rate > 0) {
 			M.yarnTrickle += rate / Game.fps;
@@ -591,18 +784,27 @@ M.launch = function (this: SittingRoomMinigame) {
 				M.refresh();
 			}
 		}
-		// 2. Wrath drift no longer happens here: Game.UpdateGrandmapocalypse
-		// (engine/main.ts) reads M.currentComfort() every tick and nudges the
-		// wrath to match the room (cozy calms + holds at 0, eldritch accelerates
-		// the climb, 'Elder hospitality' doubles it) — all wrath mutation stays
-		// in the canonical updater so the pledge/covenant logic stays in charge.
-		// 3. Periodically recompute effs so the engine picks up changes
+
+		if (M.teaRequest && Date.now() > M.teaRequest.expiresAt) {
+			M.teaRequest = null;
+			M.refresh();
+		}
+
+		if (!M.teaRequest && Math.random() < (1 / (45 * Game.fps))) {
+			var occupiedSeats = [];
+			for (var s = 0; s < M.seats.length; s++) { if (M.seats[s] >= 0) occupiedSeats.push(s); }
+			if (occupiedSeats.length > 0) {
+				var chosenSeat = occupiedSeats[Math.floor(Math.random() * occupiedSeats.length)];
+				var teas = ["Earl Grey Tea", "Chamomile Tea", "Warm Milk & Cookies", "Matcha Latte"];
+				M.teaRequest = { seatIdx: chosenSeat, teaType: teas[Math.floor(Math.random() * teas.length)], expiresAt: Date.now() + 25000 };
+				M.refresh();
+			}
+		}
+
 		M.computeEffs();
 	};
 
 	M.draw = function () {
-		// Run each frame, only while the panel is visible.
-		// Update the comfort bar live if the header is visible.
 		if (l('roomHeader')) {
 			var comfort = M.currentComfort();
 			var pct = 50 + (comfort / 6) * 50;
