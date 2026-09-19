@@ -412,3 +412,67 @@ test('panel inline handlers (Exit link, hero chips, relic buy) run without refer
 
 	expect(errors, 'no uncaught errors from any inline handler').toEqual([]);
 });
+
+test('dungeon fullscreen mode provides balanced layout with right sidebar, large map, and responsive scaling', async ({ page }) => {
+	await boot(page);
+	await loadDungeon(page);
+
+	await page.evaluate(() => {
+		const F = window.Game.Objects['Factory'];
+		F.switchMinigame(1);
+		F.refresh();
+	});
+
+	await page.screenshot({ path: '/home/jabbatheduck/.gemini/antigravity/brain/9f24492c-e623-41b9-827b-4d2aa381386f/dungeon_normal.png' });
+
+	// Toggle fullscreen
+	await page.evaluate(() => {
+		window.Game.Objects['Factory'].minigame.toggleFullscreen();
+	});
+
+	const fsGeo = await page.evaluate(() => {
+		const f = window.Game.Objects['Factory'];
+		const l = (id) => document.getElementById(id);
+		const r = (el) => {
+			if (!el) return null;
+			const b = el.getBoundingClientRect();
+			return { top: b.top, left: b.left, right: b.right, bottom: b.bottom, w: b.width, h: b.height };
+		};
+		const wrap = l('dungeonContent');
+		const map = r(l('map' + f.id));
+		const log = r(l('dungeonLog' + f.id));
+		const info = r(l('dungeonInfo' + f.id));
+		const shop = r(l('dungeonShop' + f.id));
+		const name = r(wrap ? wrap.querySelector('.dungeonName') : null);
+		return {
+			isFullscreen: wrap ? wrap.classList.contains('dungeonFullscreen') : false,
+			winW: window.innerWidth,
+			winH: window.innerHeight,
+			map,
+			log,
+			info,
+			shop,
+			name,
+		};
+	});
+
+	expect(fsGeo.isFullscreen, 'dungeonContent has dungeonFullscreen class').toBe(true);
+	// Map is enlarged significantly in fullscreen (larger than the 240px normal mode map)
+	expect(fsGeo.map.w, 'map width is enlarged in fullscreen').toBeGreaterThanOrEqual(480);
+	expect(fsGeo.map.h, 'map height is enlarged in fullscreen').toBeGreaterThanOrEqual(480);
+	// Delve status is a compact bar on the right
+	expect(fsGeo.info.w, 'delve status width is sidebar width (~340px)').toBeCloseTo(340, -1);
+	expect(fsGeo.info.h, 'delve status is compact height').toBeLessThanOrEqual(130);
+	expect(fsGeo.winW - fsGeo.info.right, 'delve status is anchored to the right margin').toBeLessThanOrEqual(25);
+	// Relic workshop is below delve status on the right
+	expect(fsGeo.shop.top, 'shop is below delve status').toBeGreaterThanOrEqual(fsGeo.info.bottom);
+	expect(fsGeo.shop.w, 'shop width is sidebar width (~340px)').toBeCloseTo(340, -1);
+	expect(fsGeo.winW - fsGeo.shop.right, 'shop is anchored to the right margin').toBeLessThanOrEqual(25);
+	// Log is vertically long down to the bottom margin on the right
+	expect(fsGeo.log.top, 'log is below shop').toBeGreaterThanOrEqual(fsGeo.shop.bottom);
+	expect(fsGeo.log.w, 'log width is sidebar width (~340px)').toBeCloseTo(340, -1);
+	expect(fsGeo.winW - fsGeo.log.right, 'log is anchored to the right margin').toBeLessThanOrEqual(25);
+	expect(fsGeo.winH - fsGeo.log.bottom, 'log reaches near bottom edge of screen').toBeLessThanOrEqual(25);
+
+	await page.screenshot({ path: '/home/jabbatheduck/.gemini/antigravity/brain/9f24492c-e623-41b9-827b-4d2aa381386f/dungeon_fullscreen.png' });
+});
