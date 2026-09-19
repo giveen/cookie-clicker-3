@@ -26,11 +26,25 @@ function choose<T>(arr: T[]): T {
 	return arr[Math.floor(Math.random() * arr.length)];
 }
 
-// CC3 (Tier 3): combat sound effects. Throttled so auto-play doesn't
-// machine-gun the audio buffer, and gated on the player's cookie-sound pref
-// (matching how the rest of the engine guards PlaySound calls).
+// CC3: Audio helpers. Muted completely when the dungeon screen is closed
+// (so background auto-play stays silent), throttled for rapid events, and
+// gated on the player's sound prefs.
 let lastDungeonSfx = 0;
+
+function isDungeonScreenOpen(): boolean {
+	const factory = (g as any).Objects ? (g as any).Objects['Factory'] : null;
+	return !!(factory && factory.onMinigame);
+}
+
+function playDungeonSound(url: string, vol: number) {
+	if (!isDungeonScreenOpen()) return;
+	const prefs = (g as any).prefs;
+	if (prefs && prefs.cookiesound === false) return;
+	PlaySound(url, vol);
+}
+
 function playDungeonSfx(url: string, vol: number) {
+	if (!isDungeonScreenOpen()) return;
 	const prefs = (g as any).prefs;
 	if (prefs && prefs.cookiesound === false) return;
 	const now = Date.now();
@@ -690,7 +704,7 @@ function createEntity(type: string, subtype: string, dungeon: any, value?: any):
 			const mg = g.Objects[this.dungeon.type].minigame as any;
 			if (mg && mg.grantUpgrade && mg.grantUpgrade(this.value)) {
 				this.dungeon.Log(`<span style="color:#ffd;">Found a dungeon schematic: <b>${this.value}</b>!</span>`);
-				PlaySound('snd/chime.mp3', 0.7); // CC3 (Tier 3): schematic-found chime
+				playDungeonSound('snd/chime.mp3', 0.7); // CC3 (Tier 3): schematic-found chime
 			}
 			this.Destroy();
 		} else if ((this.type === "monster" && by.type === "hero") || (this.type === "hero" && by.type === "monster")) {
@@ -824,7 +838,7 @@ function createEntity(type: string, subtype: string, dungeon: any, value?: any):
 								this.stats.speed += speedDelta;
 								hObj.gear.weapon = ent.value.id;
 							}
-							PlaySound('snd/chime.mp3', 0.7);
+							playDungeonSound('snd/chime.mp3', 0.7);
 							this.dungeon.Log(`<span style="color:#ffd;">Found and equipped <b>${itemDef.name}</b>! (${itemDef.desc})</span>`);
 							this.dungeon.UpdateInfo();
 						} else {
@@ -1123,7 +1137,7 @@ M.launch = function (this: DungeonMinigame) {
 			if (n < 1) up.earn(); // first-ever stack → mark in the main save
 			self.upgradeStacks[i] = n + 1;
 			g.recalculateGains = 1;
-			PlaySound('snd/buy2.mp3', 0.7); // CC3 (Tier 3): relic-purchase blip
+			playDungeonSound('snd/buy2.mp3', 0.7); // CC3 (Tier 3): relic-purchase blip
 			self.refresh();
 			return true;
 		};
@@ -1566,24 +1580,26 @@ M.launch = function (this: DungeonMinigame) {
 			RedrawMap: function () { this.map.str = this.map.getStr(); this.Draw(); },
 			Turn: function () {
 				for (const e of this.entities) if (e && e.type) e.Turn();
-				const picHero = l("picHero" + this.id);
-				if (this.currentOpponent) {
-					const ms = l("monsterSlot" + this.id); if (ms) ms.style.visibility = "visible";
-					const hpM = l("hpMonster" + this.id); if (hpM) hpM.style.width = Math.round((this.currentOpponent.stats.hp / this.currentOpponent.stats.hpm) * 100) + "%";
-					const picM = l("picMonster" + this.id); if (picM) picM.style.backgroundImage = `url(img/${Monsters[this.currentOpponent.subtype]?.pic || "doughling"}.webp)`;
-					const nameM = l("nameMonster" + this.id); if (nameM) nameM.innerHTML = Monsters[this.currentOpponent.subtype]?.name || "???";
-					if (picHero && this.hero) picHero.style.backgroundImage = `url(img/${this.hero.pic}.webp)`;
-				} else {
-					const ms = l("monsterSlot" + this.id); if (ms) ms.style.visibility = "hidden";
-					const hpM = l("hpMonster" + this.id); if (hpM) hpM.style.width = "100%";
-					if (picHero && this.hero) picHero.style.backgroundImage = `url(img/${this.hero.portrait}.webp)`;
+				if (isDungeonScreenOpen()) {
+					const picHero = l("picHero" + this.id);
+					if (this.currentOpponent) {
+						const ms = l("monsterSlot" + this.id); if (ms) ms.style.visibility = "visible";
+						const hpM = l("hpMonster" + this.id); if (hpM) hpM.style.width = Math.round((this.currentOpponent.stats.hp / this.currentOpponent.stats.hpm) * 100) + "%";
+						const picM = l("picMonster" + this.id); if (picM) picM.style.backgroundImage = `url(img/${Monsters[this.currentOpponent.subtype]?.pic || "doughling"}.webp)`;
+						const nameM = l("nameMonster" + this.id); if (nameM) nameM.innerHTML = Monsters[this.currentOpponent.subtype]?.name || "???";
+						if (picHero && this.hero) picHero.style.backgroundImage = `url(img/${this.hero.pic}.webp)`;
+					} else {
+						const ms = l("monsterSlot" + this.id); if (ms) ms.style.visibility = "hidden";
+						const hpM = l("hpMonster" + this.id); if (hpM) hpM.style.width = "100%";
+						if (picHero && this.hero) picHero.style.backgroundImage = `url(img/${this.hero.portrait}.webp)`;
+					}
+					const hpH = l("hpHero" + this.id);
+					if (hpH && this.heroEntity) hpH.style.width = Math.round((this.heroEntity.stats.hp / this.heroEntity.stats.hpm) * 100) + "%";
+					this.Refresh();
+					this.UpdateLog();
+					this.UpdateInfo();
 				}
 				this.currentOpponent = null;
-				const hpH = l("hpHero" + this.id);
-				if (hpH && this.heroEntity) hpH.style.width = Math.round((this.heroEntity.stats.hp / this.heroEntity.stats.hpm) * 100) + "%";
-				this.Refresh();
-				this.UpdateLog();
-			this.UpdateInfo();
 				if (this.hero && this.hero.x === this.map.exit[0] && this.hero.y === this.map.exit[1]) this.CompleteLevel();
 			},
 			// CC2's "Enter dungeons" button (DrawButton/portalPic) is not part of the
@@ -1620,25 +1636,25 @@ M.launch = function (this: DungeonMinigame) {
 				// CC3 (Tier 3): update lifetime bests + selected-hero progression.
 				if (this.level > self.bestDepth) self.bestDepth = this.level;
 				DungeonHeroes[self.selectedHero].completedDungeons++;
-			if (this.monstersKilledThisRun > self.bestMonsters) self.bestMonsters = this.monstersKilledThisRun;
+				if (this.monstersKilledThisRun > self.bestMonsters) self.bestMonsters = this.monstersKilledThisRun;
 				if (this.cookiesMadeThisRun > self.bestCookies) self.bestCookies = this.cookiesMadeThisRun;
-				PlaySound('snd/harvest2.mp3', 0.7); // CC3 (Tier 3): floor-clear chime
+				playDungeonSound('snd/harvest2.mp3', 0.7); // CC3 (Tier 3): floor-clear chime
 				this.Generate();
 				if (this.hero) DungeonHeroes[self.selectedHero].EnterDungeon(this, this.map.entrance[0], this.map.entrance[1]);
-				this.Draw();
+				if (isDungeonScreenOpen()) this.Draw();
 			},
 			FailLevel: function () {
 				this.Log(`Cookies made this run : ${Beautify(this.cookiesMadeThisRun)} | Monsters defeated this run : ${Beautify(this.monstersKilledThisRun)}`);
 				// CC3 (Tier 3): bank the run's cookie total as a lifetime best.
 				if (this.cookiesMadeThisRun > self.bestCookies) self.bestCookies = this.cookiesMadeThisRun;
 				if (this.monstersKilledThisRun > self.bestMonsters) self.bestMonsters = this.monstersKilledThisRun;
-			PlaySound('snd/error1.mp3', 0.5); // CC3 (Tier 3): gentle defeat tone
+				playDungeonSound('snd/error1.mp3', 0.5); // CC3 (Tier 3): gentle defeat tone
 				this.cookiesMadeThisRun = 0;
 				this.monstersKilledThisRun = 0;
 				this.level = 0;
 				this.Generate();
 				if (this.hero) DungeonHeroes[self.selectedHero].EnterDungeon(this, this.map.entrance[0], this.map.entrance[1]);
-				this.Draw();
+				if (isDungeonScreenOpen()) this.Draw();
 			},
 		} as any;
 
@@ -1868,7 +1884,7 @@ M.draw = function (this: DungeonMinigame) {
 
 M.onResize = function (this: DungeonMinigame) {
 		const d = (this.parent as any)?.dungeon;
-		if (d && d.fullscreen) {
+		if (d && this.parent.onMinigame) {
 			d.Draw();
 		}
 };

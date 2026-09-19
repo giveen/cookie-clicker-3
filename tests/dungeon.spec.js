@@ -638,4 +638,83 @@ test('dungeon run speed is greatly slowed down and has a speed toggle badge', as
 	await expect(badge).toHaveText('SPEED: 1x');
 });
 
+test('closing the dungeon screen mutes audio while auto-explore continues running in background', async ({ page }) => {
+	await boot(page);
+	await loadDungeon(page);
+
+	// Start with dungeon open, auto enabled
+	await page.evaluate(() => {
+		const F = window.Game.Objects['Factory'];
+		if (F.switchMinigame) {
+			F.switchMinigame(1);
+			if (F.refresh) F.refresh();
+		}
+		const d = F.dungeon;
+		d.auto = true;
+	});
+
+	// Track all calls to PlaySound
+	await page.evaluate(() => {
+		window.__dungeonSoundsPlayed = [];
+		const origPlaySound = window.PlaySound;
+		window.PlaySound = function (url, vol) {
+			window.__dungeonSoundsPlayed.push({ url, vol });
+			return origPlaySound ? origPlaySound(url, vol) : undefined;
+		};
+	});
+
+	// Close the dungeon screen (switchMinigame(0))
+	await page.evaluate(() => {
+		const F = window.Game.Objects['Factory'];
+		if (F.switchMinigame) {
+			F.switchMinigame(0);
+		}
+	});
+
+	// Verify the dungeon screen is reported closed
+	const isClosed = await page.evaluate(() => !window.Game.Objects['Factory'].onMinigame);
+	expect(isClosed).toBe(true);
+
+	// Let auto run in background for several steps while closed
+	const runStats = await page.evaluate(() => {
+		const F = window.Game.Objects['Factory'];
+		const d = F.dungeon;
+		const M = F.minigame;
+		const startX = d.hero.x;
+		const startY = d.hero.y;
+		const startLevel = d.level;
+
+		// Simulate background ticks
+		for (let i = 0; i < 30; i++) {
+			d.autoTimer = 0;
+			M.logic();
+		}
+
+		return {
+			auto: d.auto,
+			moved: (d.hero.x !== startX || d.hero.y !== startY || d.level !== startLevel),
+			soundsCount: window.__dungeonSoundsPlayed.length,
+		};
+	});
+
+	// Assert auto was retained and hero progressed in the background
+	expect(runStats.auto).toBe(true);
+	expect(runStats.moved).toBe(true);
+
+	// Assert audio was completely muted during background execution
+	expect(runStats.soundsCount).toBe(0);
+
+	// Reopen the dungeon screen
+	await page.evaluate(() => {
+		const F = window.Game.Objects['Factory'];
+		if (F.switchMinigame) {
+			F.switchMinigame(1);
+		}
+	});
+
+	const isOpen = await page.evaluate(() => window.Game.Objects['Factory'].onMinigame);
+	expect(Boolean(isOpen)).toBe(true);
+});
+
+
 
