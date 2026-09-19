@@ -49,12 +49,27 @@ export function declareFarm(Game: EngineGame) {
 			}
 			var ctx=this.ctx;
 			ctx.globalAlpha=1;
-			if (typeof(this.art.bg)=='string') ctx.fillPattern(Pic(this.art.bg),0,0,this.canvas.width,this.canvas.height,128,128);
+			var bg=Pic(this.art.bg);
+			if (bg && bg.complete && bg.naturalWidth>0)
+			{
+				ctx.imageSmoothingEnabled=true;
+				var bgW=Math.max(1,Math.ceil(this.canvas.height*bg.naturalWidth/bg.naturalHeight));
+				for (var bgX=0;bgX<this.canvas.width;bgX+=bgW)
+				{
+					ctx.drawImage(bg,0,0,bg.naturalWidth,bg.naturalHeight,bgX,0,bgW,this.canvas.height);
+				}
+			}
+			else if (typeof(this.art.bg)=='string')
+			{
+				ctx.fillPattern(Pic(this.art.bg),0,0,this.canvas.width,this.canvas.height,128,128);
+			}
 			var sheet=Pic(this.art.pic);
 			// Rebuild pics if the sheet size changed since they were built
 			// (the placeholder -> loaded race would otherwise leave stale, tiny
 			// sprite dimensions on the surviving pics after a row-count shrink).
 			if (sheet.width!==this._stackSheetW||sheet.height!==this._stackSheetH) {this.pics=[];this._stackSheetW=sheet.width;this._stackSheetH=sheet.height;}
+			var cellSrcW=sheet.naturalWidth?Math.round(sheet.naturalWidth/barnSheetCols):barnCellW;
+			var cellSrcH=sheet.naturalHeight?Math.round(sheet.naturalHeight/barnSheetRows):barnCellH;
 			var scale=Math.min(1,STACK_TARGET_H/barnCellH);
 			var drawW=barnCellW*scale;
 			var drawH=barnCellH*scale;
@@ -69,9 +84,9 @@ export function declareFarm(Game: EngineGame) {
 				{
 					Math.seedrandom(Game.seed+' '+this.id+' '+i);
 					var pos=stackPosition(i,canvasW,canvasH,drawW,drawH);
-					var sx=(i%barnSheetCols)*barnCellW;
-					var sy=(Math.floor(i/barnSheetCols)%barnSheetRows)*barnCellH;
-					this.pics.push({x:Math.floor(pos.x),y:Math.floor(pos.y),z:pos.z,pic:this.art.pic,id:i,frame:0,sx:sx,sy:sy,drawW:drawW,drawH:drawH,born:Game.T});
+					var sx=(i%barnSheetCols)*cellSrcW;
+					var sy=(Math.floor(i/barnSheetCols)%barnSheetRows)*cellSrcH;
+					this.pics.push({x:Math.floor(pos.x),y:Math.floor(pos.y),z:pos.z,pic:this.art.pic,id:i,frame:0,sx:sx,sy:sy,srcW:cellSrcW,srcH:cellSrcH,drawW:drawW,drawH:drawH,born:Game.T});
 					i++;
 				}
 				while (i>iT)//sold farms leave the box, like the vanilla draw
@@ -82,10 +97,11 @@ export function declareFarm(Game: EngineGame) {
 				}
 				this.pics.sort(Game.sortSprites);
 			}
+			ctx.imageSmoothingEnabled=true;
 			for (var i=0;i<this.pics.length;i++)
 			{
 				var pic:any=this.pics[i];
-				ctx.drawImage(sheet,pic.sx,pic.sy,barnCellW,barnCellH,pic.x,pic.y,pic.drawW,pic.drawH);
+				ctx.drawImage(sheet,pic.sx,pic.sy,pic.srcW||cellSrcW,pic.srcH||cellSrcH,pic.x,pic.y,pic.drawW,pic.drawH);
 			}
 			return true;
 		};
