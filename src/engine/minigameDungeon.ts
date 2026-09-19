@@ -960,6 +960,7 @@ interface DungeonMinigame {
 	buyUpgrade: (name: string) => boolean;
 	grantUpgrade: (name: string) => boolean;
 	toggleFullscreen: () => void;
+	toggleAuto: () => void;
 	refresh: () => void;
 	/* Lifetime bests (Tier 3) — persisted in the minigame save so the info
 	 * panel's "best" readouts survive reloads/ascensions. */
@@ -1081,8 +1082,10 @@ M.launch = function (this: DungeonMinigame) {
 .dungeonHeroChip:hover{opacity:.85;transform:scale(1.05);}
 .dungeonHeroChip.selected{opacity:1;border-color:#ffd9a0;box-shadow:0 0 6px rgba(255,217,160,0.6);}
 
-.dungeonAutoBadge{position:absolute;left:12px;top:298px;z-index:60;display:none;padding:2px 10px;border-radius:12px;background:#2a6e3a;color:#bfffce;font-weight:bold;font-size:11px;letter-spacing:1px;box-shadow:0 0 6px #2a6e3a;border:1px solid #4caf6a;cursor:pointer;user-select:none;}
-.dungeonAutoBadge:hover{background:#348647;}
+.dungeonAutoBadge{position:absolute;left:12px;top:298px;z-index:60;display:inline-block;padding:3px 12px;border-radius:12px;background:#2a6e3a;color:#bfffce;font-weight:bold;font-size:11px;letter-spacing:1px;box-shadow:0 0 6px rgba(42,110,58,0.7);border:1px solid #4caf6a;cursor:pointer;user-select:none;transition:background .15s,border-color .15s,color .15s,box-shadow .15s;}
+.dungeonAutoBadge:hover{background:#348647;box-shadow:0 0 10px rgba(76,175,106,0.9);color:#fff;}
+.dungeonAutoBadge.off{background:#281820;color:#d8889a;border-color:#7a3348;box-shadow:none;}
+.dungeonAutoBadge.off:hover{background:#38202c;border-color:#a84462;color:#ffaec2;}
 .dungeonFullscreen .dungeonAutoBadge{position:absolute!important;left:var(--fs-ctrl-left,700px)!important;top:350px!important;width:140px!important;text-align:center!important;box-sizing:border-box!important;z-index:200!important;}
 
 /* Combat Duel Header & Slots */
@@ -1155,6 +1158,11 @@ M.launch = function (this: DungeonMinigame) {
 			auto: true,
 			autoTimer: 0,
 			autoWarmup: 5,
+			toggleAuto: function () {
+				this.auto = !this.auto;
+				if (this.auto) { this.autoTimer = 0; this.autoWarmup = 0; }
+				this.Refresh();
+			},
 			cookiesMadeThisRun: 0,
 			monstersKilledThisRun: 0,
 			heroEntity: null as any,
@@ -1339,7 +1347,10 @@ M.launch = function (this: DungeonMinigame) {
 					`<div id="heroSlot${this.id}" class="mobSlot"><div id="picHero${this.id}" class="mobPic"></div><div id="nameHero${this.id}" class="title mobName"></div><div class="hpmBar"><div id="hpHero${this.id}" class="hpBar"></div></div></div>` +
 					`<div id="monsterSlot${this.id}" class="mobSlot" style="left:78px;visibility:${this.currentOpponent ? 'visible' : 'hidden'};"><div id="picMonster${this.id}" class="mobPic"></div><div id="nameMonster${this.id}" class="title mobName"></div><div class="hpmBar"><div id="hpMonster${this.id}" class="hpBar"></div></div></div>` +
 					`</div>`;
-				str += `<div id="dungeonAuto${this.id}" class="dungeonAutoBadge" style="display:${this.auto ? 'block' : 'none'};" title="Toggle Auto-explore" onclick="const d=Game.ObjectsById[${this.id}].dungeon;if(d){d.auto=!d.auto;Game.ObjectsById[${this.id}].minigame.draw();}">${loc('AUTO')}</div>`;
+				const autoText = this.auto ? loc('AUTO: ON') : loc('AUTO: OFF');
+				const autoClass = this.auto ? ' active' : ' off';
+				const autoTitle = this.auto ? loc('Auto-explore is ON (click to pause)') : loc('Auto-explore is OFF (click to resume)');
+				str += `<div id="dungeonAuto${this.id}" class="dungeonAutoBadge${autoClass}" title="${autoTitle}" onclick="const d=Game.ObjectsById[${this.id}].dungeon;if(d)d.toggleAuto();">${autoText}</div>`;
 				str += `<div id="dungeonLog${this.id}" class="dungeonLog"></div>`;
 				str += `<div id="dungeonInfo${this.id}" class="dungeonCard dungeonInfoCard">${this.infoHTML()}</div>`;
 				str += `<div id="dungeonShop${this.id}" class="dungeonCard dungeonShopCard">${this.shopHTML()}</div>`;
@@ -1406,7 +1417,12 @@ M.launch = function (this: DungeonMinigame) {
 				}
 				const mi = l("mapitems" + this.id);
 				if (mi) mi.innerHTML = this.DrawEntities();
-				const ab = l("dungeonAuto" + this.id); if (ab) ab.style.display = this.auto ? "block" : "none";
+				const ab = l("dungeonAuto" + this.id);
+				if (ab) {
+					ab.className = "dungeonAutoBadge" + (this.auto ? " active" : " off");
+					ab.innerHTML = this.auto ? loc("AUTO: ON") : loc("AUTO: OFF");
+					ab.title = this.auto ? loc("Auto-explore is ON (click to pause)") : loc("Auto-explore is OFF (click to resume)");
+				}
 			},
 			RedrawMap: function () { this.map.str = this.map.getStr(); this.Draw(); },
 			Turn: function () {
@@ -1510,15 +1526,19 @@ M.launch = function (this: DungeonMinigame) {
 				else if (event.key === "ArrowRight") { DungeonHeroes[self.selectedHero].Move(1, 0); control = true; }
 				else if (event.key === "ArrowDown") { DungeonHeroes[self.selectedHero].Move(0, 1); control = true; }
 				else if (event.key === " ") { DungeonHeroes[self.selectedHero].Move(0, 0); control = true; }
-				else if (event.key === "a" || event.key === "A") { d.auto = !d.auto; if (d.auto) { d.autoTimer = 0; d.autoWarmup = 0; } event.preventDefault(); }
+				else if (event.key === "a" || event.key === "A") { d.toggleAuto(); event.preventDefault(); }
 				else if (event.key === "Escape" && d.fullscreen) { self.toggleFullscreen(); event.preventDefault(); }
 				if (control) { event.preventDefault(); d.autoTimer = g.fps * 10; d.autoWarmup = 5; }
 			});
 		}
 		window.addEventListener("keydown", function (event) {
 			const d = (parent as any)?.dungeon;
-			if (d && d.fullscreen && event.key === "Escape") {
+			if (!d) return;
+			if (d.fullscreen && event.key === "Escape") {
 				self.toggleFullscreen();
+				event.preventDefault();
+			} else if (d.fullscreen && (event.key === "a" || event.key === "A")) {
+				d.toggleAuto();
 				event.preventDefault();
 			}
 		});
@@ -1672,6 +1692,11 @@ M.toggleFullscreen = function (this: DungeonMinigame) {
 	if (!d) return;
 	d.fullscreen = !d.fullscreen;
 	d.Draw();
+};
+
+M.toggleAuto = function (this: DungeonMinigame) {
+	const d = (this.parent as any).dungeon;
+	if (d && d.toggleAuto) d.toggleAuto();
 };
 
 M.draw = function (this: DungeonMinigame) {

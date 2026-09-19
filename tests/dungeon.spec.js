@@ -229,7 +229,7 @@ test('relic economy grants relics and the meta state round-trips through save/lo
 	expect(econ.loadedSel).toBe(2);
 });
 
-test('visible auto-explore indicator reflects the auto state', async ({ page }) => {
+test('visible auto-explore indicator reflects the auto state and toggles on click', async ({ page }) => {
 	await boot(page);
 	await loadDungeon(page);
 	// Open the minigame panel so the dungeon Draw() populates the DOM.
@@ -241,23 +241,39 @@ test('visible auto-explore indicator reflects the auto state', async ({ page }) 
 		}
 	});
 	const badgeId = await page.evaluate(() => 'dungeonAuto' + window.Game.Objects['Factory'].id);
-	await expect(page.locator('#' + badgeId)).toBeVisible({ timeout: 10_000 });
+	const badge = page.locator('#' + badgeId);
+	await expect(badge).toBeVisible({ timeout: 10_000 });
 
 	const on = await page.evaluate((id) => {
 		const el = document.getElementById(id);
-		return { display: el.style.display, auto: window.Game.Objects['Factory'].dungeon.auto };
+		return { text: el.textContent, auto: window.Game.Objects['Factory'].dungeon.auto, className: el.className };
 	}, badgeId);
 	expect(on.auto).toBe(true);
-	expect(on.display).toBe('block');
+	expect(on.text).toContain('ON');
+	expect(on.className).toContain('active');
 
-	// Turn auto off and redraw — the badge must hide.
-	await page.evaluate(() => {
-		const F = window.Game.Objects['Factory'];
-		F.dungeon.auto = false;
-		F.minigame.draw();
-	});
-	const off = await page.evaluate((id) => document.getElementById(id).style.display, badgeId);
-	expect(off).toBe('none');
+	// Click the badge to toggle auto off — button must stay visible and show OFF
+	await page.evaluate(() => window.Game.CloseNotes());
+	await badge.click();
+
+	const off = await page.evaluate((id) => {
+		const el = document.getElementById(id);
+		return { text: el.textContent, auto: window.Game.Objects['Factory'].dungeon.auto, className: el.className };
+	}, badgeId);
+	expect(off.auto).toBe(false);
+	expect(off.text).toContain('OFF');
+	expect(off.className).toContain('off');
+	await expect(badge).toBeVisible();
+
+	// Click again to toggle auto back on
+	await badge.click();
+	const onAgain = await page.evaluate((id) => {
+		const el = document.getElementById(id);
+		return { text: el.textContent, auto: window.Game.Objects['Factory'].dungeon.auto, className: el.className };
+	}, badgeId);
+	expect(onAgain.auto).toBe(true);
+	expect(onAgain.text).toContain('ON');
+	expect(onAgain.className).toContain('active');
 });
 
 test('expanded panel has the full-size layout: in-flow wrapper, board inside the panel, no stacked controls', async ({ page }) => {
