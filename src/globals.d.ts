@@ -54,9 +54,7 @@ declare global {
 	/* Optional preload hook set by the CC3 glue before Game.Load runs (the
 	 * engine guards it with typeof). */
 	const PRELOAD: any;
-	/* AdBlock-detection global referenced bare by the engine (guarded with
-	 * typeof); set by ad blockers at runtime, hence `any`. */
-	const showAds: any;
+
 	const Beautify: BeautifyFn;
 	const BeautifyInText: (str: string) => string;
 	/* Engine event-binding helper (engine var, published on window). */

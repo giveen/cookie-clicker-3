@@ -3268,7 +3268,6 @@ window.loadMinigameModule!(me.minigameUrl).then(function(){
 		else setTimeout(function(){Game.LoadSave();},100);
 		
 		Game.ready=1;
-		setTimeout(function(){if (typeof showAds==='undefined' && (!l('detectAds') || l('detectAds').clientHeight<1)) Game.addClass('noAds');},500);
 		l('offGameMessage').innerHTML='';
 		l('offGameMessageWrap').style.display='none';
 		Game.Loop();

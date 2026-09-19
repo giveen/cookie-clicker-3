@@ -84,7 +84,6 @@ function getStoreObjects()
 
 export function BuildStore()//create the DOM for the store's buildings
 {
-	//if (typeof showAds!=='undefined') l('store').scrollTop=100;
 	var storeObjects=getStoreObjects();
 	
 	var str='';
