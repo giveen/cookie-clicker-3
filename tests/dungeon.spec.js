@@ -716,5 +716,126 @@ test('closing the dungeon screen mutes audio while auto-explore continues runnin
 	expect(Boolean(isOpen)).toBe(true);
 });
 
+test('Factory Dungeon combat polish: equipment sprites, log category filtering, and floating combat text', async ({ page }) => {
+	await boot(page);
+	await loadDungeon(page);
+
+	await page.evaluate(() => {
+		const F = window.Game.Objects['Factory'];
+		F.switchMinigame(1);
+		F.refresh();
+	});
+	await page.waitForSelector('#dungeonContent', { state: 'visible' });
+
+	// 1. Verify equipment sprite icon rendering
+	const gearIcons = await page.evaluate(() => {
+		const F = window.Game.Objects['Factory'];
+		const d = F.dungeon;
+		const hero = d.hero;
+
+		// Equip Tier 1 armor and Tier 2 weapon
+		hero.gear.armor = 1;
+		hero.gear.weapon = 2;
+		d.Draw();
+
+		const slots = document.querySelectorAll('.dungeonGearSlot');
+		const armorSlot = slots[0];
+		const weaponSlot = slots[1];
+		const armorIcon = armorSlot ? armorSlot.querySelector('.dungeonGearIcon') : null;
+		const weaponIcon = weaponSlot ? weaponSlot.querySelector('.dungeonGearIcon') : null;
+
+		return {
+			hasArmorIcon: !!armorIcon,
+			hasWeaponIcon: !!weaponIcon,
+			armorBgPos: armorIcon ? armorIcon.style.backgroundPosition : '',
+			weaponBgPos: weaponIcon ? weaponIcon.style.backgroundPosition : '',
+		};
+	});
+
+	expect(gearIcons.hasArmorIcon).toBe(true);
+	expect(gearIcons.hasWeaponIcon).toBe(true);
+	// Armor tier 1 icon is [3, 8] -> -48px -128px
+	expect(gearIcons.armorBgPos).toBe('-48px -128px');
+	// Weapon tier 2 icon is [4, 9] -> -64px -144px
+	expect(gearIcons.weaponBgPos).toBe('-64px -144px');
+
+	// 2. Verify delve log filtering tabs
+	const logFiltering = await page.evaluate(() => {
+		const F = window.Game.Objects['Factory'];
+		const d = F.dungeon;
+
+		d.log = [];
+		d.Log('Hero strikes Doughling!', 'combat');
+		d.Log('Found 100 cookies!', 'loot');
+		d.Log('Chip : "Adventure!"', 'story');
+		d.UpdateLog();
+
+		const allCount = document.querySelectorAll('#dungeonLog' + F.id + ' div').length;
+
+		d.setLogFilter('combat');
+		const combatCount = document.querySelectorAll('#dungeonLog' + F.id + ' div').length;
+		const combatDiv = document.querySelector('#dungeonLog' + F.id + ' div');
+		const combatText = combatDiv ? combatDiv.textContent : '';
+
+		d.setLogFilter('loot');
+		const lootCount = document.querySelectorAll('#dungeonLog' + F.id + ' div').length;
+		const lootDiv = document.querySelector('#dungeonLog' + F.id + ' div');
+		const lootText = lootDiv ? lootDiv.textContent : '';
+
+		d.setLogFilter('story');
+		const storyCount = document.querySelectorAll('#dungeonLog' + F.id + ' div').length;
+		const storyDiv = document.querySelector('#dungeonLog' + F.id + ' div');
+		const storyText = storyDiv ? storyDiv.textContent : '';
+
+		d.setLogFilter('all');
+		const resetCount = document.querySelectorAll('#dungeonLog' + F.id + ' div').length;
+
+		return {
+			allCount,
+			combatCount,
+			combatText,
+			lootCount,
+			lootText,
+			storyCount,
+			storyText,
+			resetCount,
+		};
+	});
+
+	expect(logFiltering.allCount).toBe(3);
+	expect(logFiltering.combatCount).toBe(1);
+	expect(logFiltering.combatText).toContain('Hero strikes');
+	expect(logFiltering.lootCount).toBe(1);
+	expect(logFiltering.lootText).toContain('Found 100 cookies');
+	expect(logFiltering.storyCount).toBe(1);
+	expect(logFiltering.storyText).toContain('Adventure');
+	expect(logFiltering.resetCount).toBe(3);
+
+	// 3. Verify Floating Combat Text (FCT)
+	const fctResult = await page.evaluate(() => {
+		const F = window.Game.Objects['Factory'];
+		const d = F.dungeon;
+
+		// Ensure dungeon screen is open and numbers pref is enabled
+		F.onMinigame = 1;
+		window.Game.prefs.numbers = 1;
+
+		const hero = d.heroEntity;
+		d.triggerFCT(hero, '-12', 'hero-damage');
+
+		const fctElements = document.querySelectorAll('.dungeonFct');
+		const first = fctElements[0];
+		return {
+			count: fctElements.length,
+			text: first ? first.textContent : '',
+			hasHeroDamageClass: first ? first.classList.contains('hero-damage') : false,
+		};
+	});
+
+	expect(fctResult.count).toBeGreaterThan(0);
+	expect(fctResult.text).toBe('-12');
+	expect(fctResult.hasHeroDamageClass).toBe(true);
+});
+
 
 

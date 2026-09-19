@@ -640,7 +640,7 @@ function createEntity(type: string, subtype: string, dungeon: any, value?: any):
 		fighting: 0, stuck: 0, AI: "normal", value: 0, life: 3, onKill: null, targets: [],
 	};
 	e.Say = function (what: string) {
-		if (this.type === "monster") { const m = Monsters[this.subtype]; if (m && m.quotes[what]) this.dungeon.Log(`${this.subtype} : "<span style="color:#f96;">${choose(m.quotes[what].split("|"))}</span>"`); }
+		if (this.type === "monster") { const m = Monsters[this.subtype]; if (m && m.quotes[what]) this.dungeon.Log(`${this.subtype} : "<span style="color:#f96;">${choose(m.quotes[what].split("|"))}</span>"`, "story"); }
 	};
 	e.Draw = function () {
 		if (this.type === "item" && this.subtype === "cookies" && typeof this.value === "number" && this.value > 0) {
@@ -703,7 +703,7 @@ function createEntity(type: string, subtype: string, dungeon: any, value?: any):
 			this.obstacle = 0;
 			const mg = g.Objects[this.dungeon.type].minigame as any;
 			if (mg && mg.grantUpgrade && mg.grantUpgrade(this.value)) {
-				this.dungeon.Log(`<span style="color:#ffd;">Found a dungeon schematic: <b>${this.value}</b>!</span>`);
+				this.dungeon.Log(`<span style="color:#ffd;">Found a dungeon schematic: <b>${this.value}</b>!</span>`, "loot");
 				playDungeonSound('snd/chime.mp3', 0.7); // CC3 (Tier 3): schematic-found chime
 			}
 			this.Destroy();
@@ -724,29 +724,37 @@ function createEntity(type: string, subtype: string, dungeon: any, value?: any):
 			let attackStr = `${attackerName} swings at ${defenderName}!`;
 			const damage = Math.round(Math.max(1, Math.min(by.stats.might, Math.pow(((by.stats.might + 2.5) / Math.max(1, this.stats.guard)), 2))) * (0.8 + Math.random() * 0.4 + Math.pow(Math.random() * 0.8, 6)));
 			const dodge = Math.random() > (by.stats.speed / Math.max(1, this.stats.dodge + 2.5));
-			if (dodge) attackStr += ` ${defenderName} dodged the attack.`;
-			else {
+			if (dodge) {
+				attackStr += ` ${defenderName} dodged the attack.`;
+				if (this.dungeon.triggerFCT) this.dungeon.triggerFCT(this, 'DODGE', 'dodge');
+			} else {
 				if (by.type === "hero") playDungeonSfx('snd/thud.mp3', 0.35); // hero strikes
 				else playDungeonSfx('snd/snarl.mp3', 0.4); // monster strikes the hero
-				if (by.stats.luck && by.type === "hero" && Math.random() < by.stats.luck * 0.01) { this.stats.hp -= damage * 2; attackStr += ` <b>It's a critical!</b> <b>${damage * 2}</b> damage!`; }
-				else {
+				if (by.stats.luck && by.type === "hero" && Math.random() < by.stats.luck * 0.01) {
+					this.stats.hp -= damage * 2;
+					attackStr += ` <b>It's a critical!</b> <b>${damage * 2}</b> damage!`;
+					if (this.dungeon.triggerFCT) this.dungeon.triggerFCT(this, `CRIT! -${damage * 2}`, 'crit');
+				} else {
 					this.stats.hp -= damage;
 					this.stats.hp = Math.max(this.stats.hp, 0);
 					attackStr += ` <b>${damage}</b> damage!`;
+					const fctType = this.type === "hero" ? "hero-damage" : "damage";
+					if (this.dungeon.triggerFCT) this.dungeon.triggerFCT(this, `-${damage}`, fctType);
 					if (this.stats.luck && this.type === "hero" && this.stats.hp === 0 && Math.random() < this.stats.luck * 0.01) {
 						this.stats.hp = 1;
 						attackStr += ` ${defenderName} was saved from certain death!`;
+						if (this.dungeon.triggerFCT) this.dungeon.triggerFCT(this, 'SAVED!', 'saved');
 					}
 				}
 			}
 			if (this.type === "hero") attackStr = `<span style="color:#f99;">${attackStr}</span>`;
-			this.dungeon.Log(attackStr);
+			this.dungeon.Log(attackStr, "combat");
 			if (this.stats.hp <= 0) {
-				this.dungeon.Log(`${attackerName} crushed ${defenderName}!`);
+				this.dungeon.Log(`${attackerName} crushed ${defenderName}!`, "combat");
 				if (this.type === "hero") {
 					const hObj = DungeonHeroes.find(h => h.name === this.subtype);
 					if (hObj) hObj.Say("defeat");
-					this.dungeon.Log(`<span style="color:#f66;">${defenderName} has been defeated.</span>`);
+					this.dungeon.Log(`<span style="color:#f66;">${defenderName} has been defeated.</span>`, "combat");
 					this.dungeon.FailLevel();
 				}
 				if (this.type === "monster" && by.type === "hero") {
@@ -764,7 +772,7 @@ function createEntity(type: string, subtype: string, dungeon: any, value?: any):
 					if (diedMon && diedMon.boss) {
 						const bossRelics = 2 + Math.floor(this.dungeon.level / 3) + (Math.random() < 0.5 ? 1 : 0);
 						this.dungeon.addRelics(bossRelics);
-						this.dungeon.Log(`<span style="color:#ffd;">${diedMon.name} dropped <b>${bossRelics}</b> relics!</span>`);
+						this.dungeon.Log(`<span style="color:#ffd;">${diedMon.name} dropped <b>${bossRelics}</b> relics!</span>`, "loot");
 					}
 					const m = Monsters[this.subtype];
 					if (m && m.loot) {
@@ -794,7 +802,10 @@ function createEntity(type: string, subtype: string, dungeon: any, value?: any):
 			}
 		}
 		if (this.type === "monster" || this.type === "hero") { if (this.stuck > 0) this.stuck--; this.stuck = Math.min(10, this.stuck); this.targets = []; }
-		if ((this.type === "hero" || this.type === "monster") && this.fighting === 0 && this.stats.hp < this.stats.hpm) this.stats.hp++;
+		if ((this.type === "hero" || this.type === "monster") && this.fighting === 0 && this.stats.hp < this.stats.hpm) {
+			this.stats.hp++;
+			if (this.type === "hero" && this.dungeon.triggerFCT) this.dungeon.triggerFCT(this, "+1 HP", "heal");
+		}
 		if (this.type === "hero") {
 			const entities = this.dungeon.GetEntities(this.x, this.y);
 			for (const ent of entities) {
@@ -813,7 +824,7 @@ function createEntity(type: string, subtype: string, dungeon: any, value?: any):
 					// clamps), so a pickup can never overflow the ledger.
 					let value = Math.min(Math.ceil(ent.value * Math.max(1, cps) * (1 + Math.random() * (this.stats.luck / 20))), DISPLAYABLE_MAX);
 					if (!Number.isFinite(value)) value = 0;
-					if (value > 0) { this.dungeon.Log(`<span style="color:#9f9;">Found <b>${Beautify(value)}</b> cookie${value === 1 ? "" : "s"}!</span>`); this.dungeon.cookiesMadeThisRun += value; g.Earn(value); }
+					if (value > 0) { this.dungeon.Log(`<span style="color:#9f9;">Found <b>${Beautify(value)}</b> cookie${value === 1 ? "" : "s"}!</span>`, "loot"); this.dungeon.cookiesMadeThisRun += value; g.Earn(value); }
 					ent.Destroy();
 				} else if (ent.type === "item" && ent.subtype === "gear" && ent.value) {
 					const hObj = DungeonHeroes.find(h => h.name === this.subtype) || DungeonHeroes[(this.dungeon as any).selectedHero || 0];
@@ -839,13 +850,13 @@ function createEntity(type: string, subtype: string, dungeon: any, value?: any):
 								hObj.gear.weapon = ent.value.id;
 							}
 							playDungeonSound('snd/chime.mp3', 0.7);
-							this.dungeon.Log(`<span style="color:#ffd;">Found and equipped <b>${itemDef.name}</b>! (${itemDef.desc})</span>`);
+							this.dungeon.Log(`<span style="color:#ffd;">Found and equipped <b>${itemDef.name}</b>! (${itemDef.desc})</span>`, "loot");
 							this.dungeon.UpdateInfo();
 						} else {
 							const salvage = Math.max(50, (ent.value.id + 1) * 150);
 							g.Earn(salvage);
 							this.dungeon.cookiesMadeThisRun += salvage;
-							this.dungeon.Log(`<span style="color:#aaa;">Found <b>${itemDef.name}</b>, but current ${ent.value.type} is stronger. Salvaged for <b>${salvage}</b> cookies.</span>`);
+							this.dungeon.Log(`<span style="color:#aaa;">Found <b>${itemDef.name}</b>, but current ${ent.value.type} is stronger. Salvaged for <b>${salvage}</b> cookies.</span>`, "loot");
 						}
 					}
 					ent.Destroy();
@@ -913,7 +924,7 @@ function defineHero(name: string, pic: string, portrait: string, icon: [number, 
 			if (room !== -1 && (room as any).hidden) { (room as any).hidden = false; dungeon.RedrawMap(); }
 			dungeon.heroEntity = dungeon.AddEntity("hero", this.name, x, y);
 			dungeon.Refresh();
-			dungeon.Log("--------------------");
+			dungeon.Log("--------------------", "story");
 			if (dungeon.level === 0) this.Say("greeting");
 			this.Say("entrance");
 		},
@@ -931,7 +942,7 @@ function defineHero(name: string, pic: string, portrait: string, icon: [number, 
 		Say: function (what) {
 			const dungeon = (window as any).DungeonList?.[this.inDungeon];
 			if (!dungeon) return;
-			if (this.dialogue[what]) dungeon.Log(`${this.name} : "<span style="color:#99f;">${choose(this.dialogue[what].split("|"))}</span>"`);
+			if (this.dialogue[what]) dungeon.Log(`${this.name} : "<span style="color:#99f;">${choose(this.dialogue[what].split("|"))}</span>"`, "story");
 		},
 		// ":" here, not "," -- this string gets embedded as one field inside
 		// M.save()'s own comma-free output (see below).
@@ -1246,33 +1257,102 @@ M.launch = function (this: DungeonMinigame) {
 .dungeonInfoRow b{color:#fff;}
 .dungeonInfoBest{color:#a99;font-size:9px;margin-left:auto;}
 .dungeonInfoRelics,.dungeonShopRelics{color:#ffd9a0;font-weight:bold;margin:4px 0 2px;}
-.dungeonInfoGearRow{display:flex;gap:6px;margin:3px 0 2px;justify-content:space-between;}
-.dungeonGearSlot{flex:1;background:rgba(255,255,255,0.05);border:1px solid #4a3a22;border-radius:3px;padding:2px 4px;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#e8d0b0;cursor:help;}
+.dungeonInfoGearRow{display:flex;gap:4px;margin:2px 0;justify-content:space-between;}
+.dungeonGearSlot{flex:1;display:flex;align-items:center;gap:4px;background:rgba(255,255,255,0.05);border:1px solid #4a3a22;border-radius:3px;padding:1px 4px;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#e8d0b0;cursor:help;}
 .dungeonGearSlot:hover{background:rgba(255,255,255,0.1);border-color:#ffd9a0;}
-.dungeonGearSlot b{color:#fff;font-weight:normal;}
+.dungeonGearSlot span{color:#bba;font-size:9px;}
+.dungeonGearSlot b{color:#fff;font-weight:normal;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.dungeonGearIcon{width:16px;height:16px;min-width:16px;background:url(img/dungeonIcons.webp);display:inline-block;vertical-align:middle;image-rendering:pixelated;image-rendering:crisp-edges;}
+.dungeonGearIconEmpty{font-size:11px;opacity:0.4;min-width:16px;text-align:center;}
 
 /* Delve Status Card */
-.dungeonInfoCard{left:424px;right:12px;top:10px;height:124px;}
+.dungeonInfoCard{left:424px;right:12px;top:10px;height:136px;}
 .dungeonFullscreen .dungeonInfoCard{position:absolute!important;right:20px!important;left:auto!important;width:340px!important;top:52px!important;height:128px!important;box-sizing:border-box!important;z-index:200!important;}
 
 /* Relic Workshop Card */
-.dungeonShopCard{left:424px;right:12px;top:138px;height:110px;overflow-y:auto;overflow-x:hidden;}
+.dungeonShopCard{left:424px;right:12px;top:150px;height:98px;overflow-y:auto;overflow-x:hidden;}
 .dungeonFullscreen .dungeonShopCard{position:absolute!important;right:20px!important;left:auto!important;width:340px!important;top:186px!important;height:164px!important;bottom:auto!important;box-sizing:border-box!important;overflow-y:auto!important;z-index:200!important;}
 .dungeonShopRow{margin-top:3px;}
 .dungeonShopBtn{display:block;padding:2px 4px;border-radius:3px;background:rgba(255,255,255,0.03);transition:background .1s;}
 .dungeonShopBtn:hover{background:rgba(255,255,255,0.08);}
 
-/* Dungeon Log */
-.dungeonLog{font-size:11px;position:absolute;left:424px;right:12px;top:254px;bottom:0px;overflow-y:scroll;background:rgba(0,0,0,0.6);border:1px solid #3a2a1a;border-radius:4px 4px 0 0;padding:6px 8px;box-sizing:border-box;}
-.dungeonFullscreen .dungeonLog{position:absolute!important;right:20px!important;left:auto!important;width:340px!important;top:358px!important;bottom:20px!important;height:auto!important;box-sizing:border-box!important;overflow-y:auto!important;z-index:200!important;background:rgba(0,0,0,0.75)!important;border:1px solid #5a4a2a!important;border-radius:4px!important;}
+/* Dungeon Log Filters & Container */
+.dungeonLogFilters{position:absolute;left:424px;right:12px;top:252px;height:18px;display:flex;gap:3px;z-index:20;}
+.dungeonFullscreen .dungeonLogFilters{position:absolute!important;right:20px!important;left:auto!important;width:340px!important;top:358px!important;height:18px!important;display:flex!important;gap:3px!important;z-index:200!important;}
+.dungeonLogFilterTab{flex:1;text-align:center;padding:1px 2px;background:rgba(255,255,255,0.04);border:1px solid #3a2a1a;border-bottom:none;border-radius:3px 3px 0 0;font-size:8.5px;color:#8a7a6a;font-weight:bold;cursor:pointer;user-select:none;transition:all .15s;}
+.dungeonLogFilterTab:hover{background:rgba(255,255,255,0.09);color:#dfbc9a;}
+.dungeonLogFilterTab.active{background:#241830;border-color:#ffd9a0;color:#ffd9a0;box-shadow:inset 0 1px 0 #ffd9a0;}
+
+.dungeonLog{font-size:11px;position:absolute;left:424px;right:12px;top:270px;bottom:0px;overflow-y:scroll;background:rgba(0,0,0,0.6);border:1px solid #3a2a1a;border-radius:0 0 4px 4px;padding:6px 8px;box-sizing:border-box;}
+.dungeonFullscreen .dungeonLog{position:absolute!important;right:20px!important;left:auto!important;width:340px!important;top:376px!important;bottom:20px!important;height:auto!important;box-sizing:border-box!important;overflow-y:auto!important;z-index:200!important;background:rgba(0,0,0,0.75)!important;border:1px solid #5a4a2a!important;border-radius:0 0 4px 4px!important;}
+.log-combat{border-left:2px solid rgba(255,100,100,0.3);padding-left:4px;margin-bottom:1px;}
+.log-loot{border-left:2px solid rgba(255,215,0,0.4);padding-left:4px;margin-bottom:1px;}
+.log-story{border-left:2px solid rgba(150,150,255,0.3);padding-left:4px;margin-bottom:1px;}
+.log-general{padding-left:6px;margin-bottom:1px;}
+
+/* Floating Combat Text */
+.dungeonFct{position:absolute;top:6px;left:50%;transform:translateX(-50%);font-size:12px;font-weight:bold;font-family:sans-serif;pointer-events:none;z-index:500;white-space:nowrap;text-shadow:0 0 3px #000,1px 1px 2px #000,-1px -1px 2px #000,1px -1px 2px #000,-1px 1px 2px #000;animation:dungeonFctAnim .75s ease-out forwards;user-select:none;}
+@keyframes dungeonFctAnim{0%{opacity:0;transform:translate(-50%,6px) scale(0.7);}15%{opacity:1;transform:translate(-50%,0) scale(1.15);}50%{opacity:1;transform:translate(-50%,-12px) scale(1);}100%{opacity:0;transform:translate(-50%,-24px) scale(0.9);}}
+.dungeonFct.damage{color:#ffea00;}
+.dungeonFct.crit{color:#ff9100;font-size:14px;font-weight:900;text-shadow:0 0 6px #ff9100,1px 1px 2px #000;}
+.dungeonFct.hero-damage{color:#ff3333;}
+.dungeonFct.dodge{color:#00e5ff;font-style:italic;}
+.dungeonFct.saved{color:#00e676;font-weight:bold;text-shadow:0 0 6px #00e676,1px 1px 2px #000;}
+.dungeonFct.heal{color:#69f0ae;font-size:11px;}
 `;
 
 		// Create the dungeon state
 		const dungeon = {
 			id: parent.id,
 			type: parent.name,
-			log: [] as string[],
+			log: [] as (string | { text: string; type: string })[],
 			logNew: 0,
+			logFilter: 'all',
+			setLogFilter: function (filter: string) {
+				this.logFilter = filter;
+				const filterContainer = l("dungeonLogFilters" + this.id);
+				if (filterContainer) {
+					const tabs = filterContainer.querySelectorAll('.dungeonLogFilterTab');
+					tabs.forEach((tab: Element) => {
+						if (tab.getAttribute('data-filter') === filter) tab.classList.add('active');
+						else tab.classList.remove('active');
+					});
+				}
+				this.UpdateLog();
+			},
+			triggerFCT: function (targetEntity: any, text: string, type: string) {
+				if (!isDungeonScreenOpen()) return;
+				const prefs = (g as any).prefs;
+				if (prefs && prefs.numbers === 0) return;
+
+				// 1. Spawn on duel portrait slot if combat is active
+				if (targetEntity && targetEntity.type) {
+					const isHero = targetEntity.type === 'hero';
+					const slotId = isHero ? ('heroSlot' + this.id) : ('monsterSlot' + this.id);
+					const slot = l(slotId);
+					if (slot && (isHero || slot.style.visibility !== 'hidden')) {
+						const el = document.createElement('div');
+						el.className = `dungeonFct ${type}`;
+						el.textContent = text;
+						slot.appendChild(el);
+						setTimeout(() => { if (el.parentNode) el.parentNode.removeChild(el); }, 800);
+					}
+				}
+
+				// 2. Spawn on map canvas over entity position
+				if (targetEntity && typeof targetEntity.x === 'number' && typeof targetEntity.y === 'number') {
+					const mc = l('mapcontainer' + this.id);
+					if (mc) {
+						const el = document.createElement('div');
+						el.className = `dungeonFct ${type}`;
+						el.style.left = `${targetEntity.x * 16 + 8}px`;
+						el.style.top = `${targetEntity.y * 16}px`;
+						el.textContent = text;
+						mc.appendChild(el);
+						setTimeout(() => { if (el.parentNode) el.parentNode.removeChild(el); }, 800);
+					}
+				}
+			},
 			name: "",
 			hero: null as any,
 			currentOpponent: null as any,
@@ -1305,12 +1385,21 @@ M.launch = function (this: DungeonMinigame) {
 			map: null as any,
 			entrance: [0, 0] as [number, number],
 			onTile: -1,
-			Log: function (what: string) { this.log.unshift(what); this.logNew++; },
+			Log: function (what: string, type: 'combat' | 'loot' | 'story' | 'general' = 'general') {
+				this.log.unshift({ text: what, type: type });
+				this.logNew++;
+			},
 			UpdateLog: function () {
-				this.log = this.log.slice(0, 80);
+				this.log = this.log.slice(0, 100);
+				const filter = this.logFilter || 'all';
 				let str = "";
 				for (let i = 0; i < this.log.length; i++) {
-					str += i < this.logNew ? `<div class="new">${this.log[i]}</div>` : `<div>${this.log[i]}</div>`;
+					const item = this.log[i];
+					const text = typeof item === 'string' ? item : item.text;
+					const type = typeof item === 'string' ? 'general' : (item.type || 'general');
+					if (filter !== 'all' && type !== filter && type !== 'general') continue;
+					const isNew = i < this.logNew;
+					str += `<div class="${isNew ? "new " : ""}log-${type}">${text}</div>`;
 				}
 				this.logNew = 0;
 				const el = l("dungeonLog" + this.id);
@@ -1322,15 +1411,23 @@ M.launch = function (this: DungeonMinigame) {
 				const weaponItem = hero && hero.gear.weapon >= 0 ? DungeonWeapons[hero.gear.weapon] : null;
 				const armorName = armorItem ? armorItem.name : loc('None');
 				const weaponName = weaponItem ? weaponItem.name : loc('None');
-				const armorTitle = armorItem ? `${armorItem.name}: ${armorItem.desc}` : loc('No armor equipped');
-				const weaponTitle = weaponItem ? `${weaponItem.name}: ${weaponItem.desc}` : loc('No weapon equipped');
+				const armorTitle = armorItem ? `${armorItem.name} (Tier ${armorItem.tier}): ${armorItem.desc}` : loc('No armor equipped');
+				const weaponTitle = weaponItem ? `${weaponItem.name} (Tier ${weaponItem.tier}): ${weaponItem.desc}` : loc('No weapon equipped');
+				const armorIconHtml = armorItem
+					? `<span class="dungeonGearIcon" style="background-position:${-armorItem.icon[0] * 16}px ${-armorItem.icon[1] * 16}px;"></span>`
+					: `<span class="dungeonGearIconEmpty">🛡️</span>`;
+				const weaponIconHtml = weaponItem
+					? `<span class="dungeonGearIcon" style="background-position:${-weaponItem.icon[0] * 16}px ${-weaponItem.icon[1] * 16}px;"></span>`
+					: `<span class="dungeonGearIconEmpty">⚔️</span>`;
 				return `<div class="dungeonCardTitle">${loc('Delve status')}</div>` +
 					`<div class="dungeonInfoRow"><span>${loc('Depth')}</span><b>${this.level + 1}</b><span class="dungeonInfoBest">${loc('best')} ${self.bestDepth}</span></div>` +
 					`<div class="dungeonInfoRow"><span>${loc('Cookies')}</span><b>${Beautify(this.cookiesMadeThisRun)}</b><span class="dungeonInfoBest">${loc('best')} ${Beautify(self.bestCookies)}</span></div>` +
 					`<div class="dungeonInfoRow"><span>${loc('Monsters')}</span><b>${Beautify(this.monstersKilledThisRun)}</b><span class="dungeonInfoBest">${loc('best')} ${Beautify(self.bestMonsters)}</span></div>` +
 					`<div class="dungeonInfoGearRow">` +
-						`<div class="dungeonGearSlot" title="${armorTitle}"><span>🛡️</span> <b>${armorName}</b></div>` +
-						`<div class="dungeonGearSlot" title="${weaponTitle}"><span>⚔️</span> <b>${weaponName}</b></div>` +
+						`<div class="dungeonGearSlot" title="${armorTitle}">${armorIconHtml} <b>${armorName}</b></div>` +
+					`</div>` +
+					`<div class="dungeonInfoGearRow">` +
+						`<div class="dungeonGearSlot" title="${weaponTitle}">${weaponIconHtml} <b>${weaponName}</b></div>` +
 					`</div>` +
 					`<div class="dungeonInfoRelics">${loc('Relics:')} <b>${Beautify(self.relics)}</b></div>`;
 			},
@@ -1498,6 +1595,13 @@ M.launch = function (this: DungeonMinigame) {
 				const autoTitle = this.auto ? loc('Auto-explore is ON (click to pause)') : loc('Auto-explore is OFF (click to resume)');
 				str += `<div id="dungeonAuto${this.id}" class="dungeonAutoBadge${autoClass}" title="${autoTitle}" onclick="const d=Game.ObjectsById[${this.id}].dungeon;if(d)d.toggleAuto();">${autoText}</div>`;
 				str += `<div id="dungeonSpeed${this.id}" class="dungeonSpeedBadge" title="${loc('Dungeon speed (click to cycle: 1x, 2x, 0.5x)')}" onclick="const d=Game.ObjectsById[${this.id}].dungeon;if(d)d.toggleSpeed();">${this.getSpeedLabel()}</div>`;
+				const curFilter = this.logFilter || 'all';
+				str += `<div id="dungeonLogFilters${this.id}" class="dungeonLogFilters">` +
+					`<span class="dungeonLogFilterTab${curFilter === 'all' ? ' active' : ''}" data-filter="all" onclick="const d=Game.ObjectsById[${this.id}].dungeon;if(d)d.setLogFilter('all');">ALL</span>` +
+					`<span class="dungeonLogFilterTab${curFilter === 'combat' ? ' active' : ''}" data-filter="combat" onclick="const d=Game.ObjectsById[${this.id}].dungeon;if(d)d.setLogFilter('combat');">COMBAT</span>` +
+					`<span class="dungeonLogFilterTab${curFilter === 'loot' ? ' active' : ''}" data-filter="loot" onclick="const d=Game.ObjectsById[${this.id}].dungeon;if(d)d.setLogFilter('loot');">LOOT</span>` +
+					`<span class="dungeonLogFilterTab${curFilter === 'story' ? ' active' : ''}" data-filter="story" onclick="const d=Game.ObjectsById[${this.id}].dungeon;if(d)d.setLogFilter('story');">STORY</span>` +
+					`</div>`;
 				str += `<div id="dungeonLog${this.id}" class="dungeonLog"></div>`;
 				str += `<div id="dungeonInfo${this.id}" class="dungeonCard dungeonInfoCard">${this.infoHTML()}</div>`;
 				str += `<div id="dungeonShop${this.id}" class="dungeonCard dungeonShopCard">${this.shopHTML()}</div>`;
@@ -1644,7 +1748,7 @@ M.launch = function (this: DungeonMinigame) {
 				if (isDungeonScreenOpen()) this.Draw();
 			},
 			FailLevel: function () {
-				this.Log(`Cookies made this run : ${Beautify(this.cookiesMadeThisRun)} | Monsters defeated this run : ${Beautify(this.monstersKilledThisRun)}`);
+				this.Log(`Cookies made this run : ${Beautify(this.cookiesMadeThisRun)} | Monsters defeated this run : ${Beautify(this.monstersKilledThisRun)}`, "story");
 				// CC3 (Tier 3): bank the run's cookie total as a lifetime best.
 				if (this.cookiesMadeThisRun > self.bestCookies) self.bestCookies = this.cookiesMadeThisRun;
 				if (this.monstersKilledThisRun > self.bestMonsters) self.bestMonsters = this.monstersKilledThisRun;
