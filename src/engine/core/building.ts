@@ -758,9 +758,7 @@ export class Building {
 				if (Game.ascensionMode==4 && Game.monoBuilding!==null && Game.monoBuilding!==this.id && this.id!=0)
 				{
 					l('row'+this.id).classList.remove('enabled');
-					if (l('product'+this.id)) l('product'+this.id).classList.add('disabled');
 				}
-				else if (l('product'+this.id)) l('product'+this.id).classList.remove('disabled');
 				if ((this.muted as number)>0 && this.id!=0) {l('row'+this.id).classList.add('muted');l('mutedProduct'+this.id).style.display='inline-block';}//muted starts as the ctor's false; the engine assigns 0/1 — the original compared it to 0 either way
 				else if (this.id!=0) {l('row'+this.id).classList.remove('muted');l('mutedProduct'+this.id).style.display='none';}
 				//if (!this.onMinigame && !this.muted) {}
