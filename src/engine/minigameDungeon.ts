@@ -98,6 +98,180 @@ function rand(a: number, b: number): number {
 	return Math.floor(Math.random() * (b - a + 1) + a);
 }
 
+export interface DungeonBiome {
+	id: string;
+	name: string;
+	badgeColor: string;
+	colors: Record<number, string>;
+	waterTile: string;
+	wallTile: string;
+	wallCornerTile: string;
+	floorTile: string;
+	floorEdgeTile: string;
+	doorTile?: string;
+	entranceTile?: string;
+	exitTile?: string;
+	pillarTileChoices: string[];
+	monsters: string[];
+	boss: string;
+}
+
+export const DungeonBiomes: DungeonBiome[] = [
+	{
+		id: "dough_assembly",
+		name: "The Dough Assembly",
+		badgeColor: "#d4a373",
+		colors: {
+			[TILE_EMPTY]: "00061b",
+			[TILE_LIMIT]: "200000",
+			[TILE_FLOOR_EDGE]: "15101f",
+			[TILE_FLOOR_CENTER]: "15101f",
+			[TILE_DOOR]: "3a2010",
+			[TILE_PILLAR]: "2a1810",
+			[TILE_WATER]: "10203a",
+			[TILE_WALL]: "4a2818",
+			[TILE_WALL_CORNER]: "3a1c10",
+			[TILE_ENTRANCE]: "15101f",
+			[TILE_EXIT]: "15101f",
+		},
+		waterTile: "water",
+		wallTile: "wall",
+		wallCornerTile: "wall corner",
+		floorTile: "tiled floor",
+		floorEdgeTile: "floor",
+		doorTile: "door",
+		entranceTile: "entrance",
+		exitTile: "exit",
+		pillarTileChoices: ["wall", "round pillar", "square pillar", "potted plant"],
+		monsters: ["Doughling", "Baby sentient cookie", "Disgruntled worker", "Alarm bot"],
+		boss: "Sentient Furnace",
+	},
+	{
+		id: "chocolate_foundry",
+		name: "The Chocolate Foundry",
+		badgeColor: "#e07a5f",
+		colors: {
+			[TILE_EMPTY]: "100502",
+			[TILE_LIMIT]: "2d0c04",
+			[TILE_FLOOR_EDGE]: "241008",
+			[TILE_FLOOR_CENTER]: "241008",
+			[TILE_DOOR]: "4a1808",
+			[TILE_PILLAR]: "38140a",
+			[TILE_WATER]: "1a0804",
+			[TILE_WALL]: "58220e",
+			[TILE_WALL_CORNER]: "421808",
+			[TILE_ENTRANCE]: "241008",
+			[TILE_EXIT]: "241008",
+		},
+		waterTile: "dark water",
+		wallTile: "alt wall",
+		wallCornerTile: "alt wall corner",
+		floorTile: "tiled floor",
+		floorEdgeTile: "floor",
+		doorTile: "alt door",
+		entranceTile: "alt entrance",
+		exitTile: "alt exit",
+		pillarTileChoices: ["conveyor belt", "alt square pillar", "alt round pillar"],
+		monsters: ["Burnt sentient cookie", "Angry sentient cookie", "Crazed kneader", "Crazed chip-spurter"],
+		boss: "Sentient Furnace",
+	},
+	{
+		id: "cryo_vaults",
+		name: "The Cryo-Vaults",
+		badgeColor: "#81b29a",
+		colors: {
+			[TILE_EMPTY]: "040c14",
+			[TILE_LIMIT]: "081f2d",
+			[TILE_FLOOR_EDGE]: "0b1822",
+			[TILE_FLOOR_CENTER]: "0b1822",
+			[TILE_DOOR]: "163242",
+			[TILE_PILLAR]: "102836",
+			[TILE_WATER]: "082820",
+			[TILE_WALL]: "1b3a4a",
+			[TILE_WALL_CORNER]: "132b38",
+			[TILE_ENTRANCE]: "0b1822",
+			[TILE_EXIT]: "0b1822",
+		},
+		waterTile: "green water",
+		wallTile: "wall",
+		wallCornerTile: "wall corner",
+		floorTile: "alt tiled floor",
+		floorEdgeTile: "alt floor",
+		doorTile: "door",
+		entranceTile: "entrance",
+		exitTile: "exit",
+		pillarTileChoices: ["alt round pillar", "alt square pillar", "alt potted plant"],
+		monsters: ["Raw sentient cookie", "Alarm bot", "Disgruntled overseer", "Baby sentient cookie"],
+		boss: "Ascended Baking Pod",
+	},
+	{
+		id: "secret_archives",
+		name: "The Secret Archives",
+		badgeColor: "#f2cc8f",
+		colors: {
+			[TILE_EMPTY]: "0d0805",
+			[TILE_LIMIT]: "261208",
+			[TILE_FLOOR_EDGE]: "1e140d",
+			[TILE_FLOOR_CENTER]: "1e140d",
+			[TILE_DOOR]: "3a2214",
+			[TILE_PILLAR]: "2c180d",
+			[TILE_WATER]: "141a24",
+			[TILE_WALL]: "3e2212",
+			[TILE_WALL_CORNER]: "2c160a",
+			[TILE_ENTRANCE]: "1e140d",
+			[TILE_EXIT]: "1e140d",
+		},
+		waterTile: "water",
+		wallTile: "wooden wall",
+		wallCornerTile: "bookshelf",
+		floorTile: "wooden floor",
+		floorEdgeTile: "wooden floor",
+		doorTile: "door",
+		entranceTile: "entrance",
+		exitTile: "exit",
+		pillarTileChoices: ["bookshelf", "alt bookshelf", "wooden wall"],
+		monsters: ["Elder doughling", "Disgruntled cleaning lady", "Chirpy", "Doughling"],
+		boss: "Ascended Baking Pod",
+	},
+	{
+		id: "astral_core",
+		name: "The Astral Core",
+		badgeColor: "#b388eb",
+		colors: {
+			[TILE_EMPTY]: "080310",
+			[TILE_LIMIT]: "1f0628",
+			[TILE_FLOOR_EDGE]: "120820",
+			[TILE_FLOOR_CENTER]: "120820",
+			[TILE_DOOR]: "2d103d",
+			[TILE_PILLAR]: "240a32",
+			[TILE_WATER]: "05020a",
+			[TILE_WALL]: "38144c",
+			[TILE_WALL_CORNER]: "280c38",
+			[TILE_ENTRANCE]: "120820",
+			[TILE_EXIT]: "120820",
+		},
+		waterTile: "dark water",
+		wallTile: "alt wall",
+		wallCornerTile: "alt wall corner",
+		floorTile: "alt tiled floor",
+		floorEdgeTile: "alt floor",
+		doorTile: "alt door",
+		entranceTile: "alt entrance",
+		exitTile: "alt exit",
+		pillarTileChoices: ["alt wall", "alt square pillar"],
+		monsters: ["Angry sentient cookie", "Elder doughling", "Burnt sentient cookie", "Crazed chip-spurter", "Sugar bunny"],
+		boss: "any",
+	},
+];
+
+export function getDungeonBiome(level: number): DungeonBiome {
+	const tier = Math.min(DungeonBiomes.length - 1, Math.floor(level / 5));
+	return DungeonBiomes[tier];
+}
+
+(window as any).DungeonBiomes = DungeonBiomes;
+(window as any).getDungeonBiome = getDungeonBiome;
+
 interface RoomData {
 	id: number;
 	w: number;
@@ -116,6 +290,7 @@ interface RoomData {
 
 interface DungeonGenMap {
 	w: number; h: number;
+	biome?: DungeonBiome;
 	rooms: RoomData[];
 	freeWalls: [number, number][];
 	freeTiles: [number, number][];
@@ -404,15 +579,16 @@ function makeMap(w: number, h: number, _seed: number, params: Record<string, any
 			let tileData = Tiles[this.data[x][y][2]];
 			const tileType = this.data[x][y][0];
 			if (!tileData || tileData.id === 0) {
-				if (tileType === TILE_WALL) tileData = TilesByName["wall"] || Tiles[0];
-				else if (tileType === TILE_WALL_CORNER) tileData = TilesByName["wall corner"] || Tiles[0];
-				else if (tileType === TILE_FLOOR_EDGE) tileData = TilesByName["floor edges"] || TilesByName["floor"] || Tiles[0];
-				else if (tileType === TILE_FLOOR_CENTER) tileData = TilesByName["floor"] || Tiles[0];
-				else if (tileType === TILE_DOOR) tileData = TilesByName["door"] || Tiles[0];
-				else if (tileType === TILE_WATER) tileData = TilesByName["water"] || Tiles[0];
-				else if (tileType === TILE_ENTRANCE) tileData = TilesByName["entrance"] || Tiles[0];
-				else if (tileType === TILE_EXIT) tileData = TilesByName["exit"] || Tiles[0];
-				else if (tileType === TILE_LIMIT) tileData = TilesByName["wall"] || Tiles[0];
+				const b = this.biome;
+				if (tileType === TILE_WALL) tileData = TilesByName[b ? b.wallTile : "wall"] || Tiles[0];
+				else if (tileType === TILE_WALL_CORNER) tileData = TilesByName[b ? b.wallCornerTile : "wall corner"] || Tiles[0];
+				else if (tileType === TILE_FLOOR_EDGE) tileData = TilesByName[b ? b.floorEdgeTile : "floor"] || Tiles[0];
+				else if (tileType === TILE_FLOOR_CENTER) tileData = TilesByName[b ? b.floorTile : "tiled floor"] || TilesByName["floor"] || Tiles[0];
+				else if (tileType === TILE_DOOR) tileData = TilesByName[b ? (b.doorTile || "door") : "door"] || Tiles[0];
+				else if (tileType === TILE_WATER) tileData = TilesByName[b ? b.waterTile : "water"] || Tiles[0];
+				else if (tileType === TILE_ENTRANCE) tileData = TilesByName[b ? (b.entranceTile || "entrance") : "entrance"] || Tiles[0];
+				else if (tileType === TILE_EXIT) tileData = TilesByName[b ? (b.exitTile || "exit") : "exit"] || Tiles[0];
+				else if (tileType === TILE_LIMIT) tileData = TilesByName[b ? b.wallTile : "wall"] || Tiles[0];
 			}
 			if (!tileData) return [0, 0];
 			if (tileData.joinType === "join") {
@@ -454,7 +630,8 @@ function makeMap(w: number, h: number, _seed: number, params: Record<string, any
 					title = `${(room as RoomData).corridor ? "corridor" : "room"} ${(room as RoomData).id} | depth : ${(room as RoomData).gen} | children : ${(room as RoomData).children.length}`;
 				}
 				const pic = this.getPic(x, y);
-				str += `<div style="opacity:${opacity};width:${size}px;height:${size}px;position:absolute;left:${x * size}px;top:${y * size}px;display:block;padding:0px;margin:0px;background:#${colors[this.data[x][y][0]] || "000"} url(img/dungeonTiles.webp) ${-pic[0] * 16}px ${-pic[1] * 16}px;color:#999;" title="${title}"></div>`;
+				const bg = (this.biome?.colors || colors)[this.data[x][y][0]] || "000";
+				str += `<div style="opacity:${opacity};width:${size}px;height:${size}px;position:absolute;left:${x * size}px;top:${y * size}px;display:block;padding:0px;margin:0px;background:#${bg} url(img/dungeonTiles.webp) ${-pic[0] * 16}px ${-pic[1] * 16}px;color:#999;" title="${title}"></div>`;
 			}
 			return `<div style="box-shadow:0px 0px 12px 6px #00061b;position:relative;width:${this.w * size}px;height:${this.h * size}px;background:#00061b;font-family:Courier;font-size:${size}px;float:left;margin:10px;">${str}</div>`;
 		},
@@ -465,7 +642,7 @@ function makeMap(w: number, h: number, _seed: number, params: Record<string, any
 				let pic = this.getPic(x, y);
 				if (room !== -1 && (room as RoomData).hidden) pic = [0, 0];
 				const tileType = this.data[x][y][0];
-				const bg = colors[tileType] || "000";
+				const bg = (this.biome?.colors || colors)[tileType] || "000";
 				str += `<div style="opacity:1;width:${size}px;height:${size}px;position:absolute;left:${x * size}px;top:${y * size}px;display:block;padding:0px;margin:0px;background:#${bg} url(img/dungeonTiles.webp) ${-pic[0] * 16}px ${-pic[1] * 16}px;color:#999;"></div>`;
 			}
 			return str;
@@ -1357,6 +1534,7 @@ M.launch = function (this: DungeonMinigame) {
 			hero: null as any,
 			currentOpponent: null as any,
 			level: 0,
+			biome: getDungeonBiome(0),
 			selectedHero: self.selectedHero,
 			auto: true,
 			autoTimer: 0,
@@ -1419,7 +1597,9 @@ M.launch = function (this: DungeonMinigame) {
 				const weaponIconHtml = weaponItem
 					? `<span class="dungeonGearIcon" style="background-position:${-weaponItem.icon[0] * 16}px ${-weaponItem.icon[1] * 16}px;"></span>`
 					: `<span class="dungeonGearIconEmpty">⚔️</span>`;
+				const biomeTag = this.biome ? `<div class="dungeonBiomeTag" style="color:${this.biome.badgeColor};font-size:10px;font-weight:bold;margin:-2px 0 3px 0;letter-spacing:0.5px;">${this.biome.name}</div>` : '';
 				return `<div class="dungeonCardTitle">${loc('Delve status')}</div>` +
+					biomeTag +
 					`<div class="dungeonInfoRow"><span>${loc('Depth')}</span><b>${this.level + 1}</b><span class="dungeonInfoBest">${loc('best')} ${self.bestDepth}</span></div>` +
 					`<div class="dungeonInfoRow"><span>${loc('Cookies')}</span><b>${Beautify(this.cookiesMadeThisRun)}</b><span class="dungeonInfoBest">${loc('best')} ${Beautify(self.bestCookies)}</span></div>` +
 					`<div class="dungeonInfoRow"><span>${loc('Monsters')}</span><b>${Beautify(this.monstersKilledThisRun)}</b><span class="dungeonInfoBest">${loc('best')} ${Beautify(self.bestMonsters)}</span></div>` +
@@ -1458,6 +1638,10 @@ M.launch = function (this: DungeonMinigame) {
 				this.entities.push(entity);
 				return entity;
 			},
+			RemoveEntity: function (e: Entity) {
+				const idx = this.entities.indexOf(e);
+				if (idx !== -1) this.entities.splice(idx, 1);
+			},
 			RemoveEntities: function (x: number, y: number) { const entities = this.GetEntities(x, y); for (const e of entities) e.Destroy(); },
 			DrawEntities: function () {
 				return [...this.entities]
@@ -1479,28 +1663,36 @@ M.launch = function (this: DungeonMinigame) {
 			},
 			Generate: function () {
 				if (this.level === 0) this.name = generateDungeonName("Factory");
+				this.biome = getDungeonBiome(this.level);
 				this.entities = [];
 				const M2 = makeMap(40, 40, Math.random(), {
 					roomSize: 10, corridorSize: 5, fillRatio: 1 / 2,
 					corridorRatio: 0.3, pillarRatio: Math.random() * 0.8 + 0.2,
 					waterRatio: Math.random(), branching: Math.ceil(Math.random() * 6), sizeVariance: 0.4,
 				});
+				M2.biome = this.biome;
 				let r = 0;
 				while (r !== 1) r = M2.dig();
 				M2.finish();
 				if (M2.rooms[0]) M2.rooms[0].hidden = false;
 				for (const door of M2.doors) this.AddEntity("destructible", "door", door[0], door[1]);
 				for (const room of M2.rooms) {
-					const altStr = choose(["alt ", "", ""]);
+					const biome = this.biome;
 					const tiles: Record<string, string> = {
-						void: altStr + "void", wall: altStr + "wall", "wall corner": altStr + "wall corner",
-						floor: altStr + "tiled floor", "floor edges": altStr + "floor",
-						door: altStr + "door", water: choose(["water", "green water", "dark water"]),
-						pillar: choose([altStr + "wall", altStr + "round pillar", altStr + "square pillar", altStr + "potted plant", "conveyor belt"]),
-						entrance: altStr + "entrance", exit: altStr + "exit",
+						void: "void",
+						wall: biome.wallTile,
+						"wall corner": biome.wallCornerTile,
+						floor: biome.floorTile,
+						"floor edges": biome.floorEdgeTile,
+						door: biome.doorTile || (biome.wallTile.startsWith("alt") ? "alt door" : "door"),
+						water: biome.waterTile,
+						pillar: choose(biome.pillarTileChoices),
+						entrance: biome.entranceTile || (biome.wallTile.startsWith("alt") ? "alt entrance" : "entrance"),
+						exit: biome.exitTile || (biome.wallTile.startsWith("alt") ? "alt exit" : "exit"),
 					};
-					if (Math.random() < 0.1) { tiles["wall corner"] = "wooden wall"; tiles["wall"] = "wooden wall"; tiles["floor edges"] = "wooden floor"; tiles["pillar"] = "wooden wall"; }
-					if (Math.random() < 0.1) { tiles["wall corner"] = altStr + "bookshelf"; tiles["wall"] = altStr + "bookshelf"; tiles["pillar"] = altStr + "bookshelf"; }
+					if (biome.id === "secret_archives" && Math.random() < 0.4) {
+						tiles["pillar"] = "alt bookshelf";
+					}
 					M2.assignTiles(room, tiles);
 				}
 				this.map = M2;
@@ -1508,15 +1700,20 @@ M.launch = function (this: DungeonMinigame) {
 
 				const exitTile = this.map.exit;
 				// CC3 (Tier 3): bosses only guard the exit from a deeper floor onward
-			// (BOSS_MIN_LEVEL). A freshly unlocked dungeon (the 50-Factory unlock
-			// point) was otherwise blocked by an unbeatable guardian at the exit
-			// on floor 1, so early floors are monster-only and let the player
-			// build up relics/hero.
+				// (BOSS_MIN_LEVEL). A freshly unlocked dungeon (the 50-Factory unlock
+				// point) was otherwise blocked by an unbeatable guardian at the exit
+				// on floor 1, so early floors are monster-only and let the player
+				// build up relics/hero.
 				const BOSS_MIN_LEVEL = 5;
 				if (this.level >= BOSS_MIN_LEVEL) {
-					const candidates: string[] = [];
-					for (const boss of BossMonsters) if (boss.level <= (1 + this.level) && Math.random() < (boss.stats.rarity || 1)) candidates.push(boss.name);
-					const bossName = candidates.length > 0 ? choose(candidates) : choose(BossMonsters).name;
+					let bossName = "";
+					if (this.biome.boss && this.biome.boss !== "any" && Monsters[this.biome.boss]) {
+						bossName = this.biome.boss;
+					} else {
+						const candidates: string[] = [];
+						for (const boss of BossMonsters) if (boss.level <= (1 + this.level) && Math.random() < (boss.stats.rarity || 1)) candidates.push(boss.name);
+						bossName = candidates.length > 0 ? choose(candidates) : choose(BossMonsters).name;
+					}
 					this.AddEntity("monster", bossName, exitTile[0], exitTile[1]);
 					if (this.map.isFloor(exitTile[0], exitTile[1]) !== -1) this.map.removeFreeTile(exitTile[0], exitTile[1]);
 				}
@@ -1529,7 +1726,13 @@ M.launch = function (this: DungeonMinigame) {
 						const depth = (room !== -1 ? (room as any).gen : 0) + 1;
 						if (Math.random() < 0.2) {
 							const monsterCandidates: string[] = [];
-							for (const k in Monsters) { const m = Monsters[k]; if (m.level !== 0 && m.level <= (depth + this.level) && Math.random() < (m.stats.rarity || 1)) monsterCandidates.push(k); }
+							for (const k in Monsters) {
+								const m = Monsters[k];
+								if (m.level !== 0 && m.level <= (depth + this.level) && Math.random() < (m.stats.rarity || 1)) {
+									const weight = (this.biome && this.biome.monsters.includes(k)) ? 3 : 1;
+									for (let w = 0; w < weight; w++) monsterCandidates.push(k);
+								}
+							}
 							if (monsterCandidates.length > 0) { this.AddEntity("monster", choose(monsterCandidates), tile[0], tile[1]); this.map.removeFreeTile(tile[0], tile[1]); }
 						} else {
 							if (Math.random() < 0.6) { const value = Math.round(Math.pow(Math.random(), 6) * (10 + this.level)); if (value > 0) { const entity = this.AddEntity("item", "cookies", tile[0], tile[1]); entity.value = value; } }
@@ -1585,8 +1788,9 @@ M.launch = function (this: DungeonMinigame) {
 					`<a class="control east" title="Move East" onclick="document.getElementById('dungeonP${this.id}').value='east';document.getElementById('dungeonP${this.id}').dispatchEvent(new Event('change',{bubbles:true}));"></a>` +
 					`<a class="control south" title="Move South" onclick="document.getElementById('dungeonP${this.id}').value='south';document.getElementById('dungeonP${this.id}').dispatchEvent(new Event('change',{bubbles:true}));"></a>` +
 					`</div>`;
+				const biomeBadge = this.biome ? ` <span class="dungeonBiomeBadge" style="color:${this.biome.badgeColor};font-size:11px;font-weight:bold;margin-left:4px;">[${this.biome.name}]</span>` : '';
 				str += `<div class="dungeonHeaderGroup">` +
-					`<div class="dungeonName"><a onclick="Game.ObjectsById[${this.id}].switchMinigame(0,1);">${loc('Exit')}</a> - <span class="title" style="font-size:12px;">${this.name}</span> lvl.${this.level + 1}</div>` +
+					`<div class="dungeonName" title="${this.name} lvl.${this.level + 1}${this.biome ? ' - ' + this.biome.name : ''}"><a onclick="Game.ObjectsById[${this.id}].switchMinigame(0,1);">${loc('Exit')}</a> - <span class="title" style="font-size:12px;">${this.name}</span> lvl.${this.level + 1}${biomeBadge}</div>` +
 					`<div id="heroSlot${this.id}" class="mobSlot"><div id="picHero${this.id}" class="mobPic"></div><div id="nameHero${this.id}" class="title mobName"></div><div class="hpmBar"><div id="hpHero${this.id}" class="hpBar"></div></div></div>` +
 					`<div id="monsterSlot${this.id}" class="mobSlot" style="left:78px;visibility:${this.currentOpponent ? 'visible' : 'hidden'};"><div id="picMonster${this.id}" class="mobPic"></div><div id="nameMonster${this.id}" class="title mobName"></div><div class="hpmBar"><div id="hpMonster${this.id}" class="hpBar"></div></div></div>` +
 					`</div>`;

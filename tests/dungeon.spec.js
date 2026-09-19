@@ -837,5 +837,162 @@ test('Factory Dungeon combat polish: equipment sprites, log category filtering, 
 	expect(fctResult.hasHeroDamageClass).toBe(true);
 });
 
+test('Factory Dungeon biomes & floor themes: procedural rotation, unique atmospheres, themed tiles, and UI badges', async ({ page }) => {
+	await boot(page);
+	await loadDungeon(page);
+
+	// 1. Check registry and helper
+	const registryCheck = await page.evaluate(() => {
+		const biomes = window.DungeonBiomes;
+		const getBiome = window.getDungeonBiome;
+		return {
+			count: biomes ? biomes.length : 0,
+			ids: biomes ? biomes.map(b => b.id) : [],
+			b0: getBiome ? getBiome(0).name : '',
+			b5: getBiome ? getBiome(5).name : '',
+			b10: getBiome ? getBiome(10).name : '',
+			b15: getBiome ? getBiome(15).name : '',
+			b20: getBiome ? getBiome(20).name : '',
+			b50: getBiome ? getBiome(50).name : '',
+		};
+	});
+
+	expect(registryCheck.count).toBe(5);
+	expect(registryCheck.ids).toEqual([
+		'dough_assembly',
+		'chocolate_foundry',
+		'cryo_vaults',
+		'secret_archives',
+		'astral_core',
+	]);
+	expect(registryCheck.b0).toBe('The Dough Assembly');
+	expect(registryCheck.b5).toBe('The Chocolate Foundry');
+	expect(registryCheck.b10).toBe('The Cryo-Vaults');
+	expect(registryCheck.b15).toBe('The Secret Archives');
+	expect(registryCheck.b20).toBe('The Astral Core');
+	expect(registryCheck.b50).toBe('The Astral Core'); // Cap beyond floor 20
+
+	// 2. Check UI badge and delve status badge at level 0 (floor 1)
+	const floor1UI = await page.evaluate(() => {
+		const F = window.Game.Objects['Factory'];
+		const d = F.dungeon;
+		const badge = document.querySelector('.dungeonBiomeBadge');
+		const tag = document.querySelector('.dungeonBiomeTag');
+		return {
+			currentBiomeId: d.biome.id,
+			currentBiomeName: d.biome.name,
+			badgeText: badge ? badge.textContent : '',
+			badgeColor: badge ? badge.style.color : '',
+			tagText: tag ? tag.textContent : '',
+			mapStrContainsDoughColor: d.map.str.includes('#15101f'),
+		};
+	});
+
+	expect(floor1UI.currentBiomeId).toBe('dough_assembly');
+	expect(floor1UI.badgeText).toBe('[The Dough Assembly]');
+	expect(floor1UI.tagText).toBe('The Dough Assembly');
+	expect(floor1UI.mapStrContainsDoughColor).toBe(true);
+
+	// 3. Test generation at Level 5 (The Chocolate Foundry)
+	const floor6 = await page.evaluate(() => {
+		const F = window.Game.Objects['Factory'];
+		const d = F.dungeon;
+		d.level = 5;
+		d.Generate();
+		d.Draw();
+		const badge = document.querySelector('.dungeonBiomeBadge');
+		const exitEntity = d.entities.find(e => e.subtype === 'Sentient Furnace');
+		return {
+			biomeId: d.biome.id,
+			badgeText: badge ? badge.textContent : '',
+			hasChocolateColor: d.map.str.includes('#241008'),
+			hasSentientFurnaceBoss: !!exitEntity,
+		};
+	});
+
+	expect(floor6.biomeId).toBe('chocolate_foundry');
+	expect(floor6.badgeText).toBe('[The Chocolate Foundry]');
+	expect(floor6.hasChocolateColor).toBe(true);
+	expect(floor6.hasSentientFurnaceBoss).toBe(true);
+
+	// 4. Test generation at Level 10 (The Cryo-Vaults)
+	const floor11 = await page.evaluate(() => {
+		const F = window.Game.Objects['Factory'];
+		const d = F.dungeon;
+		d.level = 10;
+		d.Generate();
+		d.Draw();
+		const badge = document.querySelector('.dungeonBiomeBadge');
+		const exitEntity = d.entities.find(e => e.subtype === 'Ascended Baking Pod');
+		return {
+			biomeId: d.biome.id,
+			badgeText: badge ? badge.textContent : '',
+			hasCryoColor: d.map.str.includes('#0b1822'),
+			hasAscendedBakingPodBoss: !!exitEntity,
+		};
+	});
+
+	expect(floor11.biomeId).toBe('cryo_vaults');
+	expect(floor11.badgeText).toBe('[The Cryo-Vaults]');
+	expect(floor11.hasCryoColor).toBe(true);
+	expect(floor11.hasAscendedBakingPodBoss).toBe(true);
+
+	// 5. Test generation at Level 15 (The Secret Archives)
+	const floor16 = await page.evaluate(() => {
+		const F = window.Game.Objects['Factory'];
+		const d = F.dungeon;
+		d.level = 15;
+		d.Generate();
+		d.Draw();
+		const badge = document.querySelector('.dungeonBiomeBadge');
+		return {
+			biomeId: d.biome.id,
+			badgeText: badge ? badge.textContent : '',
+			hasWoodColor: d.map.str.includes('#1e140d'),
+		};
+	});
+
+	expect(floor16.biomeId).toBe('secret_archives');
+	expect(floor16.badgeText).toBe('[The Secret Archives]');
+	expect(floor16.hasWoodColor).toBe(true);
+
+	// 6. Test generation at Level 20 (The Astral Core)
+	const floor21 = await page.evaluate(() => {
+		const F = window.Game.Objects['Factory'];
+		const d = F.dungeon;
+		d.level = 20;
+		d.Generate();
+		d.Draw();
+		const badge = document.querySelector('.dungeonBiomeBadge');
+		return {
+			biomeId: d.biome.id,
+			badgeText: badge ? badge.textContent : '',
+			hasAstralColor: d.map.str.includes('#120820'),
+		};
+	});
+
+	expect(floor21.biomeId).toBe('astral_core');
+	expect(floor21.badgeText).toBe('[The Astral Core]');
+	expect(floor21.hasAstralColor).toBe(true);
+
+	// Reset to Level 0, open dungeon view, and screenshot
+	await page.evaluate(() => {
+		const F = window.Game.Objects['Factory'];
+		const d = F.dungeon;
+		F.switchMinigame(1, 1);
+		d.level = 0;
+		d.Generate();
+		d.Draw();
+	});
+	await page.screenshot({ path: '/home/jabbatheduck/.gemini/antigravity/brain/9f24492c-e623-41b9-827b-4d2aa381386f/dungeon_biomes.png' });
+
+	// Toggle fullscreen and screenshot
+	await page.evaluate(() => {
+		const F = window.Game.Objects['Factory'];
+		F.minigame.toggleFullscreen();
+	});
+	await page.screenshot({ path: '/home/jabbatheduck/.gemini/antigravity/brain/9f24492c-e623-41b9-827b-4d2aa381386f/dungeon_biomes_fullscreen.png' });
+});
+
 
 
