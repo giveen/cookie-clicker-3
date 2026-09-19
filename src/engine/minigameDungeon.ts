@@ -660,7 +660,7 @@ function createEntity(type: string, subtype: string, dungeon: any, value?: any):
 			const hero = this.type === "hero" ? this : by;
 			this.dungeon.currentOpponent = monster;
 			if (monster.fighting === 0) {
-				(this as any).Say("fight");
+				(monster as any).Say("fight");
 				const hObj = DungeonHeroes.find(h => h.name === hero.subtype);
 				if (hObj) hObj.Say("meet " + monster.subtype);
 			}
@@ -675,8 +675,17 @@ function createEntity(type: string, subtype: string, dungeon: any, value?: any):
 				if (by.type === "hero") playDungeonSfx('snd/thud.mp3', 0.35); // hero strikes
 				else playDungeonSfx('snd/snarl.mp3', 0.4); // monster strikes the hero
 				if (by.stats.luck && by.type === "hero" && Math.random() < by.stats.luck * 0.01) { this.stats.hp -= damage * 2; attackStr += ` <b>It's a critical!</b> <b>${damage * 2}</b> damage!`; }
-				else { this.stats.hp -= damage; this.stats.hp = Math.max(this.stats.hp, 0); attackStr += ` <b>${damage}</b> damage!`; }
+				else {
+					this.stats.hp -= damage;
+					this.stats.hp = Math.max(this.stats.hp, 0);
+					attackStr += ` <b>${damage}</b> damage!`;
+					if (this.stats.luck && this.type === "hero" && this.stats.hp === 0 && Math.random() < this.stats.luck * 0.01) {
+						this.stats.hp = 1;
+						attackStr += ` ${defenderName} was saved from certain death!`;
+					}
+				}
 			}
+			if (this.type === "hero") attackStr = `<span style="color:#f99;">${attackStr}</span>`;
 			this.dungeon.Log(attackStr);
 			if (this.stats.hp <= 0) {
 				this.dungeon.Log(`${attackerName} crushed ${defenderName}!`);
@@ -694,6 +703,7 @@ function createEntity(type: string, subtype: string, dungeon: any, value?: any):
 						if (Math.random() < 0.05) hObj.Say("win");
 						hObj.Say("win against " + this.subtype);
 					}
+					(this as any).Say("defeat");
 					// CC3 (Tier 1): bosses drop a relic bounty on death (scaling with
 					// depth), on top of the floor-clear relic the exit grants.
 					const diedMon = Monsters[this.subtype];
@@ -1468,6 +1478,7 @@ M.launch = function (this: DungeonMinigame) {
 				self.relicsEarnedTotal += n;
 			},
 			CompleteLevel: function () {
+				DungeonHeroes[self.selectedHero].Say("completion");
 				// Salvage relics from the cleared floor. The boss guards the exit,
 				// so reaching it means the floor's guardian fell — deeper floors
 				// yield more relics.
@@ -1540,6 +1551,18 @@ M.launch = function (this: DungeonMinigame) {
 			} else if (d.fullscreen && (event.key === "a" || event.key === "A")) {
 				d.toggleAuto();
 				event.preventDefault();
+			} else if (d.fullscreen) {
+				let control = false;
+				if (event.key === "ArrowLeft") { DungeonHeroes[self.selectedHero].Move(-1, 0); control = true; }
+				else if (event.key === "ArrowUp") { DungeonHeroes[self.selectedHero].Move(0, -1); control = true; }
+				else if (event.key === "ArrowRight") { DungeonHeroes[self.selectedHero].Move(1, 0); control = true; }
+				else if (event.key === "ArrowDown") { DungeonHeroes[self.selectedHero].Move(0, 1); control = true; }
+				else if (event.key === " ") { DungeonHeroes[self.selectedHero].Move(0, 0); control = true; }
+				if (control) {
+					event.preventDefault();
+					d.autoTimer = g.fps * 10;
+					d.autoWarmup = 5;
+				}
 			}
 		});
 		window.addEventListener("resize", function () {
