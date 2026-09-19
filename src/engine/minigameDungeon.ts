@@ -1189,6 +1189,9 @@ M.launch = function (this: DungeonMinigame) {
 .dungeonAutoBadge.off{background:#281820;color:#d8889a;border-color:#7a3348;box-shadow:none;}
 .dungeonAutoBadge.off:hover{background:#38202c;border-color:#a84462;color:#ffaec2;}
 .dungeonFullscreen .dungeonAutoBadge{position:absolute!important;left:var(--fs-ctrl-left,700px)!important;top:350px!important;width:140px!important;text-align:center!important;box-sizing:border-box!important;z-index:200!important;}
+.dungeonSpeedBadge{position:absolute;left:116px;top:298px;z-index:60;display:inline-block;padding:3px 10px;border-radius:12px;background:#1e2538;color:#a8c4f0;font-weight:bold;font-size:11px;letter-spacing:1px;box-shadow:0 0 6px rgba(40,60,110,0.5);border:1px solid #3d5888;cursor:pointer;user-select:none;transition:background .15s,border-color .15s,color .15s,box-shadow .15s;}
+.dungeonSpeedBadge:hover{background:#293755;border-color:#5a82c4;color:#fff;box-shadow:0 0 10px rgba(90,130,196,0.8);}
+.dungeonFullscreen .dungeonSpeedBadge{position:absolute!important;left:var(--fs-ctrl-left,700px)!important;top:388px!important;width:140px!important;text-align:center!important;box-sizing:border-box!important;z-index:200!important;}
 
 /* Combat Duel Header & Slots */
 .dungeonHeaderGroup{position:absolute;left:264px;top:10px;width:148px;height:104px;z-index:20;}
@@ -1263,10 +1266,22 @@ M.launch = function (this: DungeonMinigame) {
 			selectedHero: self.selectedHero,
 			auto: true,
 			autoTimer: 0,
-			autoWarmup: 5,
+			autoWarmup: 3,
+			speedMode: 'normal' as 'slow' | 'normal' | 'fast',
+			getSpeedLabel: function () {
+				if (this.speedMode === 'slow') return loc('SPEED: 0.5x');
+				if (this.speedMode === 'fast') return loc('SPEED: 2x');
+				return loc('SPEED: 1x');
+			},
+			toggleSpeed: function () {
+				if (this.speedMode === 'normal') this.speedMode = 'slow';
+				else if (this.speedMode === 'slow') this.speedMode = 'fast';
+				else this.speedMode = 'normal';
+				this.Refresh();
+			},
 			toggleAuto: function () {
 				this.auto = !this.auto;
-				if (this.auto) { this.autoTimer = 0; this.autoWarmup = 0; }
+				if (this.auto) { this.autoTimer = Math.round(g.fps * 0.5); this.autoWarmup = 0; }
 				this.Refresh();
 			},
 			cookiesMadeThisRun: 0,
@@ -1468,6 +1483,7 @@ M.launch = function (this: DungeonMinigame) {
 				const autoClass = this.auto ? ' active' : ' off';
 				const autoTitle = this.auto ? loc('Auto-explore is ON (click to pause)') : loc('Auto-explore is OFF (click to resume)');
 				str += `<div id="dungeonAuto${this.id}" class="dungeonAutoBadge${autoClass}" title="${autoTitle}" onclick="const d=Game.ObjectsById[${this.id}].dungeon;if(d)d.toggleAuto();">${autoText}</div>`;
+				str += `<div id="dungeonSpeed${this.id}" class="dungeonSpeedBadge" title="${loc('Dungeon speed (click to cycle: 1x, 2x, 0.5x)')}" onclick="const d=Game.ObjectsById[${this.id}].dungeon;if(d)d.toggleSpeed();">${this.getSpeedLabel()}</div>`;
 				str += `<div id="dungeonLog${this.id}" class="dungeonLog"></div>`;
 				str += `<div id="dungeonInfo${this.id}" class="dungeonCard dungeonInfoCard">${this.infoHTML()}</div>`;
 				str += `<div id="dungeonShop${this.id}" class="dungeonCard dungeonShopCard">${this.shopHTML()}</div>`;
@@ -1489,8 +1505,9 @@ M.launch = function (this: DungeonMinigame) {
 				if (picHero) picHero.style.backgroundImage = `url(img/${this.hero.portrait}.webp)`;
 				const nameHero = l("nameHero" + this.id);
 				if (nameHero) nameHero.innerHTML = this.hero.name;
-				this.Refresh();
 				this.UpdateLog();
+				this.UpdateInfo();
+				this.Refresh();
 			},
 			Refresh: function () {
 				if (!l("mapcontainer" + this.id)) this.Draw();
@@ -1539,6 +1556,11 @@ M.launch = function (this: DungeonMinigame) {
 					ab.className = "dungeonAutoBadge" + (this.auto ? " active" : " off");
 					ab.innerHTML = this.auto ? loc("AUTO: ON") : loc("AUTO: OFF");
 					ab.title = this.auto ? loc("Auto-explore is ON (click to pause)") : loc("Auto-explore is OFF (click to resume)");
+				}
+				const sb = l("dungeonSpeed" + this.id);
+				if (sb) {
+					sb.innerHTML = this.getSpeedLabel();
+					sb.title = loc("Dungeon speed (click to cycle: 1x, 2x, 0.5x)");
 				}
 			},
 			RedrawMap: function () { this.map.str = this.map.getStr(); this.Draw(); },
@@ -1780,7 +1802,16 @@ M.logic = function (this: DungeonMinigame) {
 			// fires when autoTimer has elapsed, capping the auto-turn step rate.
 			if (d.autoTimer === 0) {
 				const speed = d.heroEntity?.stats.speed ?? 5;
-				d.autoTimer = g.fps * (Math.max(0.1, 2 - (speed * 0.2)) + Math.max(d.autoWarmup, 0));
+				// Paced auto-run: base delay of ~2.0s per step/turn allows readable combat and exploration.
+				// Speed stat provides minor agility without causing chaotic fast-forwarding.
+				let baseDelay = Math.max(1.2, 2.8 - (speed * 0.15));
+				if (d.currentOpponent || (d.heroEntity && d.heroEntity.fighting)) {
+					baseDelay = Math.max(baseDelay, 2.0);
+				}
+				let speedMult = 1.0;
+				if (d.speedMode === 'slow') speedMult = 1.8;
+				else if (d.speedMode === 'fast') speedMult = 0.5;
+				d.autoTimer = Math.round(g.fps * (baseDelay * speedMult + Math.max(d.autoWarmup, 0)));
 				if (d.autoWarmup > 0) d.autoWarmup--;
 				const hero = d.heroEntity;
 				if (hero) {

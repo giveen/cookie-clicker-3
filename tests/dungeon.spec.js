@@ -588,3 +588,54 @@ test('Factory Dungeon gear system: weapons and armor drop, equip, buff stats, an
 	expect(persist.loadedWeapon).toBe(1);
 });
 
+test('dungeon run speed is greatly slowed down and has a speed toggle badge', async ({ page }) => {
+	await boot(page);
+	await loadDungeon(page);
+
+	// Open the minigame panel so the dungeon Draw() populates the DOM.
+	await page.evaluate(() => {
+		const F = window.Game.Objects['Factory'];
+		if (F.switchMinigame) {
+			F.switchMinigame(1);
+			if (F.refresh) F.refresh();
+		}
+	});
+
+	const badgeId = await page.evaluate(() => 'dungeonSpeed' + window.Game.Objects['Factory'].id);
+	const badge = page.locator('#' + badgeId);
+	await expect(badge).toBeVisible();
+	await expect(badge).toHaveText('SPEED: 1x');
+
+	// Verify autoTimer pacing is greatly slowed down:
+	// At base hero speed 5, step interval is >= 60 frames (2.0s at 30fps),
+	// whereas previously it was only 30 frames (1.0s) or 3 frames (100ms) with gear.
+	const stepTimer = await page.evaluate(() => {
+		const F = window.Game.Objects['Factory'];
+		const d = F.dungeon;
+		const M = F.minigame;
+		d.auto = true;
+		d.autoWarmup = 0;
+		d.autoTimer = 0;
+		// Trigger logic tick which calculates the next autoTimer
+		M.logic();
+		return d.autoTimer;
+	});
+	expect(stepTimer).toBeGreaterThanOrEqual(40); // At least 1.3s even on high-speed heroes (vs old 6 frames / 200ms)
+
+	// Click to cycle speed mode to 0.5x
+	await page.evaluate(() => window.Game.CloseNotes());
+	await badge.click({ force: true });
+	await expect(badge).toHaveText('SPEED: 0.5x');
+
+	// Click again to cycle to 2x
+	await page.evaluate(() => window.Game.CloseNotes());
+	await badge.click({ force: true });
+	await expect(badge).toHaveText('SPEED: 2x');
+
+	// Click again to cycle back to 1x
+	await page.evaluate(() => window.Game.CloseNotes());
+	await badge.click({ force: true });
+	await expect(badge).toHaveText('SPEED: 1x');
+});
+
+
