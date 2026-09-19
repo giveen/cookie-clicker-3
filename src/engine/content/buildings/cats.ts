@@ -196,11 +196,13 @@ export function declareCats(Game: EngineGame) {
 			var background=Pic('img/cats/Summer1.png');
 			if (background && background.complete && background.naturalWidth>0)
 			{
+				ctx.imageSmoothingEnabled=true;
 				var backgroundWidth=Math.max(1,Math.ceil(height*background.naturalWidth/background.naturalHeight));
 				for (var backgroundX=0;backgroundX<width;backgroundX+=backgroundWidth)
 				{
 					ctx.drawImage(background,0,0,background.naturalWidth,background.naturalHeight,backgroundX,0,backgroundWidth,height);
 				}
+				ctx.imageSmoothingEnabled=false;
 			}
 
 			var hoveredCatIndex = -1;

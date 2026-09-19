@@ -364,7 +364,7 @@ M.launch = function (this: SittingRoomMinigame) {
 
 		var str = '';
 		str += '<style>' +
-			'#roomBG{background:url(img/shadedBorders.webp),url(img/grandmaBackground.webp);background-size:100% 100%,auto;position:absolute;left:0px;right:0px;top:0px;bottom:16px;}' +
+			'#roomBG{background:url(img/shadedBorders.webp),url(img/grandmaBackground.webp);background-size:100% 100%,128px 128px;position:absolute;left:0px;right:0px;top:0px;bottom:16px;}' +
 			'#roomContent{position:relative;box-sizing:border-box;padding:8px 16px;max-height:100%;overflow-y:auto;}' +
 			/* ---- base card ---- */
 			'.roomBox{position:relative;margin:8px auto;padding:8px 12px;max-width:600px;background:rgba(0,0,0,0.75);border-radius:12px;color:rgba(255,255,255,0.9);}' +
