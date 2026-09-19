@@ -594,8 +594,8 @@ export const DungeonWeapons: EquipmentDef[] = [
 (window as any).DungeonWeapons = DungeonWeapons;
 
 const basicLoot = { cookies: { min: 1, max: 5, prob: 0.5 } };
-const goodLoot = { cookies: { min: 3, max: 8, prob: 1 }, gear: { prob: 0.05 } };
-const bossLoot = { cookies: { min: 10, max: 50, prob: 1 }, gear: { prob: 0.2 } };
+const goodLoot = { cookies: { min: 3, max: 8, prob: 1 }, gear: { prob: 0.005 } };
+const bossLoot = { cookies: { min: 10, max: 50, prob: 1 }, gear: { prob: 0.02 } };
 
 defineMonster("Doughling", "doughling", [0, 0], 1, { hp: 5, might: 2, guard: 2, speed: 6, dodge: 6, rarity: 0.7 }, basicLoot);
 defineMonster("Elder doughling", "elderDoughling", [1, 0], 7, { hp: 20, might: 7, guard: 7, speed: 4, dodge: 4, rarity: 0.7 }, goodLoot);
