@@ -492,3 +492,99 @@ test('dungeon fullscreen mode provides balanced layout with right sidebar, large
 
 	await page.screenshot({ path: '/home/jabbatheduck/.gemini/antigravity/brain/9f24492c-e623-41b9-827b-4d2aa381386f/dungeon_fullscreen.png' });
 });
+
+test('Factory Dungeon gear system: weapons and armor drop, equip, buff stats, and persist in save', async ({ page }) => {
+	await boot(page);
+	await loadDungeon(page);
+
+	// Verify gear definitions and baseline state
+	const baseline = await page.evaluate(() => {
+		const F = window.Game.Objects['Factory'];
+		const d = F.dungeon;
+		const hero = window.DungeonHeroes[F.minigame.selectedHero];
+		return {
+			armorTiers: window.DungeonArmor.length,
+			weaponTiers: window.DungeonWeapons.length,
+			initialArmor: hero.gear.armor,
+			initialWeapon: hero.gear.weapon,
+			heroMight: d.heroEntity.stats.might,
+			heroGuard: d.heroEntity.stats.guard,
+			heroHpm: d.heroEntity.stats.hpm,
+		};
+	});
+
+	expect(baseline.armorTiers).toBe(5);
+	expect(baseline.weaponTiers).toBe(5);
+	expect(baseline.initialArmor).toBe(-1);
+	expect(baseline.initialWeapon).toBe(-1);
+
+	// Spawn a gear chest on the hero's position and trigger Turn to pick it up
+	const pickup = await page.evaluate(() => {
+		const F = window.Game.Objects['Factory'];
+		const d = F.dungeon;
+		const hero = window.DungeonHeroes[F.minigame.selectedHero];
+
+		// Add Tier 2 Armor chest (Ceramic Kiln Plate: +4 Guard, +20 HP)
+		const chest = d.AddEntity('item', 'gear', hero.x, hero.y);
+		chest.value = { type: 'armor', id: 2 };
+
+		// Hero executes turn to collect items on tile
+		d.heroEntity.Turn();
+
+		return {
+			newArmor: hero.gear.armor,
+			newGuard: d.heroEntity.stats.guard,
+			newHpm: d.heroEntity.stats.hpm,
+			infoHTML: d.infoHTML(),
+		};
+	});
+
+	expect(pickup.newArmor).toBe(2);
+	expect(pickup.newGuard).toBe(baseline.heroGuard + 4);
+	expect(pickup.newHpm).toBe(baseline.heroHpm + 20);
+	expect(pickup.infoHTML).toContain('Ceramic Kiln Plate');
+
+	// Pick up a weapon (Tier 1 Serrated Spatula: +2 Might, +1 Speed)
+	const weaponPickup = await page.evaluate(() => {
+		const F = window.Game.Objects['Factory'];
+		const d = F.dungeon;
+		const hero = window.DungeonHeroes[F.minigame.selectedHero];
+
+		const chest = d.AddEntity('item', 'gear', hero.x, hero.y);
+		chest.value = { type: 'weapon', id: 1 };
+		d.heroEntity.Turn();
+
+		return {
+			newWeapon: hero.gear.weapon,
+			newMight: d.heroEntity.stats.might,
+			infoHTML: d.infoHTML(),
+		};
+	});
+
+	expect(weaponPickup.newWeapon).toBe(1);
+	expect(weaponPickup.newMight).toBe(baseline.heroMight + 2);
+	expect(weaponPickup.infoHTML).toContain('Serrated Spatula');
+
+	// Verify save/load persistence of equipped gear
+	const persist = await page.evaluate(() => {
+		const F = window.Game.Objects['Factory'];
+		const hero = window.DungeonHeroes[F.minigame.selectedHero];
+		const saveStr = F.minigame.save();
+
+		// Reset gear
+		hero.gear.armor = -1;
+		hero.gear.weapon = -1;
+
+		// Reload save string
+		F.minigame.load(saveStr);
+
+		return {
+			loadedArmor: hero.gear.armor,
+			loadedWeapon: hero.gear.weapon,
+		};
+	});
+
+	expect(persist.loadedArmor).toBe(2);
+	expect(persist.loadedWeapon).toBe(1);
+});
+

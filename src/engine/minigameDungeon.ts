@@ -545,6 +545,40 @@ function defineMonster(name: string, pic: string, icon: [number, number], level:
 // stays winnable and the save never stores a runaway level number.
 const DUNGEON_MAX_LEVEL = 100;
 
+export interface EquipmentDef {
+	id: number;
+	name: string;
+	type: "armor" | "weapon";
+	tier: number;
+	stats: {
+		hp?: number;
+		guard?: number;
+		might?: number;
+		speed?: number;
+	};
+	icon: [number, number];
+	desc: string;
+}
+
+export const DungeonArmor: EquipmentDef[] = [
+	{ id: 0, name: "Flour Sack Apron", type: "armor", tier: 0, stats: { guard: 1, hp: 5 }, icon: [2, 8], desc: "+1 Guard, +5 Max HP" },
+	{ id: 1, name: "Hardened Dough Jerkin", type: "armor", tier: 1, stats: { guard: 2, hp: 10 }, icon: [3, 8], desc: "+2 Guard, +10 Max HP" },
+	{ id: 2, name: "Ceramic Kiln Plate", type: "armor", tier: 2, stats: { guard: 4, hp: 20 }, icon: [4, 8], desc: "+4 Guard, +20 Max HP" },
+	{ id: 3, name: "Reinforced Ovensteel Mail", type: "armor", tier: 3, stats: { guard: 6, hp: 35 }, icon: [5, 8], desc: "+6 Guard, +35 Max HP" },
+	{ id: 4, name: "Ascended Heat-Shield", type: "armor", tier: 4, stats: { guard: 9, hp: 50 }, icon: [5, 9], desc: "+9 Guard, +50 Max HP" },
+];
+
+export const DungeonWeapons: EquipmentDef[] = [
+	{ id: 0, name: "Hardwood Rolling Pin", type: "weapon", tier: 0, stats: { might: 1 }, icon: [2, 9], desc: "+1 Might" },
+	{ id: 1, name: "Serrated Spatula", type: "weapon", tier: 1, stats: { might: 2, speed: 1 }, icon: [3, 9], desc: "+2 Might, +1 Speed" },
+	{ id: 2, name: "Spring-Steel Whisk", type: "weapon", tier: 2, stats: { might: 4, speed: 2 }, icon: [4, 9], desc: "+4 Might, +2 Speed" },
+	{ id: 3, name: "Molten Batter Ladle", type: "weapon", tier: 3, stats: { might: 7, speed: 3 }, icon: [0, 8], desc: "+7 Might, +3 Speed" },
+	{ id: 4, name: "Sentient Core Blade", type: "weapon", tier: 4, stats: { might: 11, speed: 5 }, icon: [1, 8], desc: "+11 Might, +5 Speed" },
+];
+
+(window as any).DungeonArmor = DungeonArmor;
+(window as any).DungeonWeapons = DungeonWeapons;
+
 const basicLoot = { cookies: { min: 1, max: 5, prob: 0.5 } };
 const goodLoot = { cookies: { min: 3, max: 8, prob: 1 }, gear: { prob: 0.05 } };
 const bossLoot = { cookies: { min: 10, max: 50, prob: 1 }, gear: { prob: 0.2 } };
@@ -597,11 +631,17 @@ function createEntity(type: string, subtype: string, dungeon: any, value?: any):
 	e.Draw = function () {
 		if (this.type === "item" && this.subtype === "cookies" && typeof this.value === "number" && this.value > 0) {
 			if (this.value < 2) this.pic = [0, 5]; else if (this.value < 4) this.pic = [2, 5]; else if (this.value < 6) this.pic = [3, 5]; else if (this.value < 10) this.pic = [4, 5]; else if (this.value < 20) this.pic = [5, 5]; else if (this.value < 30) this.pic = [7, 5]; else if (this.value < 70) this.pic = [6, 5]; else if (this.value < 200) this.pic = [8, 5]; else this.pic = [6, 6];
+		} else if (this.type === "item" && this.subtype === "gear") {
+			this.pic = [3, 7]; // equipment chest
 		} else if (this.type === "special" && this.subtype === "upgrade") {
 			if (this.value !== "") this.pic = [7, 6]; else this.pic = [8, 6];
 		}
 		let name = this.subtype;
 		if (this.subtype === "random") name = "clutter";
+		else if (this.subtype === "gear" && this.value) {
+			const itemDef = this.value.type === "armor" ? DungeonArmor[this.value.id] : DungeonWeapons[this.value.id];
+			if (itemDef) name = `${itemDef.name} (${itemDef.desc})`;
+		}
 		return `<div class="thing" title="${name}" style="z-index:${200 + this.zIndex};left:${this.x * 16}px;top:${this.y * 16}px;background-position:${-this.pic[0] * 16}px ${-this.pic[1] * 16}px;"></div>`;
 	};
 	e.Wander = function () { this.targets = [[-1, 0], [1, 0], [0, -1], [0, 1]]; (this as any).Move(); };
@@ -713,9 +753,17 @@ function createEntity(type: string, subtype: string, dungeon: any, value?: any):
 						this.dungeon.Log(`<span style="color:#ffd;">${diedMon.name} dropped <b>${bossRelics}</b> relics!</span>`);
 					}
 					const m = Monsters[this.subtype];
-					if (m && m.loot && m.loot.cookies && (!m.loot.cookies.prob || Math.random() < m.loot.cookies.prob)) {
-						const entity = this.dungeon.AddEntity("item", "cookies", this.x, this.y);
-						entity.value = Math.round((m.loot.cookies.min ?? 1) + Math.random() * ((m.loot.cookies.max ?? 1) - (m.loot.cookies.min ?? 1)));
+					if (m && m.loot) {
+						if (m.loot.gear && (!m.loot.gear.prob || Math.random() < m.loot.gear.prob)) {
+							const gearEntity = this.dungeon.AddEntity("item", "gear", this.x, this.y);
+							const isArmor = Math.random() < 0.5;
+							const maxTier = Math.min(4, Math.floor(Math.random() * (1 + Math.floor(this.dungeon.level / 2))));
+							gearEntity.value = { type: isArmor ? "armor" : "weapon", id: maxTier };
+						}
+						if (m.loot.cookies && (!m.loot.cookies.prob || Math.random() < m.loot.cookies.prob)) {
+							const entity = this.dungeon.AddEntity("item", "cookies", this.x, this.y);
+							entity.value = Math.round((m.loot.cookies.min ?? 1) + Math.random() * ((m.loot.cookies.max ?? 1) - (m.loot.cookies.min ?? 1)));
+						}
 					}
 					if (this.onKill) this.onKill();
 					this.Destroy();
@@ -753,6 +801,40 @@ function createEntity(type: string, subtype: string, dungeon: any, value?: any):
 					if (!Number.isFinite(value)) value = 0;
 					if (value > 0) { this.dungeon.Log(`<span style="color:#9f9;">Found <b>${Beautify(value)}</b> cookie${value === 1 ? "" : "s"}!</span>`); this.dungeon.cookiesMadeThisRun += value; g.Earn(value); }
 					ent.Destroy();
+				} else if (ent.type === "item" && ent.subtype === "gear" && ent.value) {
+					const hObj = DungeonHeroes.find(h => h.name === this.subtype) || DungeonHeroes[(this.dungeon as any).selectedHero || 0];
+					const isArmor = ent.value.type === "armor";
+					const itemDef = isArmor ? DungeonArmor[ent.value.id] : DungeonWeapons[ent.value.id];
+					if (itemDef && hObj) {
+						const currentId = isArmor ? hObj.gear.armor : hObj.gear.weapon;
+						if (ent.value.id > currentId) {
+							if (isArmor) {
+								const oldItem = currentId >= 0 ? DungeonArmor[currentId] : null;
+								const guardDelta = (itemDef.stats.guard || 0) - (oldItem?.stats.guard || 0);
+								const hpDelta = (itemDef.stats.hp || 0) - (oldItem?.stats.hp || 0);
+								this.stats.guard += guardDelta;
+								this.stats.hpm += hpDelta;
+								this.stats.hp += hpDelta;
+								hObj.gear.armor = ent.value.id;
+							} else {
+								const oldItem = currentId >= 0 ? DungeonWeapons[currentId] : null;
+								const mightDelta = (itemDef.stats.might || 0) - (oldItem?.stats.might || 0);
+								const speedDelta = (itemDef.stats.speed || 0) - (oldItem?.stats.speed || 0);
+								this.stats.might += mightDelta;
+								this.stats.speed += speedDelta;
+								hObj.gear.weapon = ent.value.id;
+							}
+							PlaySound('snd/chime.mp3', 0.7);
+							this.dungeon.Log(`<span style="color:#ffd;">Found and equipped <b>${itemDef.name}</b>! (${itemDef.desc})</span>`);
+							this.dungeon.UpdateInfo();
+						} else {
+							const salvage = Math.max(50, (ent.value.id + 1) * 150);
+							g.Earn(salvage);
+							this.dungeon.cookiesMadeThisRun += salvage;
+							this.dungeon.Log(`<span style="color:#aaa;">Found <b>${itemDef.name}</b>, but current ${ent.value.type} is stronger. Salvaged for <b>${salvage}</b> cookies.</span>`);
+						}
+					}
+					ent.Destroy();
 				}
 			}
 		}
@@ -782,6 +864,16 @@ function createEntity(type: string, subtype: string, dungeon: any, value?: any):
 		// the dungeon was effectively unwinnable until hundreds of Factories existed.
 		const mult = Math.max(0, (g.Objects[dungeon.type].amount / 10 - 1));
 		e.stats.hpm += Math.ceil(mult * 2); e.stats.hp = e.stats.hpm; e.stats.might += mult; e.stats.guard += mult; e.stats.speed += mult; e.stats.dodge += mult;
+		if (heroDef.gear.armor >= 0 && DungeonArmor[heroDef.gear.armor]) {
+			const arm = DungeonArmor[heroDef.gear.armor];
+			if (arm.stats.guard) e.stats.guard += arm.stats.guard;
+			if (arm.stats.hp) { e.stats.hpm += arm.stats.hp; e.stats.hp += arm.stats.hp; }
+		}
+		if (heroDef.gear.weapon >= 0 && DungeonWeapons[heroDef.gear.weapon]) {
+			const wep = DungeonWeapons[heroDef.gear.weapon];
+			if (wep.stats.might) e.stats.might += wep.stats.might;
+			if (wep.stats.speed) e.stats.speed += wep.stats.speed;
+		}
 	} else if (type === "destructible") {
 		e.zIndex = 15; e.life = 3; e.pic = subtype === "door" ? [0, 7] : [Math.floor(Math.random() * 4 + 2), 7];
 		e.onKill = function () { if (this.subtype === "random") { const value = Math.round(Math.pow(Math.random(), 6) * (10 + this.dungeon.level)); if (value > 0) { const entity = this.dungeon.AddEntity("item", "cookies", this.x, this.y); entity.value = value; } } };
@@ -1137,14 +1229,18 @@ M.launch = function (this: DungeonMinigame) {
 .dungeonInfoRow b{color:#fff;}
 .dungeonInfoBest{color:#a99;font-size:9px;margin-left:auto;}
 .dungeonInfoRelics,.dungeonShopRelics{color:#ffd9a0;font-weight:bold;margin:4px 0 2px;}
+.dungeonInfoGearRow{display:flex;gap:6px;margin:3px 0 2px;justify-content:space-between;}
+.dungeonGearSlot{flex:1;background:rgba(255,255,255,0.05);border:1px solid #4a3a22;border-radius:3px;padding:2px 4px;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#e8d0b0;cursor:help;}
+.dungeonGearSlot:hover{background:rgba(255,255,255,0.1);border-color:#ffd9a0;}
+.dungeonGearSlot b{color:#fff;font-weight:normal;}
 
 /* Delve Status Card */
-.dungeonInfoCard{left:424px;right:12px;top:10px;height:106px;}
-.dungeonFullscreen .dungeonInfoCard{position:absolute!important;right:20px!important;left:auto!important;width:340px!important;top:52px!important;height:114px!important;box-sizing:border-box!important;z-index:200!important;}
+.dungeonInfoCard{left:424px;right:12px;top:10px;height:124px;}
+.dungeonFullscreen .dungeonInfoCard{position:absolute!important;right:20px!important;left:auto!important;width:340px!important;top:52px!important;height:128px!important;box-sizing:border-box!important;z-index:200!important;}
 
 /* Relic Workshop Card */
-.dungeonShopCard{left:424px;right:12px;top:124px;height:122px;overflow-y:auto;overflow-x:hidden;}
-.dungeonFullscreen .dungeonShopCard{position:absolute!important;right:20px!important;left:auto!important;width:340px!important;top:174px!important;height:176px!important;bottom:auto!important;box-sizing:border-box!important;overflow-y:auto!important;z-index:200!important;}
+.dungeonShopCard{left:424px;right:12px;top:138px;height:110px;overflow-y:auto;overflow-x:hidden;}
+.dungeonFullscreen .dungeonShopCard{position:absolute!important;right:20px!important;left:auto!important;width:340px!important;top:186px!important;height:164px!important;bottom:auto!important;box-sizing:border-box!important;overflow-y:auto!important;z-index:200!important;}
 .dungeonShopRow{margin-top:3px;}
 .dungeonShopBtn{display:block;padding:2px 4px;border-radius:3px;background:rgba(255,255,255,0.03);transition:background .1s;}
 .dungeonShopBtn:hover{background:rgba(255,255,255,0.08);}
@@ -1192,10 +1288,21 @@ M.launch = function (this: DungeonMinigame) {
 				if (el) el.innerHTML = str;
 			},
 			infoHTML: function () {
+				const hero = DungeonHeroes[self.selectedHero];
+				const armorItem = hero && hero.gear.armor >= 0 ? DungeonArmor[hero.gear.armor] : null;
+				const weaponItem = hero && hero.gear.weapon >= 0 ? DungeonWeapons[hero.gear.weapon] : null;
+				const armorName = armorItem ? armorItem.name : loc('None');
+				const weaponName = weaponItem ? weaponItem.name : loc('None');
+				const armorTitle = armorItem ? `${armorItem.name}: ${armorItem.desc}` : loc('No armor equipped');
+				const weaponTitle = weaponItem ? `${weaponItem.name}: ${weaponItem.desc}` : loc('No weapon equipped');
 				return `<div class="dungeonCardTitle">${loc('Delve status')}</div>` +
 					`<div class="dungeonInfoRow"><span>${loc('Depth')}</span><b>${this.level + 1}</b><span class="dungeonInfoBest">${loc('best')} ${self.bestDepth}</span></div>` +
 					`<div class="dungeonInfoRow"><span>${loc('Cookies')}</span><b>${Beautify(this.cookiesMadeThisRun)}</b><span class="dungeonInfoBest">${loc('best')} ${Beautify(self.bestCookies)}</span></div>` +
 					`<div class="dungeonInfoRow"><span>${loc('Monsters')}</span><b>${Beautify(this.monstersKilledThisRun)}</b><span class="dungeonInfoBest">${loc('best')} ${Beautify(self.bestMonsters)}</span></div>` +
+					`<div class="dungeonInfoGearRow">` +
+						`<div class="dungeonGearSlot" title="${armorTitle}"><span>🛡️</span> <b>${armorName}</b></div>` +
+						`<div class="dungeonGearSlot" title="${weaponTitle}"><span>⚔️</span> <b>${weaponName}</b></div>` +
+					`</div>` +
 					`<div class="dungeonInfoRelics">${loc('Relics:')} <b>${Beautify(self.relics)}</b></div>`;
 			},
 			shopHTML: function () {
