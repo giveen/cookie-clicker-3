@@ -1065,9 +1065,9 @@ M.launch = function (this: DungeonMinigame) {
 .dungeonBtn{display:inline-block;padding:4px 12px;background:#1b1528;border:1px solid #5a4a2a;border-color:#dfbc9a #875526 #a44e36 #dfbc9a;border-radius:4px;color:#ffd9a0;font-size:11px;font-weight:bold;cursor:pointer;text-decoration:none;box-shadow:0 1px 3px rgba(0,0,0,0.5);transition:background .1s,border-color .1s;}
 .dungeonBtn:hover{background:#2c203f;border-color:#ffd9a0;color:#fff;}
 .dungeonLog{font-size:11px;width:304px;height:178px;overflow-y:scroll;position:absolute;bottom:0px;left:0px;background:rgba(0,0,0,0.5);border:1px solid #3a2a1a;border-radius:4px;padding:4px;box-sizing:border-box;}
-.dungeonFullscreen .dungeonLog{position:absolute!important;top:515px!important;left:680px!important;width:320px!important;height:220px!important;z-index:200!important;background:rgba(0,0,0,0.75)!important;border:1px solid #5a4a2a!important;border-radius:4px!important;padding:6px!important;box-sizing:border-box!important;}
+.dungeonFullscreen .dungeonLog{position:absolute!important;left:684px!important;right:24px!important;top:476px!important;bottom:24px!important;width:auto!important;height:auto!important;z-index:200!important;background:rgba(0,0,0,0.75)!important;border:1px solid #5a4a2a!important;border-radius:4px!important;padding:6px!important;box-sizing:border-box!important;}
 .map{overflow:hidden;position:absolute;left:0px;top:0px;border:2px solid #000;background:#000;margin:0px;}
-.dungeonFullscreen .map{position:absolute!important;left:20px!important;top:44px!important;width:640px!important;height:640px!important;border:2px solid #5a4a2a!important;box-shadow:0 0 16px rgba(0,0,0,0.9)!important;}
+.dungeonFullscreen .map{position:absolute!important;left:24px!important;top:48px!important;width:640px!important;height:640px!important;border:2px solid #5a4a2a!important;box-shadow:0 0 20px rgba(0,0,0,0.9)!important;}
 .mapContainer{position:absolute;}
 .mobSlot{width:64px;height:96px;position:absolute;top:24px;}
 .mobPic{width:48px;height:48px;background-size:contain;background-repeat:no-repeat;background-position:center;position:absolute;top:0px;left:8px;}
@@ -1076,8 +1076,8 @@ M.launch = function (this: DungeonMinigame) {
 .hpBar{height:100%;background:#0f0;}
 #hpMonster{background:#f00;}
 .dungeonName{font-size:11px;text-align:center;white-space:nowrap;margin:8px 0px;}
-.controlPad{position:absolute;width:144px;height:144px;z-index:20;}
-.dungeonFullscreen .controlPad{position:absolute!important;top:690px!important;left:320px!important;transform:none!important;z-index:300!important;}
+.controlPad{position:absolute;left:160px;top:0px;width:144px;height:144px;z-index:20;}
+.dungeonFullscreen .controlPad{position:absolute!important;top:696px!important;left:320px!important;transform:none!important;z-index:300!important;}
 .control{width:48px;height:48px;display:block;background:url(img/control.webp);background-size:144px 144px;cursor:pointer;position:absolute;z-index:20;}
 .control.north{background-position:-48px 0px;top:0px;left:48px;}
 .control.west{background-position:0px -48px;top:48px;left:0px;}
@@ -1087,10 +1087,10 @@ M.launch = function (this: DungeonMinigame) {
 .thing{width:16px;height:16px;position:absolute;background:url(img/dungeonIcons.webp);}
 .dungeonCard{position:absolute;width:176px;background:#15101f;border:1px solid #5a4a2a;border-color:#dfbc9a #875526 #a44e36 #dfbc9a;border-radius:4px;box-shadow:0px 0px 1px 2px rgba(0,0,0,0.5),0px 2px 4px rgba(0,0,0,0.4),0px 0px 2px 2px rgba(0,0,0,0.5) inset;padding:6px 8px;font-size:11px;color:#ddd;line-height:1.35;}
 .dungeonInfoCard{left:320px;top:128px;}
-.dungeonFullscreen .dungeonInfoCard{position:absolute!important;left:680px!important;right:auto!important;top:150px!important;width:320px!important;z-index:200!important;}
+.dungeonFullscreen .dungeonInfoCard{position:absolute!important;left:684px!important;right:24px!important;top:140px!important;width:auto!important;z-index:200!important;}
 .dungeonShopCard{left:320px;top:240px;bottom:8px;overflow-y:auto;overflow-x:hidden;}
-.dungeonFullscreen .dungeonShopCard{position:absolute!important;left:680px!important;right:auto!important;top:270px!important;height:230px!important;bottom:auto!important;width:320px!important;z-index:200!important;}
-.dungeonFullscreen .dungeonHeroPicker{position:absolute!important;top:690px!important;left:120px!important;bottom:auto!important;z-index:200!important;}
+.dungeonFullscreen .dungeonShopCard{position:absolute!important;left:684px!important;right:24px!important;top:260px!important;height:200px!important;bottom:auto!important;width:auto!important;z-index:200!important;}
+.dungeonFullscreen .dungeonHeroPicker{position:absolute!important;top:736px!important;left:184px!important;bottom:auto!important;z-index:200!important;}
 .dungeonCardTitle{font-weight:bold;color:#ffd9a0;font-size:10px;letter-spacing:.5px;text-transform:uppercase;margin-bottom:4px;border-bottom:1px solid #5a4a2a;padding-bottom:3px;}
 .dungeonInfoRow{display:flex;justify-content:space-between;align-items:baseline;gap:6px;margin:2px 0;}
 .dungeonInfoRow span:first-child{color:#bba;}
@@ -1104,9 +1104,9 @@ M.launch = function (this: DungeonMinigame) {
 .dungeonHeroChip:hover{opacity:.85;}
 .dungeonHeroChip.selected{opacity:1;border-color:#ffd9a0;box-shadow:0 0 3px #ffd9a0;}
 .dungeonAutoBadge{position:absolute;left:160px;top:148px;z-index:60;display:none;padding:2px 8px;border-radius:10px;background:#2a6e3a;color:#bfffce;font-weight:bold;font-size:11px;letter-spacing:1px;box-shadow:0 0 6px #2a6e3a;border:1px solid #4caf6a;}
-.dungeonFullscreen .dungeonAutoBadge{position:absolute!important;left:20px!important;top:694px!important;z-index:300!important;}
+.dungeonFullscreen .dungeonAutoBadge{position:absolute!important;left:184px!important;top:700px!important;z-index:300!important;}
 .dungeonHeaderGroup{position:absolute;left:320px;top:0px;bottom:16px;}
-.dungeonFullscreen .dungeonHeaderGroup{position:absolute!important;left:680px!important;top:44px!important;bottom:auto!important;}
+.dungeonFullscreen .dungeonHeaderGroup{position:absolute!important;left:684px!important;top:48px!important;right:24px!important;width:auto!important;display:flex!important;align-items:center!important;justify-content:space-between!important;}
 `;
 
 		// Create the dungeon state
