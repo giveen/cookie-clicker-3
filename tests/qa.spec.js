@@ -379,7 +379,7 @@ test('Farms: barns fill the box in a staggered, overlapping grid', async ({ page
 		farm.bought = 43;
 		farm.refresh();
 		await new Promise((resolve) => setTimeout(resolve, 300));
-		const pics = farm.pics.map((p) => ({ x: p.x, y: p.y, drawW: p.drawW, drawH: p.drawH, sx: p.sx, sy: p.sy }));
+		const pics = farm.pics.map((p) => ({ x: p.x, y: p.y, drawW: p.drawW, drawH: p.drawH, sx: p.sx, sy: p.sy, srcW: p.srcW, srcH: p.srcH }));
 		const drawW = pics[0] ? pics[0].drawW : 0;
 		const drawH = pics[0] ? pics[0].drawH : 0;
 		// grid dims the renderer computes (STACK_OVERLAP / STACK_H_GAP)
@@ -405,7 +405,14 @@ test('Farms: barns fill the box in a staggered, overlapping grid', async ({ page
 		const xSpread = xs.length ? Math.max(...xs) - Math.min(...xs) : 0;
 		// the grid block spans the canvas vertically (front floor -> back crown)
 		const span = pics.length ? Math.max(...pics.map((p) => p.y + p.drawH)) - Math.min(...pics.map((p) => p.y)) : 0;
-		const cropOk = pics.every((p) => p.sx >= 0 && p.sx <= 128 && p.sy >= 0 && p.sy <= 80);
+		// each barn is cropped from a valid cell of the 3x2 sheet
+		const cropOk = pics.every((p) => {
+			const cellW = p.srcW || 64;
+			const cellH = p.srcH || 80;
+			const col = Math.round(p.sx / cellW);
+			const row = Math.round(p.sy / cellH);
+			return col >= 0 && col < 3 && row >= 0 && row < 2;
+		});
 		return {
 			count: pics.length, amount: farm.amount, cap, perRow, numRows,
 			canvasW: farm.canvas.width, canvasH: farm.canvas.height,
