@@ -58,6 +58,9 @@ export function declareMine(Game: EngineGame) {
 				ctx.fillPattern(Pic(this.art.bg),0,0,this.canvas.width,this.canvas.height,128,128);
 			}
 			var sheet=Pic(this.art.pic);
+			// Wait for the real sheet before using 64x80 crop rectangles; the
+			// loader placeholder is only 8x8 and can throw from drawImage().
+			if (sheet===Game.Loader.blank) return true;
 			// Rebuild pics if the sheet size changed since they were built
 			// (the placeholder -> loaded race would otherwise leave stale, tiny
 			// sprite dimensions on the surviving pics after a row-count shrink).
