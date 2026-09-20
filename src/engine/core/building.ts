@@ -827,7 +827,9 @@ export class Building {
 					//pixelated keeps 2x-upscaled pixel-art strips (Cats) crisp
 					//instead of bilinearly blurring them
 					var customStoreImageRendering=(this.art as any).storeIconRendering||'pixelated';
-					var customKey=customStoreUrl+'|'+customStoreSize+'|'+customStorePosition+'|'+customStoreImageRendering;
+					var customStoreFilter=(this.art as any).storeIconFilter||'none';
+					var customStoreOffFilter=(this.art as any).storeIconOffFilter||customStoreFilter;
+					var customKey=customStoreUrl+'|'+customStoreSize+'|'+customStorePosition+'|'+customStoreImageRendering+'|'+customStoreFilter+'|'+customStoreOffFilter;
 					if (cache.customIcon!==customKey)
 					{
 						cache.customIcon=customKey;
@@ -839,6 +841,8 @@ export class Building {
 						l('productIconOff'+this.id).style.backgroundPosition=customStorePosition;
 						l('productIcon'+this.id).style.imageRendering=customStoreImageRendering;
 						l('productIconOff'+this.id).style.imageRendering=customStoreImageRendering;
+						l('productIcon'+this.id).style.filter=customStoreFilter;
+						l('productIconOff'+this.id).style.filter=customStoreOffFilter;
 					}
 				}
 				else

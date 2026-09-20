@@ -685,11 +685,17 @@ test('?qa=onecol: one-column responsive mode (forced) verified end to end', asyn
 	expect(report).not.toMatch(/ERROR/);
 });
 
-test('?qa=icon: store product icons resolve to a sprite (no missing backgrounds)', async ({ page }) => {
+test('?qa=icon: store product icons resolve (sprite rows + standalone storeIcon sheets)', async ({ page }) => {
 	await boot(page, '&qa=icon');
 	const report = await qaReport(page, /productIcon1/, 90_000);
 	expect(report).not.toMatch(/NO BACKGROUND!/);
 	expect(report).not.toMatch(/\(not found\)/);
+	// Idleverse and Cortex baker have no buildings.webp rows (the sprite regions
+	// are blank), so both must use their standalone storeIcon sheets, on both
+	// icon layers, with non-blank first frames.
+	expect(report).toMatch(/custom store icon Idleverse \(id \d+\): PASS/);
+	expect(report).toMatch(/custom store icon Cortex baker \(id \d+\): PASS/);
+	expect(report).not.toMatch(/FAIL/);
 });
 
 test('?qa=binverter: the Black Hole Inverter mod (building + content + save) verified', async ({ page }) => {

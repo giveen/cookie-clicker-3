@@ -11,6 +11,10 @@ upstream Cookie Clicker 2.048 patch notes that the engine also displays
 (31/05/2022 back to 05/08/2013) are Orteil's, shown verbatim in the
 in-game log, and are not duplicated here.
 
+## 20/09/2026 - store icons for the Idleverse and Cortex baker
+
+- fixed the **Idleverse** and **Cortex baker** store rows on the right of the screen showing no icon — their sprite sheet rows had never been drawn, so the shop showed an empty space. Both buildings now render their proper icon (dimmed while still locked) like every other product in the store
+
 ## 18/09/2026 - 53 new achievements + keystone perks
 
 - added **53 achievements** across the whole game: milestone tails (700/800/900/**1,000 of everything**, 25,000 buildings, 700/1,000 upgrades, 2,500/9,000 cats), deeper ladders for golden cookies, wrath cookies, wrinklers, sugar lumps, the garden, the grimoire, the casino, the daily crumb, the cracking cookie, the Cat Colony, the Sitting Room and Decide Your Destiny, plus a handful of shadow oddities (pet 100 colony cats, bake at 3 AM, leave the tab open for a day without clicking, and more)

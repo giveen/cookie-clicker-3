@@ -664,12 +664,17 @@ var Loader: {new(): Loader}=function(this: Loader)//asset-loading system
 			if (!this.assetsLoading.has(assets[i]) && !this.assetsLoaded.has(assets[i]))
 			{
 				var img=new Image();
-				if (assets[i].indexOf('/')!=-1) img.src=assets[i];
-				else img.src=this.domain+assets[i];
+				// Register metadata and listeners before assigning src. Cached images
+				// can complete immediately in some browsers; assigning src first can
+				// miss the load event and leave Pic() returning the blank placeholder.
 				img.alt=assets[i];
 				img.onload=bind(this,this.onLoad);
 				this.assets[assets[i]]=img;
+				// Mark it before src as well: a synchronous cached load must be able
+				// to remove the key without it being re-added afterwards.
 				this.assetsLoading.add(assets[i]);
+				if (assets[i].indexOf('/')!=-1) img.src=assets[i];
+				else img.src=this.domain+assets[i];
 			}
 		}
 	}
@@ -677,11 +682,13 @@ var Loader: {new(): Loader}=function(this: Loader)//asset-loading system
 	{
 		if (!this.assets[old]) this.Load({[old]:old});//2.048 passed [old]; Load's for-in reads values only
 		var img=new Image();
-		if (newer.indexOf('/')!=-1)/*newer.indexOf('http')!=-1 || newer.indexOf('https')!=-1)*/ img.src=newer;
-		else img.src=this.domain+newer;
+		// As above, attach onload before src so a cached replacement cannot be
+		// stranded in assetsLoading.
 		img.alt=newer;
 		img.onload=bind(this,this.onLoad);
 		this.assets[old]=img;
+		if (newer.indexOf('/')!=-1)/*newer.indexOf('http')!=-1 || newer.indexOf('https')!=-1)*/ img.src=newer;
+		else img.src=this.domain+newer;
 	}
 	this.onLoadReplace=function(this: Loader)
 	{

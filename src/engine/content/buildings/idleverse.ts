@@ -9,7 +9,7 @@ import type { Building, Game as EngineGame } from "../../types";
 /** Declare the Idleverse building on Game. */
 export function declareIdleverse(Game: EngineGame) {
 
-		new Game.Object('Idleverse','idleverse|idleverses|hijacked|[X] manifold|[X] manifolds','There\'s been countless other idle universes running alongside our own. You\'ve finally found a way to hijack their production and convert whatever they\'ve been making into cookies!',18,33,{base:'idleverse',xV:8,yV:96,w:48,rows:2,x:0,y:0,frames:4},12345678987654321,function (me: Building) {
+		new Game.Object('Idleverse','idleverse|idleverses|hijacked|[X] manifold|[X] manifolds','There\'s been countless other idle universes running alongside our own. You\'ve finally found a way to hijack their production and convert whatever they\'ve been making into cookies!',18,33,{base:'idleverse',xV:8,yV:96,w:48,rows:2,x:0,y:0,frames:4,storeIcon:'img/idleverse.webp',storeIconSize:'256px 64px',storeIconPosition:'0px 0px',storeIconOffFilter:'brightness(0.45) saturate(0.35)'},12345678987654321,function (me: Building) {
 			var mult=1;
 			mult*=Game.GetTieredCpsMult(me);
 			mult*=Game.magicCpS(me.name);

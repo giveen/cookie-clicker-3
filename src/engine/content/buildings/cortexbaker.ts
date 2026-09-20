@@ -9,7 +9,7 @@ import type { Building, Game as EngineGame } from "../../types";
 /** Declare the Cortex baker building on Game. */
 export function declareCortexBaker(Game: EngineGame) {
 
-		new Game.Object('Cortex baker','cortex baker|cortex bakers|imagined|[X] extra IQ point|[X] extra IQ points','These artificial brains the size of planets are capable of simply dreaming up cookies into existence. Time and space are inconsequential. Reality is arbitrary.',19,34,{base:'cortex',xV:8,yV:96,w:48,rows:1,x:0,y:0,frames:4},12345678987654321,function (me: Building) {
+		new Game.Object('Cortex baker','cortex baker|cortex bakers|imagined|[X] extra IQ point|[X] extra IQ points','These artificial brains the size of planets are capable of simply dreaming up cookies into existence. Time and space are inconsequential. Reality is arbitrary.',19,34,{base:'cortex',xV:8,yV:96,w:48,rows:1,x:0,y:0,frames:4,storeIcon:'img/cortex.webp',storeIconSize:'256px 64px',storeIconPosition:'0px 0px',storeIconOffFilter:'brightness(0.45) saturate(0.35)'},12345678987654321,function (me: Building) {
 			var mult=1;
 			mult*=Game.GetTieredCpsMult(me);
 			mult*=Game.magicCpS(me.name);

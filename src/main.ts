@@ -2282,14 +2282,17 @@ if (debugSurface && params.get('qa') === 'wrinkler') {
 
 // QA: diagnose missing store icons — report the computed style of a store product
 // .icon element (width/height/background-image/position) so we can see why the
-// sprite isn't showing. Usage: ?debug=1&qa=icon
+// sprite isn't showing. Also verifies every building that declares a standalone
+// storeIcon sheet (Idleverse, Cortex baker — their buildings.webp rows are never
+// drawn) uses it on both icon layers and that the sheet's first frame is not
+// blank. Usage: ?debug=1&qa=icon
 if (debugSurface && params.get('qa') === 'icon') {
 	const out = () => {
 		let d = document.getElementById('__dbgqa');
 		if (!d) { d = document.createElement('div'); d.id = '__dbgqa'; d.style.cssText = 'position:fixed;top:0;left:0;z-index:99999;background:#fff;color:#060;font:12px monospace;white-space:pre-wrap;max-width:640px;'; document.body.appendChild(d); }
 		return d;
 	};
-	const tick = window.setInterval(() => {
+	const tick = window.setInterval(async () => {
 		const G = window.Game;
 		if (!G || !G.ready || G.T < 60) return;
 		if (G.__qaIconDone) return;
@@ -2311,6 +2314,59 @@ if (debugSurface && params.get('qa') === 'icon') {
 			inspect('productIcon1');      // "on" layer (Grandma)
 			inspect('productIconOff1');   // "off" layer (Grandma, the dimmed one)
 			inspect('productIcon0');      // "on" layer (Cursor)
+			// Standalone storeIcon sheets (buildings whose buildings.webp rows are
+			// never drawn). Both icon layers must reference the sheet, and a pixel
+			// scan of its first frame must find ink — a blank sheet or frame renders
+			// as an invisible icon.
+			// Resolves the number of visible (alpha>16) pixels in the icon's frame;
+			// -1 on load/decode error. Ink > 0 passes: the point is catching an
+			// entirely blank region (the original Idleverse/Cortex bug), not
+			// measuring content density — upscaling (Cats: 64px icon from a 2x
+			// sheet) legitimately leaves only a few dozen ink pixels in the
+			// natural-pixel window, so a fixed threshold false-fails.
+			const scanFrame = (src: string, posX: number, posY: number, sizeW: number, sizeH: number) => new Promise<number>((resolve) => {
+				const img = new Image();
+				img.onload = () => {
+					try {
+					// background-position of -Xpx shows the frame starting at +Xpx,
+					// so the visible viewport in natural pixels is -pos, clamped into
+					// the sheet (a naive clamping of the raw offset sends negative
+					// offsets to getImageData, which throws -> false "blank" report)
+					const fw = Math.min(Math.max(1, Math.round(img.naturalWidth * 64 / sizeW)), img.naturalWidth);
+					const fh = Math.min(Math.max(1, Math.round(img.naturalHeight * 64 / sizeH)), img.naturalHeight);
+					const vx = Math.min(Math.max(0, -posX), img.naturalWidth - fw);
+					const vy = Math.min(Math.max(0, -posY), img.naturalHeight - fh);
+					const c = document.createElement('canvas');
+					c.width = img.naturalWidth;
+					c.height = img.naturalHeight;
+					const cx = c.getContext('2d');
+				if (!cx) { resolve(-1); return; }
+				cx.drawImage(img, 0, 0);
+				const data = cx.getImageData(vx, vy, fw, fh).data;
+				let ink = 0;
+				for (let i = 3; i < data.length; i += 4) { if (data[i] > 16) { ink++; if (ink > 256) { resolve(ink); return; } } }
+				resolve(ink);
+			} catch { resolve(-1); }
+				};
+				img.onerror = () => resolve(-1);
+				img.src = src;
+			});
+			for (const name in G.Objects) {
+				const b: any = G.Objects[name];
+				const storeIcon: string | undefined = b.art && b.art.storeIcon;
+				if (!storeIcon) continue;
+				const el = document.getElementById('productIcon' + b.id);
+				const off = document.getElementById('productIconOff' + b.id);
+				const layersOk = !!el && (el.getAttribute('style') || '').indexOf(storeIcon) !== -1
+					&& !!off && (off.getAttribute('style') || '').indexOf(storeIcon) !== -1;
+				const size = String(b.art.storeIconSize || '64px 64px').split(' ');
+				const pos = String(b.art.storeIconPosition || '0px 0px').split(' ');
+				const inkCount = await scanFrame(storeIcon, parseInt(pos[0], 10) || 0, parseInt(pos[1] || '0', 10) || 0, parseInt(size[0], 10) || 64, parseInt(size[1] || size[0] || '64', 10) || 64);
+				const inkOk = inkCount > -1;
+				const ok = layersOk && inkOk;
+				rows.push('[QA-icon] custom store icon ' + name + ' (id ' + b.id + '): ' + (ok ? 'PASS' : 'FAIL')
+					+ (ok ? '' : ' [layersUseSheet: ' + layersOk + ', firstFrameInk: ' + inkCount + ']') + ' | sheet: ' + storeIcon);
+			}
 			out().textContent = rows.join('\n');
 		} catch (e: any) { out().textContent = '[QA-icon] ERROR: ' + e.message + '\n' + (e.stack || ''); }
 		window.clearInterval(tick);

@@ -68,6 +68,9 @@ export function declareVanillaChangelog(Game: EngineGame) {
 	Game.updateLog+=
 	
 	'</div><div class="subsection update">' +
+	'<div class="title">20/09/2026 - store icons for the Idleverse and Cortex baker</div>' +
+	'<div class="listing">&bull; fixed the <b>Idleverse</b> and <b>Cortex baker</b> store rows on the right of the screen showing no icon — their sprite sheet rows had never been drawn, so the shop showed an empty space. Both buildings now render their proper icon (dimmed while still locked) like every other product in the store</div>' +
+	'</div><div class="subsection update">' +
 	'<div class="title">18/09/2026 - 53 new achievements + keystone perks</div>' +
 	'<div class="listing">&bull; added <b>53 achievements</b> across the whole game: milestone tails (700/800/900/<b>1,000 of everything</b>, 25,000 buildings, 700/1,000 upgrades, 2,500/9,000 cats), deeper ladders for golden cookies, wrath cookies, wrinklers, sugar lumps, the garden, the grimoire, the casino, the daily crumb, the cracking cookie, the Cat Colony, the Sitting Room and Decide Your Destiny, plus a handful of shadow oddities (pet 100 colony cats, bake at 3 AM, leave the tab open for a day without clicking, and more)</div>' +
 	'<div class="listing">&bull; <b>collection completion</b>: finish any cookie collection for <i>Crumb connoisseur</i>; finish all eight for <i>The complete crumb-ulary</i> — owning it makes cookie upgrades drop more frequently in future playthroughs, like the seasonal sets</div>' +
