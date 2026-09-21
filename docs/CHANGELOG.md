@@ -11,6 +11,11 @@ upstream Cookie Clicker 2.048 patch notes that the engine also displays
 (31/05/2022 back to 05/08/2013) are Orteil's, shown verbatim in the
 in-game log, and are not duplicated here.
 
+## 21/09/2026 - the cookie zooms out to show all your cursors
+
+- buy enough cursors and the big cookie now shrinks to keep the whole cursor spiral on screen — the more cursors you own, the wider the view, easing smoothly instead of snapping, and it returns to full size as you spend them. Wrinklers and the cookie-centered effects (shine, nest, crumbling-cookie overlay) scale with it, and the clickable area follows the drawn cookie
+- a new **Cookie zoom** option in Settings turns the feature off entirely; the setting persists in localStorage (`cc3_cookieZoom`) rather than the prefs bitfield, which stays byte-locked for save compatibility. No new save state
+
 ## 20/09/2026 - store icons for the Idleverse and Cortex baker
 
 - fixed the **Idleverse** and **Cortex baker** store rows on the right of the screen showing no icon — their sprite sheet rows had never been drawn, so the shop showed an empty space. Both buildings now render their proper icon (dimmed while still locked) like every other product in the store

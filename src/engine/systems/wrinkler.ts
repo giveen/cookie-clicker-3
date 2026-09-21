@@ -168,12 +168,13 @@ function inRect(x: any,y: any,rect: any)
 					}
 					var d=128*(2-me.close);//*Game.BigCookieSize;
 					if (Game.prefs.fancy) d+=Math.cos(Game.T*0.05+parseInt(me.id, 10))*4;
+					d*=(Game.CookieZoom||1);//CC3: ride the dynamic cookie zoom so wrinklers cling to the cookie's rim at any zoom
 					me.r=(me.id/max)*360;
 					if (Game.prefs.fancy) me.r+=Math.sin(Game.T*0.05+parseInt(me.id, 10))*4;
 					me.x=xBase+(Math.sin(me.r*Math.PI/180)*d);
 					me.y=yBase+(Math.cos(me.r*Math.PI/180)*d);
 					if (Game.prefs.fancy) me.r+=Math.sin(Game.T*0.09+parseInt(me.id, 10))*4;
-					var rect={w:100,h:200,r:(-me.r)*Math.PI/180,o:10};
+					var rect={w:100*(Game.CookieZoom||1),h:200*(Game.CookieZoom||1),r:(-me.r)*Math.PI/180,o:10*(Game.CookieZoom||1)};//CC3: click area scales with the zoom too
 					if (Math.random()<0.01 && !Game.prefs.notScary) me.hurt=Math.max(me.hurt,Math.random());
 					if (Game.T%5==0 && Game.CanClick) {if (Game.LeftBackground && Game.mouseX<Game.LeftBackground.canvas.width && inRect(Game.mouseX-me.x,Game.mouseY-me.y,rect)) me.selected=1; else me.selected=0;}
 					if (me.selected && onWrinkler==0 && Game.CanClick)
@@ -190,8 +191,8 @@ function inRect(x: any,y: any,rect: any)
 								me.hp-=0.75;
 								if (Game.prefs.particles && !Game.prefs.notScary && !Game.WINKLERS && !(me.hp<=0.5 && me.phase>0))
 								{
-									var x=me.x+(Math.sin(me.r*Math.PI/180)*90);
-									var y=me.y+(Math.cos(me.r*Math.PI/180)*90);
+									var x=me.x+(Math.sin(me.r*Math.PI/180)*90*(Game.CookieZoom||1));//CC3: offset rides the dynamic cookie zoom
+									var y=me.y+(Math.cos(me.r*Math.PI/180)*90*(Game.CookieZoom||1));
 									for (var ii=0;ii<3;ii++)
 									{
 										//Game.particleAdd(x+Math.random()*50-25,y+Math.random()*50-25,Math.random()*4-2,Math.random()*-2-2,1,1,2,'wrinklerBits.webp');
@@ -290,8 +291,8 @@ function inRect(x: any,y: any,rect: any)
 					}*/
 					if (Game.prefs.particles)
 					{
-						var x=me.x+(Math.sin(me.r*Math.PI/180)*90);
-						var y=me.y+(Math.cos(me.r*Math.PI/180)*90);
+						var x=me.x+(Math.sin(me.r*Math.PI/180)*90*(Game.CookieZoom||1));//CC3: offset rides the dynamic cookie zoom
+						var y=me.y+(Math.cos(me.r*Math.PI/180)*90*(Game.CookieZoom||1));
 						if (me.sucked>0)
 						{
 							for (var ii=0;ii<5;ii++)
@@ -333,15 +334,15 @@ function inRect(x: any,y: any,rect: any)
 					ctx.globalAlpha=me.close;
 					ctx.save();
 					ctx.translate(me.x,me.y);
-					var sw=100+2*Math.sin(Game.T*0.2+(i as any)*3);
-					var sh=200+5*Math.sin(Game.T*0.2-2+(i as any)*3);
+					var sw=(100+2*Math.sin(Game.T*0.2+(i as any)*3))*(Game.CookieZoom||1);//CC3: sprite scales with the dynamic cookie zoom
+					var sh=(200+5*Math.sin(Game.T*0.2-2+(i as any)*3))*(Game.CookieZoom||1);
 					if (Game.prefs.fancy)
 					{
-						ctx.translate(0,30);
+						ctx.translate(0,30*(Game.CookieZoom||1));
 						ctx.rotate(-(me.r)*Math.PI/180);
-						ctx.drawImage(Pic('wrinklerShadow.webp'),-sw/2,-10,sw,sh);
+						ctx.drawImage(Pic('wrinklerShadow.webp'),-sw/2,-10*(Game.CookieZoom||1),sw,sh);
 						ctx.rotate((me.r)*Math.PI/180);
-						ctx.translate(0,-30);
+						ctx.translate(0,-30*(Game.CookieZoom||1));
 					}
 					ctx.rotate(-(me.r)*Math.PI/180);
 					//var s=Math.min(1,me.sucked/(Game.cookiesPs*60))*0.75+0.25;//scale wrinklers as they eat
@@ -350,8 +351,8 @@ function inRect(x: any,y: any,rect: any)
 					var pic=Game.WINKLERS?'winkler.webp':'wrinkler.webp';
 					if (me.type==1) pic=Game.WINKLERS?'shinyWinkler.webp':'shinyWrinkler.webp';
 					else if (Game.season=='christmas') pic=Game.WINKLERS?'winterWinkler.webp':'winterWrinkler.webp';
-					ctx.drawImage(Pic(pic),-sw/2,-10,sw,sh);
-					if (!Game.WINKLERS && Game.prefs.notScary) ctx.drawImage(Pic(Math.sin(Game.T*0.003+(i as any)*11+137+Math.sin(Game.T*0.017+(i as any)*13))>0.9997?'wrinklerBlink.webp':'wrinklerGooglies.webp'),-sw/2,-10+1*Math.sin(Game.T*0.2+(i as any)*3+1.2),sw,sh);
+					ctx.drawImage(Pic(pic),-sw/2,-10*(Game.CookieZoom||1),sw,sh);
+					if (!Game.WINKLERS && Game.prefs.notScary) ctx.drawImage(Pic(Math.sin(Game.T*0.003+(i as any)*11+137+Math.sin(Game.T*0.017+(i as any)*13))>0.9997?'wrinklerBlink.webp':'wrinklerGooglies.webp'),-sw/2,(-10+1*Math.sin(Game.T*0.2+(i as any)*3+1.2))*(Game.CookieZoom||1),sw,sh);
 					//ctx.drawImage(Pic(pic),-50,-10);
 					//ctx.fillText(me.id+' : '+me.sucked,0,0);
 					if (!noFx && me.type==1 && Math.random()<0.3 && Game.prefs.particles)//sparkle

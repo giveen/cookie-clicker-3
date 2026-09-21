@@ -162,6 +162,10 @@ export function UpdateMenu()
 					Game.WritePrefButton('numbers','numbersButton',loc("Numbers")+ON,loc("Numbers")+OFF)+'<label>('+loc("numbers that pop up when clicking the cookie")+')</label><br>'+
 					Game.WritePrefButton('milk','milkButton',loc("Milk [setting]")+ON,loc("Milk [setting]")+OFF)+(EN?'<label>(only appears with enough achievements)</label>':'')+'<br>'+
 					Game.WritePrefButton('cursors','cursorsButton',loc("Cursors [setting]")+ON,loc("Cursors [setting]")+OFF)+'<label>('+loc("visual display of your cursors")+')</label><br>'+
+					//CC3: cookie zoom toggle (localStorage-backed, not a Game.prefs pref — the save's
+					//prefs bitfield is byte-locked by the save-compat test; see ui/drawBackground.ts).
+					//Same markup Game.Toggle produces, with a custom click handler.
+					'<a class="smallFancyButton prefButton option'+(Game.CookieZoomPref()?'':' off')+'" id="cookieZoomButton" '+Game.clickStr+'="Game.ToggleCookieZoom();">'+loc("Cookie zoom")+(Game.CookieZoomPref()?ON:OFF)+'</a>'+(EN?'<label>(shrink the cookie to keep all your cursors on screen)</label>':'')+'<br>'+
 					Game.WritePrefButton('wobbly','wobblyButton',loc("Wobbly cookie")+ON,loc("Wobbly cookie")+OFF)+(EN?'<label>(your cookie will react when you click it)</label>':'')+'<br>'+
 					Game.WritePrefButton('cookiesound','cookiesoundButton',loc("Alt cookie sound")+ON,loc("Alt cookie sound")+OFF)+(EN?'<label>(how your cookie sounds when you click on it)</label>':'')+'<br>'+
 					Game.WritePrefButton('crates','cratesButton',loc("Icon crates")+ON,loc("Icon crates")+OFF)+'<label>('+loc("display boxes around upgrades and achievements in Stats")+')</label><br>'+

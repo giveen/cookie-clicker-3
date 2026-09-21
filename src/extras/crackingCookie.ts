@@ -144,7 +144,9 @@ import type { Game as EngineGame } from '../engine/types';
 		if (!ctx || !ctx.canvas) return;
 		const cx = G.cookieOriginX;
 		const cy = G.cookieOriginY;
-		const r = 128 * (G.BigCookieSize || 1);
+		/* CC3: the radius rides the engine's dynamic cookie zoom (the spiral of
+		 * cursors shrinking the cookie scene) as well as the click wobble. */
+		const r = 128 * (G.BigCookieSize || 1) * (typeof G.CookieZoom === 'number' ? G.CookieZoom : 1);
 		if (typeof cx !== 'number' || typeof cy !== 'number' ||
 			!isFinite(cx) || !isFinite(cy) || r <= 0) return;
 

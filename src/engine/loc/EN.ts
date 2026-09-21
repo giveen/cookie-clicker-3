@@ -3427,6 +3427,9 @@ export default { id: "EN", name: "english", strings: {
 	"Hold to buy": "/",
 	"click and hold a building to buy it over and over": "/",
 
+	"Cookie zoom": "/",
+	"shrink the cookie to keep all your cursors on screen": "/",
+
 	"Soundtrack": "/",
 	"Track": "/",
 

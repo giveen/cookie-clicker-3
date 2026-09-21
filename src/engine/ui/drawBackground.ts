@@ -7,6 +7,44 @@
  * `LBeautify` resolve through src/globals.d.ts.
  */
 
+/* ==========================================================================
+ * CC3: dynamic cookie zoom (the "Cookie zoom" setting, on by default)
+ * ==========================================================================
+ * The cursor spiral draws 50 cursors per ring at radius 140+n*16px around
+ * the big cookie, so past ~600 cursors the outer rings fall off the panel
+ * and are invisible. When the setting is on, DrawBackground computes a zoom
+ * factor every frame from the ring count vs the panel size and applies it to
+ * the big cookie, its shine/nest, the cursor spiral, the wrinklers and the
+ * cookie-centered effects, so the whole spiral stays on screen: the more
+ * cursors you own, the wider the view. The zoom is damped toward its target
+ * (BigCookieSize-style) so buying cursors zooms out smoothly instead of
+ * snapping, and it eases back to 1 as the spiral shrinks.
+ *
+ * The setting lives in localStorage (NOT the Game.prefs bitfield — the
+ * save's prefs bitfield is byte-locked by the save-compat test), same
+ * pattern as cc3_holdToBuy. Read through Game.CookieZoomPref (assigned in
+ * engine/main.ts next to the other Game slot assignments) so the menu
+ * toggle and QA probes read the same source of truth.
+ */
+export function CookieZoomPref()
+{
+	var v=localStorageGet('cc3_cookieZoom');
+	return v===null?1:(v==='0'?0:1);
+}
+export function ToggleCookieZoom()//menu toggle; the zoom re-evaluates on the next drawn frame
+{
+	var on=CookieZoomPref();
+	localStorageSet('cc3_cookieZoom',''+(on?0:1));
+	on=1-on;
+	var b=l('cookieZoomButton');//refresh the Options button (mirrors Game.Toggle's class/label swap)
+	if (b)
+	{
+		b.innerHTML=loc("Cookie zoom")+(on?ON:OFF);
+		b.className='smallFancyButton prefButton option'+(on?'':' off');
+	}
+	if (!on) Game.CookieZoom=1;//vanilla size again, instantly
+}
+
 export function DrawBackground()
 {
 	
@@ -170,11 +208,39 @@ export function DrawBackground()
 		var showDragon=0;
 		if (Game.hasBuff('Dragonflight') || Game.hasBuff('Dragon Harvest')) showDragon=1;
 		
-		Game.cookieOriginX=Math.floor(ctx.canvas.width/2);
-		Game.cookieOriginY=Math.floor(ctx.canvas.height*0.4);
-		
-		if (Game.AscendTimer==0)
-		{	
+	Game.cookieOriginX=Math.floor(ctx.canvas.width/2);
+	Game.cookieOriginY=Math.floor(ctx.canvas.height*0.4);
+	
+	//CC3: dynamic cookie zoom — shrink the cookie scene when the cursor spiral
+	//would clip off the panel (see CookieZoomPref above). Only the rings that
+	//actually exist count, so the zoom returns to 1 as cursors are spent.
+	Game.CookieZoomTarget=1;
+	if (CookieZoomPref() && Game.prefs.cursors && Game.OnAscend==0 && Game.AscendTimer==0)
+	{
+		var rings=Math.ceil((Game.Objects['Cursor']?Game.Objects['Cursor'].amount:0)/50);//the spiral draws 50 cursors per ring
+		var outermost=140+(rings-1)*16+32;//outer edge of the last ring, px from the cookie center (sprite + wobble included)
+		//room from the cookie center to the nearest panel edge: half the width,
+		//or half the height (the spiral centers at 40% height, so rings tuck
+		//under the top title exactly like they do unzoomed)
+		var maxR=Math.min(ctx.canvas.width/2,ctx.canvas.height*0.5);
+		if (rings>0 && outermost>maxR) Game.CookieZoomTarget=Math.max(0.1,maxR/outermost);//floor 0.1: the cookie never fully vanishes, even at absurd cursor counts
+	}
+	if (typeof Game.CookieZoom!=='number') Game.CookieZoom=1;
+	Game.CookieZoom+=(Game.CookieZoomTarget-Game.CookieZoom)*0.1;//ease toward the target: buying cursors zooms out smoothly
+	if (Math.abs(Game.CookieZoom-Game.CookieZoomTarget)<0.005) Game.CookieZoom=Game.CookieZoomTarget;//settle exactly
+	//keep the clickable #bigCookie button the same size as the drawn cookie
+	//(it is a fixed 256px DOM box; without this the hit area would overshoot
+	//the sprite several-fold at deep zoom). Write only on real change.
+	var zoomRounded=Math.round(Game.CookieZoom*1000)/1000;
+	if (Game.CookieZoomShown!==zoomRounded)
+	{
+		Game.CookieZoomShown=zoomRounded;
+		var bigCookieEl=l('bigCookie');
+		if (bigCookieEl) bigCookieEl.style.transform=zoomRounded===1?'':'scale('+zoomRounded+')';
+	}
+	
+	if (Game.AscendTimer==0)
+	{	
 			if (Game.prefs.particles)
 			{
 				//falling cookies
@@ -220,7 +286,7 @@ export function DrawBackground()
 				Timer.track('particles');
 				
 				//big cookie shine
-				var s=512;
+				var s=512*Game.CookieZoom;//CC3: scaled by the dynamic cookie zoom
 				
 				var x: any=Game.cookieOriginX;
 				var y: any=Game.cookieOriginY;
@@ -249,16 +315,14 @@ export function DrawBackground()
 					ctx.fillStyle='#000';
 					ctx.fillRect(0,0,ctx.canvas.width,ctx.canvas.height);
 					ctx.globalAlpha=1;
-				}
-				
-				if (showDragon)
-				{
-					//big dragon
-					var s=300*2*(1+Math.sin(Game.T*0.013)*0.1);
-					var x: any=Game.cookieOriginX-s/2;
-					var y: any=Game.cookieOriginY-s/(1.4+0.2*Math.sin(Game.T*0.01));
-					ctx.drawImage(Pic('dragonBG.webp'),x,y,s,s);
-				}
+				}					if (showDragon)
+					{
+						//big dragon
+						var s=300*2*(1+Math.sin(Game.T*0.013)*0.1)*Game.CookieZoom;//CC3: scaled by the dynamic cookie zoom
+						var x: any=Game.cookieOriginX-s/2;
+						var y: any=Game.cookieOriginY-s/(1.4+0.2*Math.sin(Game.T*0.01));
+						ctx.drawImage(Pic('dragonBG.webp'),x,y,s,s);
+					}
 				
 				//big cookie
 				if (false)//don't do that
@@ -288,17 +352,17 @@ export function DrawBackground()
 				else
 				{
 					ctx.globalAlpha=1;
-					var s=256*Game.BigCookieSize;
+					var s=256*Game.BigCookieSize*Game.CookieZoom;//CC3: scaled by the dynamic cookie zoom
 					var x: any=Game.cookieOriginX;
 					var y: any=Game.cookieOriginY;
 					ctx.save();
-					if (Game.prefs.fancy) ctx.drawImage(Pic('cookieShadow.webp'),x-s/2,y-s/2+20,s,s);
+					if (Game.prefs.fancy) ctx.drawImage(Pic('cookieShadow.webp'),x-s/2,y-s/2+20*Game.CookieZoom,s,s);
 					ctx.translate(x,y);
 					if (Game.season=='easter')
 					{
-						var nestW=304*0.98*Game.BigCookieSize;
-						var nestH=161*0.98*Game.BigCookieSize;
-						ctx.drawImage(Pic('nest.webp'),-nestW/2,-nestH/2+130,nestW,nestH);
+						var nestW=304*0.98*Game.BigCookieSize*Game.CookieZoom;
+						var nestH=161*0.98*Game.BigCookieSize*Game.CookieZoom;
+						ctx.drawImage(Pic('nest.webp'),-nestW/2,-nestH/2+130*Game.CookieZoom,nestW,nestH);
 					}
 					//ctx.rotate(((Game.startDate%360)/360)*Math.PI*2);
 					ctx.drawImage(Pic('perfectCookie.webp'),-s/2,-s/2,s,s);
@@ -323,27 +387,25 @@ export function DrawBackground()
 			else//no particles
 			{
 				//big cookie shine
-				var s=512;
+				var s=512*Game.CookieZoom;//CC3: scaled by the dynamic cookie zoom
 				var x: any=Game.cookieOriginX-s/2;
 				var y: any=Game.cookieOriginY-s/2;
 				ctx.globalAlpha=0.5;
-				ctx.drawImage(Pic('shine.webp'),x,y,s,s);
-				
-				if (showDragon)
-				{
-					//big dragon
-					var s=300*2*(1+Math.sin(Game.T*0.013)*0.1);
-					var x: any=Game.cookieOriginX-s/2;
-					var y: any=Game.cookieOriginY-s/(1.4+0.2*Math.sin(Game.T*0.01));
-					ctx.drawImage(Pic('dragonBG.webp'),x,y,s,s);
-				}
+				ctx.drawImage(Pic('shine.webp'),x,y,s,s);					if (showDragon)
+					{
+						//big dragon
+						var s=300*2*(1+Math.sin(Game.T*0.013)*0.1)*Game.CookieZoom;//CC3: scaled by the dynamic cookie zoom
+						var x: any=Game.cookieOriginX-s/2;
+						var y: any=Game.cookieOriginY-s/(1.4+0.2*Math.sin(Game.T*0.01));
+						ctx.drawImage(Pic('dragonBG.webp'),x,y,s,s);
+					}
 			
 				//big cookie
 				ctx.globalAlpha=1;
-				var s=256*Game.BigCookieSize;
+				var s=256*Game.BigCookieSize*Game.CookieZoom;//CC3: scaled by the dynamic cookie zoom
 				var x: any=Game.cookieOriginX-s/2;
 				var y: any=Game.cookieOriginY-s/2;
-				if (Game.prefs.fancy) ctx.drawImage(Pic('cookieShadow.webp'),x,y+20,s,s);
+				if (Game.prefs.fancy) ctx.drawImage(Pic('cookieShadow.webp'),x,y+20*Game.CookieZoom,s,s);
 				ctx.drawImage(Pic('perfectCookie.webp'),x,y,s,s);
 			}
 			
@@ -352,6 +414,9 @@ export function DrawBackground()
 			{
 				ctx.save();
 				ctx.translate(Game.cookieOriginX,Game.cookieOriginY);
+				//CC3: the whole spiral scales with the dynamic cookie zoom, so
+				//every ring stays on the panel no matter how many cursors you own
+				ctx.scale(Game.CookieZoom,Game.CookieZoom);
 				var pic: any=Pic('cursor.webp');
 				var cursorIcon: any=0;
 				var cursorIconX=0;

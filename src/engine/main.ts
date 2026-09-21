@@ -39,7 +39,7 @@ import { CollectWrinklers, DrawWrinklers, getWrinklersMax, LoadWrinklers, PopRan
 import type { EconomyAnalysisOptions, EconomyStrategyOptions, HeavenlyUpgradeRef, LanguageHeader, LanguageString, Prefs } from "./types";
 import { costDetails, crate, crateTooltip } from "./ui/crate";
 import { Draw } from "./ui/draw";
-import { DrawBackground } from "./ui/drawBackground";/* CC3: the original relied on implicit globals; declare them for module strict mode. */
+import { CookieZoomPref, DrawBackground, ToggleCookieZoom } from "./ui/drawBackground";/* CC3: the original relied on implicit globals; declare them for module strict mode. CookieZoomPref/ToggleCookieZoom: the dynamic cookie zoom setting (CC3). */
 import { ClickTinyCookie, ShowMenu, setVolume, setVolumeMusic, setWubMusic, showLangSelection, tinyCookie, UpdateMenu } from "./ui/menu";
 import { CloseNote, CloseNotes, ClosePrompt, ConfirmPrompt, FocusPromptOption, Note, NotesDraw, NotesLogic, Notify, NotifyTooltip, Prompt, UpdateNotes, UpdatePrompt } from "./ui/notifications";
 import { Popup, particleAdd, particlesDraw, particlesUpdate, SparkleAt, SparkleOn, spawnBuildingPurchaseBurst, spawnCookieShockwave, textParticlesAdd, textParticlesUpdate } from "./ui/particles";
@@ -3040,6 +3040,15 @@ window.loadMinigameModule!(me.minigameUrl).then(function(){
 		
 		Game.cookieOriginX=0;
 		Game.cookieOriginY=0;
+		//CC3: dynamic cookie zoom — the zoom factor the cookie scene is drawn at
+		//(1 = vanilla size; lower as the cursor spiral grows, see ui/drawBackground.ts).
+		//CookieZoom is the eased value every consumer reads; CookieZoomTarget is
+		//the raw per-frame goal computed in DrawBackground.
+		Game.CookieZoom=1;
+		Game.CookieZoomTarget=1;
+		Game.CookieZoomShown=1;//last zoom value written to the #bigCookie transform (avoids per-frame style writes)
+		Game.CookieZoomPref=CookieZoomPref;//CC3: cookie zoom setting accessor (localStorage-backed; see ui/drawBackground.ts)
+		Game.ToggleCookieZoom=ToggleCookieZoom;//CC3: Options-menu toggle for the cookie zoom setting
 		Game.DrawBackground=DrawBackground;//CC3 rewrite (phase 6, slice 4): moved verbatim to ui/drawBackground.ts; same Game slot, same Init position.
 		
 		
