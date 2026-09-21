@@ -150,6 +150,7 @@ export function Reset(hard: any)
 			
 			if (Game.Has('Starter kit')) Game.Objects['Cursor'].getFree(10);
 			if (Game.Has('Lucky start')) Game.Objects['Cursor'].getFree(3);
+			if (Game.Has('Bottomless honey jar')) Game.Objects['Cursor'].getFree(5);//CC3: Heavenly Pantry
 			if (Game.Has('Starter kitchen')) Game.Objects['Grandma'].getFree(5);
 		}
 	}

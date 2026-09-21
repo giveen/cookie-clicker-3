@@ -220,6 +220,11 @@ export function extraAchievPerkAscend(): number {
 	return extraAchFamilyComplete(ASCEND_FAMILY) ? 1.01 : 1;
 }
 
+/** Pantry keystone (CC3): owning every Heavenly Pantry upgrade grants +1% CpS. */
+export function extraAchievPerkPantry(): number {
+	return Game.HasAchiev('Keeper of the Eternal Feast') ? 1.01 : 1;
+}
+
 /**
  * Every-50 ladder keystone: every 50 normal achievements grants +1%
  * golden-cookie spawn frequency, up to +5% at 250. Deliberately modest:
@@ -394,6 +399,12 @@ export function checkExtraAchievements(): void {
 	var nowHour = new Date().getHours();
 	if (nowHour >= 3 && nowHour < 4 && Game.cookiesPs > 0) Game.Win('Night shift');
 
+	/* --- Section 5b: the Heavenly Pantry (CC3) ladder ----------------- */
+	var pantryOwned = Game.PantryUpgradesOwned ? Game.PantryUpgradesOwned() : 0;
+	if (pantryOwned >= 5) Game.Win('Snack break');
+	if (pantryOwned >= 10) Game.Win('Pantry raider');
+	if (pantryOwned >= 17) Game.Win('Keeper of the Eternal Feast');
+
 	/* --- Section 5: keystones (won via checker; perks are live fns) -- */
 	if (extraAchFamilyComplete(GOLDEN_FAMILY)) Game.Win('Golden touch');
 	if (extraAchFamilyComplete(WRINKLER_FAMILY)) Game.Win('Pest control');
@@ -429,6 +440,7 @@ export function installAchievementsExtra(Game: EngineGame): void {
 	(Game as any).extraAchievPerkSpell = extraAchievPerkSpell;
 	(Game as any).extraAchievPerkMinigame = extraAchievPerkMinigame;
 	(Game as any).extraAchievPerkAscend = extraAchievPerkAscend;
+	(Game as any).extraAchievPerkPantry = extraAchievPerkPantry;
 	(Game as any).extraAchievPerkGoldenFreq = extraAchievPerkGoldenFreq;
 	(Game as any).extraAchievMasteryMult = extraAchievMasteryMult;
 	(Game as any).extraAchievGoldenClickMult = extraAchievGoldenClickMult;

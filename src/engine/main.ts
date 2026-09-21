@@ -2497,6 +2497,16 @@ window.loadMinigameModule!(me.minigameUrl).then(function(){
 			if (Game.permanentUpgrades[slot]==-1) return [slot,10];
 			return Game.UpgradesById[Game.permanentUpgrades[slot]].icon;
 		}
+		Game.PantryUpgradesOwned=function()//CC3: Heavenly Pantry capstone ("Bottomless pantry") scales with the branch's owned upgrades
+		{
+			var n=0;
+			for (var i in Game.Upgrades)
+			{
+				var it=Game.Upgrades[i];
+				if (it.pantry && it.bought) n++;
+			}
+			return n;
+		}
 		Game.AssignPermanentSlot=function(slot: number)
 		{
 			PlaySound('snd/tick.mp3');

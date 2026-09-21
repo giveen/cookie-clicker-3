@@ -11,6 +11,12 @@ upstream Cookie Clicker 2.048 patch notes that the engine also displays
 (31/05/2022 back to 05/08/2013) are Orteil's, shown verbatim in the
 in-game log, and are not duplicated here.
 
+## 21/09/2026 - the Heavenly Pantry
+
+- a new **Heavenly Pantry** prestige branch grows off the vanilla biscuit boxes (Heavenly cookies → Tin of british tea biscuits → Box of brand biscuits): 17 food-themed heavenly upgrades priced from 50 chips (Pantry key) to 10,000 (The Eternal Feast). Effects reuse the established prestige hooks: +2%/+3%/+10% CpS cookies, +5/+7/+10% click power, golden-cookie frequency (+3/+5%) and duration/lifespan (+4/+4/+6%), buildings/upgrades 1% cheaper, +2% offline earnings, +5 starting cursors, and the Bottomless pantry capstone (+1% CpS per Pantry upgrade owned)
+- icons come from a **generated atlas** (`public/img/foodIcons.png`, a 48px-grid PNG) produced by `scripts/extract-food-icons.mjs` from dotoridev's "Free - 500+ Pixel Food Icons" itch pack (CC BY 4.0): the script masks each sheet's flat background, segments ~20 sprites per sheet by connected components, splits touching dishes, and packs them as transparent 48px tiles with an append-only manifest (`scripts/foodIcons.manifest.json`) — re-running with a bigger pack keeps every existing cell (and the upgrade ids that reference it) stable
+- 3 new achievements (Snack break, Pantry raider, Keeper of the Eternal Feast); owning the whole pantry grants a **+1% CpS** keystone perk. Upgrades append after the cookie cow (ids 961-977), so the packed save bitfield is untouched and 2.048 saves stay importable; deferred-extras upgrade ids shift by +17 exactly as they did when the cookie cow appended (their purchases persist by name via mod save hooks). Upgrade fingerprint baseline regenerated intentionally (`UPGRADES_UPDATE=1`)
+
 ## 21/09/2026 - the cookie zooms out to show all your cursors
 
 - buy enough cursors and the big cookie now shrinks to keep the whole cursor spiral on screen — the more cursors you own, the wider the view, easing smoothly instead of snapping, and it returns to full size as you spend them. Wrinklers and the cookie-centered effects (shine, nest, crumbling-cookie overlay) scale with it, and the clickable area follows the drawn cookie

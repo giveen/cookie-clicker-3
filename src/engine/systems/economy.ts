@@ -58,6 +58,8 @@ export function GetHeavenlyMultiplier()
 			//CC3: 'Ascension architect' keystone — +1% heavenly-chip power
 			//from the ascend-by-baking achievement family
 			if (Game.extraAchievPerkAscend) heavenlyMult*=Game.extraAchievPerkAscend();
+			//CC3: 'Keeper of the Eternal Feast' keystone — +1% CpS for a full Pantry
+			if (Game.extraAchievPerkPantry) heavenlyMult*=Game.extraAchievPerkPantry();
 			//if (Game.hasAura('Dragon God')) heavenlyMult*=1.05;
 			heavenlyMult*=1+Game.auraMult('Dragon God')*0.05;
 			if (Game.Has('Lucky digit')) heavenlyMult*=1.01;
@@ -209,6 +211,9 @@ export function mouseCps()
 		if (Game.Has('Dragon claw')) mult*=1.03;
 		if (Game.Has('Firm handshake')) mult*=1.05;
 		if (Game.Has('Demonic hustle')) mult*=1.05;
+		if (Game.Has('Honeypot on a chain')) mult*=1.05;//CC3: Heavenly Pantry
+		if (Game.Has('Waffle iron of destiny')) mult*=1.07;
+		if (Game.Has('Grandma\'s recipe box')) mult*=1.1;
 		
 		if (Game.Has('Aura gloves'))
 		{

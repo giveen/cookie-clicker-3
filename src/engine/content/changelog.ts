@@ -68,6 +68,10 @@ export function declareVanillaChangelog(Game: EngineGame) {
 	Game.updateLog+=
 	
 	'</div><div class="subsection update">' +
+	'<div class="title">21/09/2026 - the Heavenly Pantry</div>' +
+	'<div class="listing">&bull; a new <b>Heavenly Pantry</b> prestige branch grows off the biscuit boxes: 17 food-themed heavenly upgrades from the Pantry key (50 chips) to The Eternal Feast (10,000), including golden-cookie tuning, discounts, offline earnings, extra starting cursors and a capstone that scales with how much of the pantry you own</div>' +
+	'<div class="listing">&bull; 3 new achievements for stocking the shelves — fill the whole pantry for a <b>+1% CpS</b> keystone perk</div>' +
+	'</div><div class="subsection update">' +
 	'<div class="title">21/09/2026 - the cookie zooms out to show all your cursors</div>' +
 	'<div class="listing">&bull; buy enough cursors and the big cookie now shrinks to keep the whole spiral on screen — the more cursors you own, the wider the view, and it eases back to full size as you spend them (wrinklers and all cookie-centered effects ride along)</div>' +
 	'<div class="listing">&bull; a new <b>Cookie zoom</b> option in Settings turns this off if you prefer the classic fixed size</div>' +

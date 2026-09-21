@@ -5,6 +5,13 @@ picked up, traded, or dropped as we go. Checked items are shipped.
 
 ## Recently shipped (context)
 
+- **Heavenly Pantry** — a 17-upgrade prestige branch off the vanilla biscuit
+  boxes (50 → 10,000 chips), filling the late-heavenly-tree gap. Icons are
+  extracted from dotoridev's free 500+ pixel-food pack by
+  `scripts/extract-food-icons.mjs` into `public/img/foodIcons.png` (append-only
+  manifest; ~1,750 more sprites available for future content). 3 achievements
+  + a +1% CpS keystone for completing the branch. Verified by
+  `tests/pantry.spec.js`.
 - **Cookie cow** — a second companion pet mirroring the cookie dragon,
   unlocked by "How to milk a cookie cow" (9 heavenly chips, prestige pool)
   + "A certain cow" (25 cookies). It grows eleven times (1 million → 10

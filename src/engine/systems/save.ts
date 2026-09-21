@@ -789,6 +789,7 @@ export function LoadSave(data?: any,ignoreVersionIssues?: any)
 						{
 							if (Game.Has('Starter kit')) Game.Objects['Cursor'].free=10;
 							if (Game.Has('Lucky start')) Game.Objects['Cursor'].free+=3;
+							if (Game.Has('Bottomless honey jar')) Game.Objects['Cursor'].free+=5;//CC3: Heavenly Pantry
 							if (Game.Has('Starter kitchen')) Game.Objects['Grandma'].free=5;
 						}
 						
@@ -833,6 +834,7 @@ export function LoadSave(data?: any,ignoreVersionIssues?: any)
 								if (Game.Has('Ichor syrup')) percent+=7;
 								if (Game.Has('Fortune #102')) percent+=1;
 								if (Game.Has('Night watch')) percent+=2;
+								if (Game.Has('Everlasting gravy boat')) percent+=2;//CC3: Heavenly Pantry
 							}
 							
 							var timeOfflineOptimal=Math.min(timeOffline,maxTime);

@@ -64,7 +64,9 @@ export class Upgrade {
 	declare vanilla: number;
 	/* Ctor-assigned data the old interface left to the index signature;
 	 * declared here so the contract is complete on the class. */
-	declare power: number;
+	declare power: any;//number | function — the gains calc calls function powers (see Sugar crystal cookies, Bottomless pantry)
+	declare pantry: number;//CC3: 1 for Heavenly Pantry branch upgrades (drives PantryUpgradesOwned)
+	declare pseudoCookie: number;//CC3: prestige-pool upgrade whose power feeds the cookie-upgrade multiplier
 	declare unlockAt: number;
 	declare techUnlock: unknown[];
 	declare parents: unknown[];
@@ -121,6 +123,7 @@ export class Upgrade {
 				if (Game.Has('Divine sales')) price*=0.99;
 				if (Game.Has('Fortune #100')) price*=0.99;
 				if (Game.Has('Tidy pantry')) price*=0.99;
+				if (Game.Has('Dimensional spice rack')) price*=0.99;//CC3: Heavenly Pantry
 				if (this.kitten && Game.Has('Kitten wages')) price*=0.9;
 				if (Game.hasBuff('Haggler\'s luck')) price*=0.98;
 				if (Game.hasBuff('Haggler\'s misery')) price*=1.02;

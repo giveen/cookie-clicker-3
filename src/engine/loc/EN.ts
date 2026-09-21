@@ -3430,6 +3430,12 @@ export default { id: "EN", name: "english", strings: {
 	"Cookie zoom": "/",
 	"shrink the cookie to keep all your cursors on screen": "/",
 
+	//Heavenly Pantry (only strings not already in the table — the rest reuse vanilla keys)
+	"Unlocks the <b>Heavenly Pantry</b>.": "/",
+	"Cookie production multiplier <b>+%1% per Heavenly Pantry upgrade owned.": "/",
+	"Own <b>%1 Heavenly Pantry upgrades</b>.": "/",
+	"Own <b>every Heavenly Pantry upgrade</b>.": "/",
+
 	"Soundtrack": "/",
 	"Track": "/",
 
