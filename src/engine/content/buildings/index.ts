@@ -71,7 +71,7 @@ export function declareVanillaBuildings(Game: EngineGame) {
 	// Canvases are attached later (in BuildStore), so we must not guard on
 	// `b.canvas` here — the draw function checks for a canvas at call time.
 	const stackDraw=makeStackDraw(Game);
-	const KEEP_OWN_DRAW: Record<string, boolean>={Grandma:true,Cats:true,Farm:true,Mine:true,Factory:true,Bank:true,Temple:true,'Wizard tower':true,Shipment:true};
+	const KEEP_OWN_DRAW: Record<string, boolean>={Grandma:true,Cats:true,Farm:true,Mine:true,Factory:true,Bank:true,Temple:true,'Wizard tower':true,Shipment:true,'Alchemy lab':true};
 	for (const name in Game.Objects)
 	{
 		const b:any=Game.Objects[name];
