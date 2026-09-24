@@ -23,8 +23,13 @@ export function declareTimeMachine(Game: EngineGame) {
 		});
 		Game.last.displayName='<span style="font-size:80%;letter-spacing:-1px;position:relative;bottom:3px;">Time machine</span>';//shrink
 
-		// CC3: staggered, overlapping vertical-stack layout with aspect-ratio horizontal background tiling.
+		// CC3: same staggered, overlapping vertical-stack treatment as other remastered buildings,
+		// on the shared STACK layout. Back rows are shaded for atmospheric depth.
 		var tmObj=Game.Objects['Time machine'];
+		var tmCellW=64;
+		var tmCellH=80;
+		var tmSheetCols=3;
+		var tmSheetRows=2;
 		tmObj.draw=function(this: Building)
 		{
 			if (this.amount<=0||!this.canvas||!this.ctx) return false;
@@ -56,33 +61,28 @@ export function declareTimeMachine(Game: EngineGame) {
 			}
 
 			var sheet=Pic(this.art.pic);
-			if (sheet.width !== this._stackSheetW || sheet.height !== this._stackSheetH) {
-				this.pics = [];
-				this._stackSheetW = sheet.width;
-				this._stackSheetH = sheet.height;
-			}
-			var nativeW=sheet.width;
-			var nativeH=sheet.height;
-			var scale=Math.min(1,STACK_TARGET_H/nativeH);
-			var drawW=nativeW*scale;
-			var drawH=nativeH*scale;
+			// Rebuild pics if the sheet size changed since they were built
+			if (sheet.width!==this._stackSheetW||sheet.height!==this._stackSheetH) {this.pics=[];this._stackSheetW=sheet.width;this._stackSheetH=sheet.height;}
+			var cellSrcW=sheet.naturalWidth?Math.round(sheet.naturalWidth/tmSheetCols):tmCellW;
+			var cellSrcH=sheet.naturalHeight?Math.round(sheet.naturalHeight/tmSheetRows):tmCellH;
+			var scale=Math.min(1,STACK_TARGET_H/tmCellH);
+			var drawW=tmCellW*scale;
+			var drawH=tmCellH*scale;
 			var canvasW=this.canvas.width;
 			var canvasH=this.canvas.height;
 			var dims=stackDims(canvasW,canvasH,drawW,drawH);
 			var iT=Math.min(this.amount,dims.perRow*dims.numRows);
 
 			var i=this.pics.length;
-			if (i!==iT)
+			if (i!=iT)
 			{
 				while (i<iT)
 				{
 					Math.seedrandom(Game.seed+' '+this.id+' '+i);
 					var pos=stackPosition(i,canvasW,canvasH,drawW,drawH);
-					this.pics.push({
-						x:Math.floor(pos.x),y:Math.floor(pos.y),z:pos.z,
-						pic:this.art.pic,id:i,
-						drawW,drawH,born:Game.T
-					});
+					var sx=(i%tmSheetCols)*cellSrcW;
+					var sy=(Math.floor(i/tmSheetCols)%tmSheetRows)*cellSrcH;
+					this.pics.push({x:Math.floor(pos.x),y:Math.floor(pos.y),z:pos.z,pic:this.art.pic,id:i,frame:0,flip:Math.random()<0.5,sx:sx,sy:sy,srcW:cellSrcW,srcH:cellSrcH,drawW:drawW,drawH:drawH,born:Game.T});
 					i++;
 				}
 				while (i>iT)
@@ -93,15 +93,24 @@ export function declareTimeMachine(Game: EngineGame) {
 				}
 				this.pics.sort(Game.sortSprites);
 			}
-
-			for (var k=0;k<this.pics.length;k++)
+			ctx.imageSmoothingEnabled=true;
+			for (var i=0;i<this.pics.length;i++)
 			{
-				var pic:any=this.pics[k];
-				var p=Pic(pic.pic);
+				var pic:any=this.pics[i];
+				// Back rows sit in atmospheric shade; front row is fully lit
 				ctx.globalAlpha=Math.floor(pic.id/dims.perRow)>0?0.88:1;
-				ctx.drawImage(p,
-					Math.floor(pic.x),Math.floor(pic.y),
-					Math.floor(pic.drawW),Math.floor(pic.drawH));
+				if (pic.flip)
+				{
+					ctx.save();
+					ctx.translate(pic.x+pic.drawW,pic.y);
+					ctx.scale(-1,1);
+					ctx.drawImage(sheet,pic.sx,pic.sy,pic.srcW||cellSrcW,pic.srcH||cellSrcH,0,0,pic.drawW,pic.drawH);
+					ctx.restore();
+				}
+				else
+				{
+					ctx.drawImage(sheet,pic.sx,pic.sy,pic.srcW||cellSrcW,pic.srcH||cellSrcH,pic.x,pic.y,pic.drawW,pic.drawH);
+				}
 			}
 			ctx.globalAlpha=1;
 			return true;
