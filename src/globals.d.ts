@@ -310,6 +310,8 @@ declare global {
 			resetView: () => void;
 			getView3D: () => { rotX: number; rotZ: number; zoom: number; offX: number; offY: number };
 			_addTranscendUI: () => void;
+			updateTopBarWidget: () => void;
+			appendStats: () => void;
 			save: () => string;
 			load: (str: string) => void;
 			/* What the last completion announced ('<h3>…</h3>…' for a dialog,

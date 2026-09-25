@@ -1137,6 +1137,58 @@ test('doctrine solar system view supports 3D orbit controls and billboarding', a
 	await assertNoUncaughtErrors(page);
 });
 
+test('transcendence access points: top bar widget, stats menu, and Layer 1 full reset', async ({ page }) => {
+	await boot(page, '&qa=transcend');
+	await qaReport(page, /PASS: transcendence/, 60_000);
+
+	// 1. Completion prompt option 0 "Open Doctrine Tree" works
+	await expect(page.locator('#promptOption0')).toHaveText('Open Doctrine Tree');
+	await page.click('#promptOption0');
+	await expect(page.locator('#doctrineFullView')).toHaveCount(1);
+	await page.evaluate(() => window.__cc3Transcendence.closeDoctrineTree(true));
+	await expect(page.locator('#doctrineFullView')).toHaveCount(0);
+
+	// 2. Top bar widget is present in #comments and reflects EE count
+	const topBarWidget = page.locator('#transcendTopBarBtn');
+	await expect(topBarWidget).toBeVisible();
+	const widgetText = await topBarWidget.innerText();
+	expect(widgetText).toContain('✦');
+	expect(widgetText).toContain('EE');
+
+	// Clicking top bar widget opens 3D doctrine view
+	await topBarWidget.click();
+	await expect(page.locator('#doctrineFullView')).toHaveCount(1);
+	await page.evaluate(() => window.__cc3Transcendence.closeDoctrineTree(true));
+	await expect(page.locator('#doctrineFullView')).toHaveCount(0);
+
+	// 3. Stats menu displays Transcendence block
+	await page.evaluate(() => window.Game.ShowMenu('stats'));
+	const statsMenu = page.locator('#menu');
+	await expect(statsMenu).toBeVisible();
+	await expect(statsMenu).toContainText('Transcendence');
+	await expect(statsMenu).toContainText('Eternal Essence:');
+	await expect(statsMenu).toContainText('Transcendences performed:');
+	await expect(page.locator('#statsOpenDoctrineBtn')).toBeVisible();
+
+	// Clicking button in stats menu opens 3D doctrine view
+	await page.click('#statsOpenDoctrineBtn');
+	await expect(page.locator('#doctrineFullView')).toHaveCount(1);
+	await page.evaluate(() => window.__cc3Transcendence.closeDoctrineTree(true));
+	await expect(page.locator('#doctrineFullView')).toHaveCount(0);
+
+	// 4. Verify Layer 1 reset integrity: prestige and heavenly chips wiped
+	const prestigeState = await page.evaluate(() => ({
+		prestige: window.Game.prestige,
+		heavenlyChips: window.Game.heavenlyChips,
+		heavenlyChipsSpent: window.Game.heavenlyChipsSpent,
+	}));
+	expect(prestigeState.prestige).toBe(0);
+	expect(prestigeState.heavenlyChips).toBe(0);
+	expect(prestigeState.heavenlyChipsSpent).toBe(0);
+
+	await assertNoUncaughtErrors(page);
+});
+
 test('?qa=minipanel: all four classic minigame panels ease with the click point pinned', async ({ page }) => {
 	await boot(page, '&qa=minipanel');
 	const report = await qaReport(

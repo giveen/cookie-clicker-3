@@ -432,7 +432,10 @@
 			_lastAnnouncement = '<h3>Transcendence complete!</h3>' + body;
 			G.Prompt(
 				_lastAnnouncement,
-				[['Continue', 'Game.ClosePrompt();PlaySound(\'snd/tick.mp3\');']]
+				[
+					['Open Doctrine Tree', 'Game.ClosePrompt();PlaySound(\'snd/tick.mp3\');window.__cc3Transcendence.showDoctrineTree();'],
+					['Continue', 'Game.ClosePrompt();PlaySound(\'snd/tick.mp3\');']
+				]
 			);
 		} else {
 			_lastAnnouncement = '+' + eeGain + ' Eternal Essence (lifetime: ' + state.eeEarned + ').<br>Transcendences: ' + state.transcendences;
@@ -618,6 +621,9 @@
 		if (G.OnAscend) {
 			updateTranscendButton();
 		}
+
+		// Update top bar celestial widget
+		updateTopBarWidget();
 
 		// Check for the unlock condition (only once per visit)
 		checkUnlock();
@@ -825,20 +831,21 @@
 		const btn = document.createElement('a');
 		btn.id = 'transcendButton';
 		btn.className = 'option framed large';
-		btn.style.cssText = 'display:none;font-size:20px;margin-top:4px;';
+		btn.style.cssText = 'display:none;font-size:20px;margin-top:4px;cursor:pointer;';
 		btn.onclick = function () {
 			PlaySound('snd/tick.mp3');
 			const eeGain = computeEE(G.cookiesReset + G.cookiesEarned);
 			if (eeGain <= 0) return;
-			const msg = 'Are you ready to Transcend?<div class="line"></div>' +
-				'You will lose everything — prestige, heavenly upgrades, building levels, sugar lumps.<div class="line"></div>' +
+			const msg = 'Are you ready to Transcend into the Second Prestige Layer?<div class="line"></div>' +
+				'You will sacrifice everything from the mortal realm: all <b>prestige levels</b>, <b>heavenly chips</b>, and <b>heavenly upgrades</b> will be wiped clean.<br>You will have to grind your way back from scratch, empowered by the cosmos.<div class="line"></div>' +
 				'You will gain <b>+' + eeGain + ' Eternal Essence</b> (lifetime: ' + (state.eeEarned + eeGain) + ').<br>' +
-				'Transcendences: ' + (state.transcendences + 1);
+				'Transcendences: ' + (state.transcendences + 1) + '<br>' +
+				'Your unlocked Doctrine Tree perks and milestones will remain permanently active.';
 			G.Prompt(
 				'<h3>Transcend</h3><div class="block">' + msg + '</div>',
 				[
-					['Yes', 'Game.ClosePrompt();window.__cc3Transcendence.startTranscendWithPicker();'],
-					['No', 0],
+					['Transcend', 'Game.ClosePrompt();window.__cc3Transcendence.startTranscendWithPicker();'],
+					['Cancel', 0],
 				]
 			);
 		};
@@ -866,6 +873,101 @@
 			showDoctrineTree();
 		};
 		container.appendChild(toggle);
+	}
+
+	/* ================================================================
+	 * UI: TOP BAR CELESTIAL WIDGET
+	 * ================================================================
+	 * Displays spendable EE in the top comments bar (above Legacy) and
+	 * gives direct access to the 3D celestial sphere during live gameplay. */
+
+	function updateTopBarWidget(): void {
+		const G = window.Game;
+		if (!G) return;
+		const comments = document.getElementById('comments');
+		if (!comments) return;
+
+		const visible = canTranscend() || state.eeEarned > 0 || state.transcendences > 0;
+		let btn = document.getElementById('transcendTopBarBtn');
+		if (!visible) {
+			if (btn) btn.style.display = 'none';
+			return;
+		}
+
+		if (!btn) {
+			btn = document.createElement('div');
+			btn.id = 'transcendTopBarBtn';
+			btn.className = 'panelButton';
+			btn.style.cssText =
+				'position:absolute;bottom:62px;right:0px;cursor:pointer;z-index:100;' +
+				'background:radial-gradient(ellipse at 50% 50%, rgba(130,60,230,0.88) 0%, rgba(20,5,40,0.95) 100%);' +
+				'border:1px solid rgba(255,215,0,0.6);border-radius:4px 0 0 4px;' +
+				'padding:4px 8px;font-size:11px;color:#ffd700;box-shadow:0 0 10px rgba(160,80,255,0.4);' +
+				'transition:box-shadow 0.2s, border-color 0.2s;text-align:center;user-select:none;';
+			btn.onclick = function () {
+				PlaySound('snd/tick.mp3');
+				showDoctrineTree();
+			};
+			btn.onmouseenter = function () {
+				if (G.tooltip && G.tooltip.draw) {
+					const desc = '<div style="min-width:180px;text-align:center;font-size:11px;padding:6px;">' +
+						'<b style="color:#ffd700;">Celestial Doctrine Tree</b><div class="line"></div>' +
+						'Spendable EE: <b>' + state.ee + '</b><br>' +
+						'Doctrine Nodes: <b>' + state.doctrine.length + '/' + DOCTRINE.length + '</b><div class="line"></div>' +
+						'<small>Click to open the 3D celestial sphere.</small></div>';
+					G.tooltip.draw(this, desc, 'bottom-right');
+				}
+			};
+			btn.onmouseleave = function () {
+				if (G.tooltip && G.tooltip.hide) G.tooltip.hide();
+			};
+			comments.appendChild(btn);
+		}
+
+		btn.style.display = 'block';
+		btn.innerHTML = '<span style="color:#f8c0ff;">✦</span> ' + state.ee + ' <small style="font-size:9px;color:#ddd;">EE</small>';
+	}
+
+	/* ================================================================
+	 * UI: STATS SCREEN INTEGRATION
+	 * ================================================================ */
+
+	function appendStats(): void {
+		const G = window.Game;
+		if (!G) return;
+		const menu = document.getElementById('menu');
+		if (!menu || document.getElementById('cc3TranscendStats')) return;
+		if (!canTranscend() && state.eeEarned === 0 && state.transcendences === 0) return;
+
+		const wrap = document.createElement('div');
+		wrap.id = 'cc3TranscendStats';
+		wrap.className = 'selectable';
+
+		const nextGain = computeEE(G.cookiesReset + G.cookiesEarned);
+		let milestoneList = '';
+		if (state.milestones.length > 0) {
+			milestoneList = '<div class="listing"><b>Milestones unlocked:</b> ' +
+				state.milestones.map((th) => {
+					const m = MILESTONES.find((item) => item.threshold === th);
+					return m ? `<span title="${m.desc}" style="color:#c084fc;">${m.name}</span>` : `${th} EE`;
+				}).join(', ') + '</div>';
+		}
+
+		wrap.innerHTML =
+			'<div class="section" style="margin-top:16px;">Transcendence (Second Prestige Layer)</div>' +
+			'<div class="subsection">' +
+			'<div class="title">Celestial Sphere & Eternal Essence</div>' +
+			'<div class="listing"><b>Eternal Essence:</b> <span style="color:#ffd700;font-weight:bold;">' + state.ee + '</span> <small>(lifetime earned: ' + state.eeEarned + ')</small></div>' +
+			'<div class="listing"><b>Transcendences performed:</b> ' + state.transcendences + '</div>' +
+			'<div class="listing"><b>Current run EE gain:</b> +' + nextGain + ' EE</div>' +
+			'<div class="listing"><b>Doctrine nodes unlocked:</b> ' + state.doctrine.length + ' / ' + DOCTRINE.length + '</div>' +
+			milestoneList +
+			'<div style="margin-top:8px;">' +
+			'<a id="statsOpenDoctrineBtn" class="option framed small" style="cursor:pointer;font-size:11px;" onclick="PlaySound(\'snd/tick.mp3\');window.__cc3Transcendence.showDoctrineTree();">Open 3D Doctrine Tree</a>' +
+			'</div>' +
+			'</div>';
+
+		menu.appendChild(wrap);
 	}
 
 	/* ================================================================
@@ -1910,6 +2012,7 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 		_uiAdded = true;
 		addTranscendButton();
 		addDoctrineToggle();
+		updateTopBarWidget();
 	}
 
 	/* ================================================================
@@ -2030,6 +2133,13 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 			};
 		}
 
+		// Stats menu integration
+		if (G.customStatsMenu) {
+			G.customStatsMenu.push(function () {
+				appendStats();
+			});
+		}
+
 		// Check if the gate is already met (for returning players who loaded a save)
 		if (canTranscend()) {
 			_addTranscendUI();
@@ -2092,6 +2202,8 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 			return { rotX: _rotX, rotZ: _rotZ, zoom: _viewZoom, offX: _viewOffX, offY: _viewOffY };
 		},
 		_addTranscendUI,
+		updateTopBarWidget,
+		appendStats,
 		save,
 		load,
 		/* What the last completion announced ('<h3>…</h3>…' for a dialog, the
