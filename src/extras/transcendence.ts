@@ -1326,7 +1326,6 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 .doctrine-orbit-ring {
   position:absolute; top:50%; left:50%; border-radius:50%;
   transform-style:preserve-3d; pointer-events:none;
-  box-shadow:inset 0 0 15px rgba(255,255,255,0.02);
 }
 .doctrine-sun {
   position:absolute; top:50%; left:50%; border-radius:50%;
@@ -1396,7 +1395,7 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 /* 3D Luminous constellation filaments */
 .doctrine-filament {
   position:absolute;
-  height:2px;
+  height:1px;
   transform-style:preserve-3d;
   pointer-events:none;
   transform-origin:0% 50%;
@@ -1652,7 +1651,7 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 				} else {
 					// 3D orbit rotation: horizontal drag rotates azimuth/yaw, vertical tilts pitch
 					_rotZ = (_viewDragRotZ + dx * 0.45) % 360;
-					_rotX = Math.max(15, Math.min(82, _viewDragRotX + dy * 0.35));
+					_rotX = Math.max(25, Math.min(68, _viewDragRotX + dy * 0.35));
 				}
 				_applyViewTransform(viewport);
 			}
@@ -1719,7 +1718,7 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 				}
 				if (_viewDragging) {
 					_rotZ = (_viewDragRotZ + dx * 0.45) % 360;
-					_rotX = Math.max(15, Math.min(82, _viewDragRotX + dy * 0.35));
+					_rotX = Math.max(25, Math.min(68, _viewDragRotX + dy * 0.35));
 					_applyViewTransform(viewport);
 				}
 			} else if (touchMode === 'pinch' && e.touches.length === 2) {
@@ -1763,8 +1762,8 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 				switch (e.key) {
 					case 'ArrowLeft': _rotZ = (_rotZ - 6) % 360; _applyViewTransform(viewport); break;
 					case 'ArrowRight': _rotZ = (_rotZ + 6) % 360; _applyViewTransform(viewport); break;
-					case 'ArrowUp': _rotX = Math.max(15, _rotX - 5); _applyViewTransform(viewport); break;
-					case 'ArrowDown': _rotX = Math.min(82, _rotX + 5); _applyViewTransform(viewport); break;
+					case 'ArrowUp': _rotX = Math.max(25, _rotX - 5); _applyViewTransform(viewport); break;
+					case 'ArrowDown': _rotX = Math.min(68, _rotX + 5); _applyViewTransform(viewport); break;
 				}
 			}
 		});
@@ -1828,10 +1827,10 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 
 		// Draw 4 celestial tier orbit rings (golden baseline requirement for QA)
 		const ringColors = [
-			'rgba(255,215,80,0.16)',
-			'rgba(100,200,255,0.16)',
-			'rgba(210,120,255,0.16)',
-			'rgba(100,255,200,0.16)'
+			'rgba(255,215,80,0.12)',
+			'rgba(100,200,255,0.12)',
+			'rgba(210,120,255,0.12)',
+			'rgba(100,255,200,0.12)'
 		];
 		for (const orbitIndex of [0, 1, 2, 3]) {
 			const r = radii[orbitIndex];
@@ -1840,8 +1839,7 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 			ring.style.cssText =
 				'position:absolute;top:50%;left:50%;width:' + (r * 2) + 'px;height:' + (r * 2) + 'px;' +
 				'margin:' + (-r) + 'px;border-radius:50%;' +
-				'border:1px solid ' + ringColors[orbitIndex] + ';' +
-				'box-shadow:0 0 8px ' + ringColors[orbitIndex].replace('0.16', '0.08') + ',inset 0 0 8px ' + ringColors[orbitIndex].replace('0.16', '0.08') + ';' +
+				'border:1px dashed ' + ringColors[orbitIndex] + ';' +
 				'pointer-events:none;';
 			container.appendChild(ring);
 		}
@@ -1890,16 +1888,16 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 				filament.className = 'doctrine-filament';
 				const isOwnedLink = c1.owned && c2.owned;
 				const isAvailableLink = c1.owned && c2.canBuy;
-				const opacity = isOwnedLink ? '0.92' : isAvailableLink ? '0.72' : '0.22';
-				const glowSize = isOwnedLink ? '10px' : isAvailableLink ? '6px' : '2px';
+				const opacity = isOwnedLink ? '0.70' : isAvailableLink ? '0.45' : '0.15';
+				const glowSize = isOwnedLink ? '2px' : '0px';
 
 				filament.style.cssText =
 					'position:absolute;left:' + (cx + c1.x) + 'px;top:' + (cy + c1.y) + 'px;' +
-					'width:' + length + 'px;height:2px;' +
+					'width:' + length + 'px;height:1px;' +
 					'transform-origin:0% 50%;' +
 					'transform:translateZ(' + c1.z + 'px) rotateZ(' + rotZ + 'deg) rotateY(' + (-pitch) + 'deg);' +
 					'background:' + b.glow + ';' +
-					'box-shadow:0 0 ' + glowSize + ' ' + b.glow + ';' +
+					(glowSize !== '0px' ? 'box-shadow:0 0 ' + glowSize + ' ' + b.glow + ';' : '') +
 					'opacity:' + opacity + ';' +
 					'border-radius:1px;pointer-events:none;';
 				container.appendChild(filament);
