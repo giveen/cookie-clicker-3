@@ -278,6 +278,7 @@ export function declareVanillaUpgrades(Game: EngineGame) {
 		{
 			Game.Lock('Elder Covenant');
 			Game.Unlock('Elder Covenant');
+			Game.storeToRefresh=1;
 		});
 		Game.last.pool='toggle';
 		

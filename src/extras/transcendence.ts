@@ -775,7 +775,7 @@
 		gt.customListPush.push(function (me: any, _list: string[]): void {
 			const G2 = window.Game;
 			if (!G2 || !doctrineHas(8)) return;
-			if (G2.ascensionMode !== 1 || hasMilestone(1000)) return; // not Born-again, or Omega
+			if (G2.ascensionMode !== 1) return; // only in Born-again (Ascetic) runs
 			// 20% probability — matches the rough wrath rate at max elderWrath
 			if (Math.random() < 0.20) me.wrath = 1;
 		});

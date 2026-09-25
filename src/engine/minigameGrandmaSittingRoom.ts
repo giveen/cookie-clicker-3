@@ -88,6 +88,7 @@ interface SittingRoomMinigame {
 	teatimeFrenzyTimer: number;
 	goldenYarn: { spawnTime: number } | null;
 	shopBulkMode: 1 | 10 | 'max';
+	lastElderWrath: number;
 
 	/* --- derived values / actions --- */
 	effectiveStacks: (name: string) => number;
@@ -152,6 +153,7 @@ M.launch = function (this: SittingRoomMinigame) {
 		M.teatimeFrenzyTimer = 0;
 		M.goldenYarn = null;
 		M.shopBulkMode = 1;
+		M.lastElderWrath = Game.elderWrath;
 
 		M.setShopBulkMode = function (mode: 1 | 10 | 'max') {
 			M.shopBulkMode = mode;
@@ -173,7 +175,7 @@ M.launch = function (this: SittingRoomMinigame) {
 				combos.push({ name: 'Rocking Stories', desc: '+10% Grandma CpS', type: 'cozy' });
 			}
 			if (assignedIds.indexOf('chant') >= 0 && assignedIds.indexOf('choir') >= 0) {
-				combos.push({ name: 'Dark Coven', desc: '+15% Wrinkler & Wrath payout', type: 'eldritch' });
+				combos.push({ name: 'Dark Coven', desc: '+15% Wrinkler spawn & +10% Wrath payout', type: 'eldritch' });
 			}
 			return combos;
 		};
@@ -257,11 +259,11 @@ M.launch = function (this: SittingRoomMinigame) {
 			var effs: Record<string, number> = { grandmaCps: 1, wrathCookieGain: 1, wrathCookieFreq: 1, wrathCookieDur: 1, wrinklerSpawn: 1, wrinklerEat: 1 };
 			if (comfort >= 0) {
 				effs.grandmaCps = 1 + 0.02 * comfort;
-				effs.wrathCookieFreq = 1 + 0.01 * comfort;
+				effs.wrathCookieFreq = 1 / (1 + 0.01 * comfort);
 			} else {
 				var w = -comfort;
 				effs.wrathCookieGain = 1 + 0.03 * w;
-				effs.wrathCookieFreq = 1 / (1 + 0.02 * w);
+				effs.wrathCookieFreq = 1 + 0.02 * w;
 				effs.wrinklerEat = 1 + 0.02 * w;
 				effs.wrinklerSpawn = 1 + 0.03 * w;
 				effs.grandmaCps = 1 - 0.01 * w;
@@ -571,6 +573,9 @@ M.launch = function (this: SittingRoomMinigame) {
 			}
 			str += '</div>';
 		}
+		if (M.goldenYarn) {
+			str += '<div class="roomGoldenYarn" id="roomGoldenYarn" title="Golden yarn ball! Click to catch!"></div>';
+		}
 		str += '</div>';
 		str += '</div>';
 		return str;
@@ -717,6 +722,10 @@ M.launch = function (this: SittingRoomMinigame) {
 				AddEvent(btn2, 'click', function (name: string) { return function () { M.buyUpgrade(name); }; }(M.upgradeNames[j]));
 			}
 		}
+		var gy = l('roomGoldenYarn');
+		if (gy) {
+			AddEvent(gy, 'click', function () { M.clickGoldenYarn(); });
+		}
 		M.computeEffs();
 	};
 
@@ -780,7 +789,6 @@ M.launch = function (this: SittingRoomMinigame) {
 			var allCozy = M.currentComfort() >= 6;
 			Game.extraAchCounters.cozyStreak = Math.max(0, Math.min(24 * 3600 + 5, Game.extraAchCounters.cozyStreak + (allCozy ? 1 : -3) / Game.fps));
 		}
-		var rate = M.yarnPerSecond();
 		if (rate > 0) {
 			M.yarnTrickle += rate / Game.fps;
 			if (M.yarnTrickle >= 1) {
@@ -803,10 +811,29 @@ M.launch = function (this: SittingRoomMinigame) {
 			for (var s = 0; s < M.seats.length; s++) { if (M.seats[s] >= 0) occupiedSeats.push(s); }
 			if (occupiedSeats.length > 0) {
 				var chosenSeat = occupiedSeats[Math.floor(Math.random() * occupiedSeats.length)];
-				var teas = ["Earl Grey Tea", "Chamomile Tea", "Warm Milk & Cookies", "Matcha Latte"];
+				var act = M.activities[M.seats[chosenSeat]];
+				var teas = (act && act.comfort < 0)
+					? ["Blood Tea", "Boiling Ichor", "Nightshade Infusion", "Dark Molasses"]
+					: ["Earl Grey Tea", "Chamomile Tea", "Warm Milk & Cookies", "Matcha Latte"];
 				M.teaRequest = { seatIdx: chosenSeat, teaType: teas[Math.floor(Math.random() * teas.length)], expiresAt: Date.now() + 25000 };
 				M.refresh();
 			}
+		}
+
+		// Golden yarn roll
+		if (M.goldenYarn && Date.now() - M.goldenYarn.spawnTime > 15000) {
+			M.goldenYarn = null;
+			M.refresh();
+		}
+		if (!M.goldenYarn && Math.random() < (1 / (180 * Game.fps))) {
+			M.goldenYarn = { spawnTime: Date.now() };
+			M.refresh();
+		}
+
+		// Re-render shelf/controls when elderWrath state shifts
+		if (M.lastElderWrath !== Game.elderWrath) {
+			M.lastElderWrath = Game.elderWrath;
+			M.refresh();
 		}
 
 		M.computeEffs();

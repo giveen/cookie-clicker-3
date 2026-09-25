@@ -2725,9 +2725,9 @@ if (debugSurface && params.get('qa') === 'sittingroom') {
 
 			// 4. effs contract (what CalculateGains aggregates)
 			setSeats([0, 1, 1, 0, 0, 1]);
-			chk('cozy +6 effs (grandmaCps +12%, wrath cookies rarer)', Math.abs(M.effs.grandmaCps - 1.12) < 1e-12 && Math.abs(M.effs.wrathCookieFreq - 1.06) < 1e-12);
+			chk('cozy +6 effs (grandmaCps +12%, wrath cookies rarer)', Math.abs(M.effs.grandmaCps - 1.12) < 1e-12 && Math.abs(M.effs.wrathCookieFreq - 1 / 1.06) < 1e-12);
 			setSeats([4, 4, 4, 4, 4, 4]);
-			chk('eldritch -6 effs (wrath gain +18%, wrinklers +18%, grandmaCps -6%)', Math.abs(M.effs.wrathCookieGain - 1.18) < 1e-12 && Math.abs(M.effs.wrinklerSpawn - 1.18) < 1e-12 && Math.abs(M.effs.grandmaCps - 0.94) < 1e-12 && Math.abs(M.effs.wrathCookieFreq - 1 / 1.12) < 1e-12);
+			chk('eldritch -6 effs (wrath gain +18%, wrinklers +18%, grandmaCps -6%)', Math.abs(M.effs.wrathCookieGain - 1.18) < 1e-12 && Math.abs(M.effs.wrinklerSpawn - 1.18) < 1e-12 && Math.abs(M.effs.grandmaCps - 0.94) < 1e-12 && Math.abs(M.effs.wrathCookieFreq - 1.12) < 1e-12);
 
 			// 5. yarn economy, repeatable stacks, CpS hookup
 			setSeats([-1, -1, -1, -1, -1, -1]); // neutral: comfort 0
