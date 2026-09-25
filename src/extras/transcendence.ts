@@ -935,24 +935,28 @@
 		let btn = document.getElementById('transcendTopBarBtn');
 		if (!canAfford) {
 			if (btn) btn.style.display = 'none';
+			const commentsText = document.getElementById('commentsText');
+			if (commentsText) commentsText.style.right = '';
 			return;
 		}
 
 		if (!btn) {
-			btn = document.createElement('div');
-			btn.id = 'transcendTopBarBtn';
-			btn.className = 'panelButton';
-			btn.style.cssText =
-				'position:absolute;bottom:62px;right:0px;cursor:pointer;z-index:100;' +
-				'background:radial-gradient(ellipse at 50% 50%, rgba(130,60,230,0.88) 0%, rgba(20,5,40,0.95) 100%);' +
-				'border:1px solid rgba(255,215,0,0.6);border-radius:4px 0 0 4px;' +
-				'padding:4px 8px;font-size:11px;color:#ffd700;box-shadow:0 0 10px rgba(160,80,255,0.4);' +
-				'transition:box-shadow 0.2s, border-color 0.2s;text-align:center;user-select:none;';
-			btn.onclick = function () {
+			const target = document.createElement('div');
+			btn = target;
+			target.id = 'transcendTopBarBtn';
+			target.style.cssText =
+				'position:absolute;bottom:18px;right:104px;cursor:pointer;z-index:100;' +
+				'background:radial-gradient(ellipse at 50% 50%, rgba(130,60,230,0.92) 0%, rgba(20,5,40,0.98) 100%);' +
+				'border:1px solid rgba(255,215,0,0.7);border-radius:4px;' +
+				'padding:4px 8px;font-size:11px;color:#ffd700;box-shadow:0 0 10px rgba(160,80,255,0.5), inset 0 0 4px rgba(160,80,255,0.4);' +
+				'transition:box-shadow 0.2s, border-color 0.2s;text-align:center;user-select:none;white-space:nowrap;';
+			target.onclick = function () {
 				PlaySound('snd/tick.mp3');
 				showDoctrineTree();
 			};
-			btn.onmouseenter = function () {
+			target.onmouseenter = function () {
+				target.style.borderColor = '#ffe555';
+				target.style.boxShadow = '0 0 14px rgba(200,100,255,0.8), inset 0 0 6px rgba(160,80,255,0.6)';
 				if (G.tooltip && G.tooltip.draw) {
 					const eeGain = computeEE(G.cookiesReset + G.cookiesEarned);
 					const canT = canTranscend() && eeGain > 0;
@@ -972,10 +976,12 @@
 					G.tooltip.draw(this, desc, 'bottom-right');
 				}
 			};
-			btn.onmouseleave = function () {
+			target.onmouseleave = function () {
+				target.style.borderColor = 'rgba(255,215,0,0.7)';
+				target.style.boxShadow = '0 0 10px rgba(160,80,255,0.5), inset 0 0 4px rgba(160,80,255,0.4)';
 				if (G.tooltip && G.tooltip.hide) G.tooltip.hide();
 			};
-			comments.appendChild(btn);
+			comments.appendChild(target);
 		}
 
 		btn.style.display = 'block';
@@ -987,6 +993,8 @@
 		} else {
 			btn.innerHTML = '<span style="color:#f8c0ff;">✦</span> +' + eeGain + ' <small style="font-size:9px;color:#ddd;">EE</small>';
 		}
+		const commentsText = document.getElementById('commentsText');
+		if (commentsText) commentsText.style.right = (btn.offsetWidth + 112) + 'px';
 	}
 
 	/* ================================================================

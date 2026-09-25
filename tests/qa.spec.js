@@ -1206,6 +1206,30 @@ test('transcendence access points: top bar widget, stats menu, and Layer 1 full 
 	expect(widgetText).toContain('✦');
 	expect(widgetText).toContain('EE');
 
+	// Verify widget does not overlap Info button (#logButton) or Legacy button (#legacyButton)
+	const infoBox = await page.locator('#logButton').boundingBox();
+	const legacyBox = await page.locator('#legacyButton').boundingBox();
+	const widgetBox = await topBarWidget.boundingBox();
+	expect(infoBox).not.toBeNull();
+	expect(legacyBox).not.toBeNull();
+	expect(widgetBox).not.toBeNull();
+	if (infoBox && legacyBox && widgetBox) {
+		const overlapsInfo = !(
+			widgetBox.x + widgetBox.width <= infoBox.x ||
+			widgetBox.x >= infoBox.x + infoBox.width ||
+			widgetBox.y + widgetBox.height <= infoBox.y ||
+			widgetBox.y >= infoBox.y + infoBox.height
+		);
+		expect(overlapsInfo).toBe(false);
+		const overlapsLegacy = !(
+			widgetBox.x + widgetBox.width <= legacyBox.x ||
+			widgetBox.x >= legacyBox.x + legacyBox.width ||
+			widgetBox.y + widgetBox.height <= legacyBox.y ||
+			widgetBox.y >= legacyBox.y + legacyBox.height
+		);
+		expect(overlapsLegacy).toBe(false);
+	}
+
 	// Clicking top bar widget opens 3D doctrine view
 	await topBarWidget.click();
 	await expect(page.locator('#doctrineFullView')).toHaveCount(1);
