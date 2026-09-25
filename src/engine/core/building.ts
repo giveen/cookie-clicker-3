@@ -1096,7 +1096,7 @@ export class Building {
 							else ctx.fillStyle='rgba(255,255,255,0.7)';
 							ctx.fillText(text,Math.floor(x+width/2),Math.floor(y+16));
 							
-							ctx.drawImage(sprite,Math.floor(pic.x+Math.random()*4-2),Math.floor(pic.y+Math.random()*4-2));
+							ctx.drawImage(sprite,Math.floor(pic.x+Math.random()*4-2),Math.floor(pic.y+Math.random()*4-2),64,64);
 						}
 						//else if (1) ctx.drawImage(sprite,0,0,sprite.width,sprite.height,pic.x,pic.y,sprite.width,sprite.height);
 						else if (this.name=='Grandma' && Game.prefs.animate)
@@ -1115,7 +1115,7 @@ export class Building {
 							ctx.rotate(sway);
 							ctx.scale(breathe,breathe);
 							if (pic.frame!=-1) ctx.drawImage(sprite,(sprite.width/frames)*pic.frame,0,sprite.width/frames,sprite.height,-32,-64,sprite.width/frames,sprite.height);
-							else ctx.drawImage(sprite,-32,-64);
+							else ctx.drawImage(sprite,-32,-64,64,64);
 							ctx.restore();
 						}
 						else
@@ -1125,6 +1125,7 @@ export class Building {
 							var age=Game.T-(pic.born||Game.T);
 							var bounce=age>=0 && age<24?Math.sin(age/24*Math.PI)*5:0;
 							if (pic.frame!=-1) ctx.drawImage(sprite,(sprite.width/frames)*pic.frame,0,sprite.width/frames,sprite.height,pic.x,pic.y-bounce,(sprite.width/frames),sprite.height);
+							else if (this.name=='Grandma') ctx.drawImage(sprite,pic.x,pic.y-bounce,64,64);
 							else ctx.drawImage(sprite,pic.x,pic.y-bounce);
 						}
 						
