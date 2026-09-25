@@ -131,6 +131,15 @@ interface MarketMinigame {
 	getBrokerPrice: () => number;
 	getOppSlots: () => number;
 
+	/* --- opportunity system --- */
+	oppT: number;
+	currentOpps: MarketOpportunityInstance[];
+	oppChoicesOpen: boolean;
+	generateOpportunities: () => void;
+	executeOpportunity: (index: number) => void;
+	dismissOpportunities: () => void;
+	renderOpportunityModal: () => void;
+
 	/* --- trading --- */
 	buyGood: (id: number, n: number) => boolean;
 	sellGood: (id: number, n: number) => boolean;
@@ -141,6 +150,17 @@ interface MarketMinigame {
 	checkGraphScale: () => boolean | undefined;
 	tick: () => void;
 	drawGraph: (full: boolean) => void;
+}
+
+export interface MarketOpportunityInstance {
+	id: string;
+	title: string;
+	subtitle: string;
+	desc: string;
+	tag: string;
+	tagColor: string;
+	icon: number[];
+	execute: () => void;
 }
 
 var M = {} as MarketMinigame;
@@ -419,11 +439,11 @@ M.launch=function(this: MarketMinigame)
 		
 		M.officeLevel=0;
 		M.offices=[
-			{name:'Credit garage',icon:[0,33],cost:[100,2],desc:'This is your starting office.<br>Upgrading will grant you:<br><b><!--&bull; +1 opportunity slot<br>-->&bull; +25 warehouse space for all goods</b>'},
+			{name:'Credit garage',icon:[0,33],cost:[100,2],desc:'This is your starting office.<br>Upgrading will grant you:<br><b>&bull; +1 opportunity slot<br>&bull; +25 warehouse space for all goods</b>'},
 			{name:'Tiny bank',icon:[9,33],cost:[200,4],desc:'This is your office.<br>Upgrading will grant you:<br><b>&bull; +1 loan slot<br>&bull; +50 warehouse space for all goods</b>'},
-			{name:'Loaning company',icon:[10,33],cost:[350,8],desc:'This is your office.<br>Upgrading will grant you:<br><!--<b>&bull; +1 opportunity slot<br>-->&bull; +75 warehouse space for all goods</b>'},
+			{name:'Loaning company',icon:[10,33],cost:[350,8],desc:'This is your office.<br>Upgrading will grant you:<br><b>&bull; +1 opportunity slot<br>&bull; +75 warehouse space for all goods</b>'},
 			{name:'Finance headquarters',icon:[11,33],cost:[500,10],desc:'This is your office.<br>Upgrading will grant you:<br><b>&bull; +1 loan slot<br>&bull; +100 warehouse space for all goods</b>'},
-			{name:'International exchange',icon:[12,33],cost:[700,12],desc:'This is your office.<br>Upgrading will grant you:<br><b>&bull; +1 loan slot<br><!--&bull; +1 opportunity slot<br>-->&bull; +50% base warehouse space for all goods</b>'},
+			{name:'International exchange',icon:[12,33],cost:[700,12],desc:'This is your office.<br>Upgrading will grant you:<br><b>&bull; +1 loan slot<br>&bull; +1 opportunity slot<br>&bull; +50% base warehouse space for all goods</b>'},
 			{name:'Palace of Greed',icon:[18,33],cost:0,desc:'This is your office.<br>It is fully upgraded. Its lavish interiors, spanning across innumerable floors, are host to many a decadent party, owing to your nigh-unfathomable wealth.'},
 		];
 		
@@ -522,23 +542,378 @@ M.launch=function(this: MarketMinigame)
 			if (M.officeLevel>4) slots++;
 			return slots;
 		}
-		
-		//note : opportunity system to be added later maybe
+
+		/* Opportunity System */
+		M.oppT=0;
+		M.currentOpps=[];
+		M.oppChoicesOpen=false;
+
+		M.generateOpportunities=function()
+		{
+			var slots=M.getOppSlots();
+			if (slots<=0) return;
+			if (M.oppT>Date.now()) return;
+
+			// Candidate maneuver templates
+			var templates=[
+				{
+					id:'bullish_rumor',
+					title:'Bullish Rumor',
+					subtitle:'Targeted Market Manipulation',
+					desc:'Leak insider tips to business outlets. Selects a random active stock to enter Fast Rise mode for up to 10 minutes and gives it an immediate +$15 price surge.',
+					tag:'AGGRESSIVE',
+					tagColor:'#73f21e',
+					icon:[10,33],
+					create:function(): MarketOpportunityInstance {
+						var activeGoods=M.goodsById.filter(function(g){return g.active;});
+						var target=choose(activeGoods) || M.goodsById[0];
+						return {
+							id:'bullish_rumor',
+							title:'Bullish Rumor ('+target.symbol+')',
+							subtitle:'Targeted Market Surge: '+target.name,
+							desc:'Spread glowing analyst projections for <b>'+target.company+'</b> ('+target.name+'). Immediately boosts price by <b>+$15</b> and switches trend to <b>Fast Rise</b> mode for 10 minutes.',
+							tag:'BULLISH',
+							tagColor:'#73f21e',
+							icon:target.icon,
+							execute:function(){
+								target.val+=15;
+								target.mode=3; // Fast rise
+								target.dur=10;
+								target.d=Math.max(target.d,0.5);
+								M.checkGraphScale();
+								M.toRedraw=2;
+								Game.Notify('Bullish Rumor!',target.name+' ('+target.symbol+') surged +$15 and entered Fast Rise mode!',target.icon);
+							}
+						};
+					}
+				},
+				{
+					id:'short_attack',
+					title:'Short Seller Attack',
+					subtitle:'Aggressive Price Depression',
+					desc:'Commission predatory research reports against an active stock, driving its price down towards $5 so you can accumulate cheap shares.',
+					tag:'BEARISH',
+					tagColor:'#f21e3c',
+					icon:[11,33],
+					create:function(): MarketOpportunityInstance {
+						var activeGoods=M.goodsById.filter(function(g){return g.active;});
+						var target=choose(activeGoods) || M.goodsById[0];
+						return {
+							id:'short_attack',
+							title:'Short Attack ('+target.symbol+')',
+							subtitle:'Depress '+target.name+' Value',
+							desc:'Commission hit pieces against <b>'+target.company+'</b> ('+target.name+'). Cuts price down towards $5 and locks it in a rapid slide for 8 minutes so you can stock up.',
+							tag:'BEARISH',
+							tagColor:'#f21e3c',
+							icon:target.icon,
+							execute:function(){
+								target.val=Math.max(5,Math.floor(target.val*0.4));
+								target.mode=4; // Fast fall
+								target.dur=8;
+								target.d=Math.min(target.d,-0.4);
+								M.checkGraphScale();
+								M.toRedraw=2;
+								Game.Notify('Short Attack!',target.name+' ('+target.symbol+') collapsed to $'+Beautify(target.val,2)+'!',target.icon);
+							}
+						};
+					}
+				},
+				{
+					id:'hostile_takeover',
+					title:'Hostile Takeover',
+					subtitle:'Discount Acquisition',
+					desc:'Leverage corporate raiders to instantly acquire up to 50 available shares of an active commodity at a 50% discount off market price.',
+					tag:'EXPANSION',
+					tagColor:'#a358ff',
+					icon:[12,33],
+					create:function(): MarketOpportunityInstance {
+						var candidates=M.goodsById.filter(function(g){return g.active && g.stock<M.getGoodMaxStock(g);});
+						var target=choose(candidates) || M.goodsById[0];
+						return {
+							id:'hostile_takeover',
+							title:'Takeover: '+target.symbol,
+							subtitle:'Bulk Acquisition at 50% Discount',
+							desc:'Acquire up to 50 shares of <b>'+target.name+'</b> at half price (costs 50% of regular buy price with no broker fee).',
+							tag:'DISCOUNT',
+							tagColor:'#a358ff',
+							icon:target.icon,
+							execute:function(){
+								var max=M.getGoodMaxStock(target);
+								var canBuy=Math.min(50,max-target.stock);
+								if (canBuy<=0) {
+									Game.Notify('Takeover aborted','Warehouse already full of '+target.name+'!',target.icon);
+									return;
+								}
+								var unitPrice=M.getGoodPrice(target)*0.5;
+								var totalCost=unitPrice*canBuy*Game.cookiesPsRawHighest;
+								if (Game.cookies<totalCost) {
+									canBuy=Math.floor(Game.cookies/(unitPrice*Game.cookiesPsRawHighest));
+									totalCost=unitPrice*canBuy*Game.cookiesPsRawHighest;
+								}
+								if (canBuy<=0) {
+									Game.Notify('Takeover failed','Not enough cookies to buy shares!',target.icon);
+									return;
+								}
+								Game.Spend(totalCost);
+								target.stock+=canBuy;
+								target.last=1;
+								M.toRedraw=2;
+								PlaySound('snd/cashIn2.mp3',0.6);
+								Game.Notify('Hostile Takeover!','Acquired '+canBuy+' shares of '+target.name+' at 50% off!',target.icon);
+							}
+						};
+					}
+				},
+				{
+					id:'market_bubble',
+					title:'Speculative Frenzy',
+					subtitle:'High Volatility Surge',
+					desc:'Pump extreme speculative hype into 3 random stocks, setting them into chaotic high-variance fluctuations and activating an economy surge.',
+					tag:'VOLATILE',
+					tagColor:'#ffd700',
+					icon:[18,33],
+					create:function(): MarketOpportunityInstance {
+						return {
+							id:'market_bubble',
+							title:'Speculative Frenzy',
+							subtitle:'Chaotic Market Volatility',
+							desc:'Unleash wild trading chaos! 3 random commodities enter <b>Chaotic</b> mode, and you receive an immediate 10-minute <b>+25% CpS</b> economic surge.',
+							tag:'VOLATILE',
+							tagColor:'#ffd700',
+							icon:[18,33],
+							execute:function(){
+								var active=M.goodsById.filter(function(g){return g.active;});
+								var shuffled=active.slice().sort(function(){return Math.random()-0.5;});
+								var count=Math.min(3,shuffled.length);
+								for (var k=0;k<count;k++) {
+									shuffled[k].mode=5; // chaotic
+									shuffled[k].dur=15;
+									shuffled[k].d+=(Math.random()-0.5)*1.5;
+								}
+								Game.gainBuff('frenzy',10*60,1.25);
+								M.toRedraw=2;
+								Game.Notify('Market Frenzy!','3 commodities entered chaotic mode with an economic surge!',[18,33]);
+							}
+						};
+					}
+				},
+				{
+					id:'bailout',
+					title:'Government Bailout',
+					subtitle:'Direct Economic Grant',
+					desc:'File emergency relief paperwork with corporate regulators. Grants an immediate subsidy equal to 15 minutes of raw CpS and a 1-hour +10% CpS recovery grant.',
+					tag:'SAFETY',
+					tagColor:'#2e8b57',
+					icon:[9,33],
+					create:function(): MarketOpportunityInstance {
+						return {
+							id:'bailout',
+							title:'Government Bailout',
+							subtitle:'Direct Treasury Grant',
+							desc:'Secure an emergency corporate stimulus package: <b>15 minutes of raw CpS cookies</b> immediately, plus a <b>1-hour +10% CpS</b> grant.',
+							tag:'SAFETY',
+							tagColor:'#2e8b57',
+							icon:[9,33],
+							execute:function(){
+								var grant=Game.cookiesPsRawHighest*60*15;
+								Game.Earn(grant);
+								Game.gainBuff('frenzy',60*60,1.1);
+								PlaySound('snd/cashIn2.mp3',0.6);
+								Game.Notify('Bailout Granted!','Received '+Beautify(grant)+' cookies and a 1-hour subsidy!',[9,33]);
+							}
+						};
+					}
+				},
+				{
+					id:'liquidation',
+					title:'Emergency Liquidation',
+					subtitle:'High-Premium Exit',
+					desc:'Execute a sweetheart private-equity block trade. Liquidates your largest stock holding at a 150% premium with zero broker commission fees.',
+					tag:'LIQUIDATE',
+					tagColor:'#00c0ff',
+					icon:[1,33],
+					create:function(): MarketOpportunityInstance {
+						var largest: Good | null=null;
+						for (var g=0;g<M.goodsById.length;g++) {
+							var it=M.goodsById[g];
+							if (it.active && it.stock>0) {
+								if (!largest || it.stock>largest.stock) largest=it;
+							}
+						}
+						var target=largest || M.goodsById[0];
+						return {
+							id:'liquidation',
+							title:'Premium Liquidation',
+							subtitle:'Block Sale: '+target.name,
+							desc:target.stock>0
+								? 'Sell all <b>'+target.stock+' shares</b> of <b>'+target.name+'</b> at <b>150% market value</b> with 0% broker fee.'
+								: 'Sell your largest commodity holding at <b>150% market value</b> with 0% broker fee (no stock currently held; offers emergency cash).',
+							tag:'PREMIUM',
+							tagColor:'#00c0ff',
+							icon:target.icon,
+							execute:function(){
+								if (target.stock<=0) {
+									var smallGrant=Game.cookiesPsRawHighest*60*5;
+									Game.Earn(smallGrant);
+									Game.Notify('Liquidation empty','No shares were in storage; secured $300 cash settlement!',target.icon);
+									return;
+								}
+								var shares=target.stock;
+								var costInS=target.val*1.5;
+								var cookiesGained=Game.cookiesPsRawHighest*costInS*shares;
+								Game.Earn(cookiesGained);
+								M.profit+=costInS*shares;
+								target.stock=0;
+								target.last=2;
+								M.toRedraw=2;
+								PlaySound('snd/cashIn.mp3',0.6);
+								Game.Notify('Block Sale Executed!','Sold '+shares+' shares of '+target.name+' at 150% for '+Beautify(cookiesGained)+' cookies!',target.icon);
+							}
+						};
+					}
+				},
+				{
+					id:'quantitative_easing',
+					title:'Quantitative Easing',
+					subtitle:'Market Floor Stabilization',
+					desc:'The central bank injects liquidity across the trading floor. Halts falling prices and props any active stock valued under $15 up to $15.',
+					tag:'STABILIZE',
+					tagColor:'#ff9800',
+					icon:[0,33],
+					create:function(): MarketOpportunityInstance {
+						return {
+							id:'quantitative_easing',
+							title:'Quantitative Easing',
+							subtitle:'Universal Price Floor',
+							desc:'Establish a liquidity floor. All active stocks trading under $15 are lifted to <b>$15</b>, and declining modes are calmed into Stable mode.',
+							tag:'STABILIZE',
+							tagColor:'#ff9800',
+							icon:[0,33],
+							execute:function(){
+								var boosted=0;
+								for (var k=0;k<M.goodsById.length;k++) {
+									var g=M.goodsById[k];
+									if (!g.active) continue;
+									if (g.val<15) {
+										g.val=15;
+										boosted++;
+									}
+									if (g.mode==2 || g.mode==4) g.mode=0; // Stabilize falling trends
+								}
+								M.checkGraphScale();
+								M.toRedraw=2;
+								PlaySound('snd/cashIn2.mp3',0.6);
+								Game.Notify('Quantitative Easing','Market liquidity injected: boosted '+boosted+' stocks to $15 floor!',[0,33]);
+							}
+						};
+					}
+				}
+			];
+
+			// Pick `slots` distinct maneuvers randomly
+			var shuffled=templates.slice().sort(function(){return Math.random()-0.5;});
+			M.currentOpps=[];
+			for (var i=0;i<slots && i<shuffled.length;i++) {
+				M.currentOpps.push(shuffled[i].create());
+			}
+
+			M.oppChoicesOpen=true;
+			M.renderOpportunityModal();
+		};
+
+		M.executeOpportunity=function(index: number)
+		{
+			if (!M.currentOpps[index]) return;
+			var opp=M.currentOpps[index];
+			opp.execute();
+			M.oppT=Date.now()+1000*60*60; // 1-hour cooldown
+			M.dismissOpportunities();
+			PlaySound('snd/cashIn2.mp3',0.6);
+		};
+
+		M.dismissOpportunities=function()
+		{
+			M.oppChoicesOpen=false;
+			M.currentOpps=[];
+			var modal=l('bankOppModal');
+			if (modal) modal.style.display='none';
+		};
+
+		M.renderOpportunityModal=function()
+		{
+			var modal=l('bankOppModal');
+			if (!modal) return;
+			if (!M.oppChoicesOpen || M.currentOpps.length===0) {
+				modal.style.display='none';
+				return;
+			}
+
+			var str='<div style="background:#000;border:2px solid #e29e3a;box-shadow:0 0 24px rgba(0,0,0,0.9);padding:14px;border-radius:6px;max-width:680px;margin:20px auto;position:relative;">';
+			str+='<div style="font-size:18px;font-weight:bold;color:#f2d58a;margin-bottom:4px;text-align:center;">OPPORTUNITY DESK</div>';
+			str+='<div style="font-size:11px;color:rgba(255,255,255,0.7);margin-bottom:12px;text-align:center;">Select 1 corporate maneuver to execute. Your office allows <b>'+M.getOppSlots()+'</b> simultaneous choice'+(M.getOppSlots()===1?'':'s')+'.</div>';
+			str+='<div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">';
+
+			for (var i=0;i<M.currentOpps.length;i++) {
+				var op=M.currentOpps[i];
+				str+='<div class="bankOppCard" id="bankOppCard-'+i+'" style="flex:1 1 180px;max-width:210px;background:#1a1a1a;border:1px solid #444;border-radius:4px;padding:10px;box-sizing:border-box;display:flex;flex-direction:column;justify-content:space-between;text-align:left;position:relative;cursor:pointer;transition:border-color 0.2s,transform 0.2s;">';
+				str+='<div>';
+				str+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">';
+				str+='<div class="icon" style="transform:scale(0.6);margin:-10px -10px -10px -10px;background-position:'+(-op.icon[0]*48)+'px '+(-op.icon[1]*48)+'px;"></div>';
+				str+='<span style="font-size:9px;font-weight:bold;color:'+op.tagColor+';border:1px solid '+op.tagColor+';padding:1px 4px;border-radius:3px;">'+op.tag+'</span>';
+				str+='</div>';
+				str+='<div style="font-size:13px;font-weight:bold;color:#fff;margin-bottom:2px;">'+op.title+'</div>';
+				str+='<div style="font-size:10px;color:#aaa;margin-bottom:8px;">'+op.subtitle+'</div>';
+				str+='<div style="font-size:10px;color:rgba(255,255,255,0.8);line-height:1.3;">'+op.desc+'</div>';
+				str+='</div>';
+				str+='<div class="bankButton bankButtonBuy" style="margin-top:10px;text-align:center;padding:5px;font-size:11px;">EXECUTE</div>';
+				str+='</div>';
+			}
+
+			str+='</div>';
+			str+='<div style="text-align:center;margin-top:12px;">';
+			str+='<div id="bankOppDismiss" class="bankSimpleButton" style="display:inline-block;padding:4px 10px;font-size:11px;color:#aaa;">Dismiss for now</div>';
+			str+='</div>';
+			str+='</div>';
+
+			modal.innerHTML=str;
+			modal.style.display='block';
+
+			for (var j=0;j<M.currentOpps.length;j++) {
+				var card=l('bankOppCard-'+j);
+				if (card) {
+					AddEvent(card,'click',(function(idx){
+						return function(){
+							M.executeOpportunity(idx);
+						};
+					})(j));
+				}
+			}
+			var dismissBtn=l('bankOppDismiss');
+			if (dismissBtn) {
+				AddEvent(dismissBtn,'click',function(){
+					M.dismissOpportunities();
+				});
+			}
+		};
 		
 		M.oppTooltip=function()
 		{
 			return function(){
+				var slots=M.getOppSlots();
 				var str='<div style="padding:8px 4px;min-width:350px;">'+
 				'<div class="name">Generate opportunity</div>'+
 				'<div class="line"></div><div class="description" style="font-size:11px;">'+
-					'Pressing this button gives you up to 3 possible actions to choose from, depending on your office level.<br>These actions will let you manipulate the stock market to some degree, though some are riskier than others.<br>You may only generate an opportunity once an hour, though this can be refreshed with a sugar lump.'+
+					'Pressing this button gives you up to 3 financial maneuvers to choose from, scaled by your office level.<br>These maneuvers let you trigger targeted rallies, short attacks, discount acquisitions, or bailout grants.<br>You may generate an opportunity once every hour, though this can be refreshed with a sugar lump.<br><br>'+
+					'&bull; Available choices for your office: <b>'+slots+'</b><br>'+
+					(slots<=0?'<b class="red">Requires Level 2 Office (Tiny bank) or higher!</b><br>':'')+
+					(M.oppT>Date.now()?'Cooldown remaining: <b class="red">'+Game.sayTime(((M.oppT-Date.now())/1000)*Game.fps,-1)+'</b>':'<b class="green">Ready to generate!</b>')+
 				'</div>';
 				return str;
 			};
 		}
 		
 		M.refillTooltip=function(){
-			return '<div style="padding:8px;width:300px;font-size:11px;text-align:center;">Click to refill your opportunity timer (and give a quick burst to your economy) for <span class="price lump">1 sugar lump</span>.'+
+			return '<div style="padding:8px;width:300px;font-size:11px;text-align:center;">Click to refill your opportunity timer (and grant 10 minutes of CpS economic burst) for <span class="price lump">1 sugar lump</span>.'+
 				(Game.canRefillLump()?'<br><small>(can be done once every '+Game.sayTime(Game.getLumpRefillMax(),-1)+')</small>':('<br><small class="red">(usable again in '+Game.sayTime(Game.getLumpRefillRemaining()+Game.fps,-1)+')</small>'))+
 			'</div>';
 		};
@@ -571,10 +946,13 @@ M.launch=function(this: MarketMinigame)
 		'.bankSimpleButton{font-weight:bold;font-size:10px;cursor:pointer;text-decoration:underline;color:rgba(255,255,255,0.9);text-shadow:0px 1px #000;}'+
 		'.bankSimpleButton:active{opacity:0.5;}'+
 		'.bankSimpleButton:hover{color:#fff;}'+
+		'#bankOppModal{display:none;position:absolute;left:0;right:0;top:0;bottom:0;background:rgba(0,0,0,0.82);z-index:100;overflow-y:auto;padding:10px;box-sizing:border-box;}'+
+		'.bankOppCard:hover{border-color:#e29e3a !important;transform:translateY(-2px);}'+
 		'</style>';
 		
 		str+='<div id="bankBG"></div>';
 		str+='<div id="bankContent">';
+			str+='<div id="bankOppModal"></div>';
 			
 			str+='<div id="bankHeader" style="z-index:10;position:relative;">'+
 				'<div>'+
@@ -582,7 +960,7 @@ M.launch=function(this: MarketMinigame)
 					'<div id="bankOffice" style="display:inline-block;padding:0px 4px;" '+Game.getDynamicTooltip('Game.ObjectsById['+M.parent.id+'].minigame.officeTooltip()','this')+'><div id="bankOfficeIcon" class="icon" style="pointer-events:none;display:inline-block;transform:scale(0.5);margin:-16px -18px -12px -14px;vertical-align:middle;background-position:'+(-0*48)+'px '+(-33*48)+'px;"></div><span id="bankOfficeName" class="bankSymbol" style="width:128px;"></span><div class="bankButton bankButtonBuy bankButtonOff" id="bankOfficeUpgrade">-</div></div>'+
 					'<div id="bankBrokers" style="display:inline-block;padding:0px 4px;" '+Game.getDynamicTooltip('Game.ObjectsById['+M.parent.id+'].minigame.brokersTooltip()','this')+'><div id="bankBrokersIcon" class="icon" style="pointer-events:none;display:inline-block;transform:scale(0.5);margin:-16px -18px -12px -14px;vertical-align:middle;background-position:'+(-1*48)+'px '+(-33*48)+'px;"></div><span id="bankBrokersText" class="bankSymbol" style="width:96px;">no brokers</span><div class="bankButton bankButtonBuy bankButtonOff" id="bankBrokersBuy">Hire</div></div>'+
 					'<div style="display:inline-block;padding:0px 4px;"><div id="bankLoan1" style="display:none;" class="bankButton bankButtonSell bankButtonOff" '+Game.getDynamicTooltip('Game.ObjectsById['+M.parent.id+'].minigame.loanTooltip(1)','this')+'>1st loan</div><div id="bankLoan2" style="display:none;" class="bankButton bankButtonSell bankButtonOff" '+Game.getDynamicTooltip('Game.ObjectsById['+M.parent.id+'].minigame.loanTooltip(2)','this')+'>2nd loan</div><div id="bankLoan3" style="display:none;" class="bankButton bankButtonSell bankButtonOff" '+Game.getDynamicTooltip('Game.ObjectsById['+M.parent.id+'].minigame.loanTooltip(3)','this')+'>3rd loan</div></div>'+
-					/*'<div style="display:inline-block;padding:0px 4px;"><div id="bankOpp" class="bankButton bankButtonBuy bankButtonOff" '+Game.getDynamicTooltip('Game.ObjectsById['+M.parent.id+'].minigame.oppTooltip()','this')+'>Generate opportunity</div> <div class="bankSymbol" style="position:relative;font-size:10px;color:rgba(255,255,255,0.6);padding-left:16px;"><div '+Game.getDynamicTooltip('Game.ObjectsById['+M.parent.id+'].minigame.refillTooltip','this')+' id="bankLumpRefill" class="usesIcon shadowFilter lumpRefill" style="left:-18px;top:-18px;background-position:'+(-29*48)+'px '+(-14*48)+'px;"></div>refresh</div></div>'+*/
+					'<div style="display:inline-block;padding:0px 4px;"><div id="bankOpp" class="bankButton bankButtonBuy bankButtonOff" '+Game.getDynamicTooltip('Game.ObjectsById['+M.parent.id+'].minigame.oppTooltip()','this')+'>Generate opportunity</div> <div class="bankSymbol" style="position:relative;font-size:10px;color:rgba(255,255,255,0.6);padding-left:16px;"><div '+Game.getDynamicTooltip('Game.ObjectsById['+M.parent.id+'].minigame.refillTooltip','this')+' id="bankLumpRefill" class="usesIcon shadowFilter lumpRefill" style="left:-18px;top:-18px;background-position:'+(-29*48)+'px '+(-14*48)+'px;"></div>refresh</div></div>'+
 				'</div>';
 			
 			for (var i=0;i<M.goodsById.length;i++)
@@ -695,6 +1073,36 @@ M.launch=function(this: MarketMinigame)
 		AddEvent(l('bankLoan3'),'click',function(e){
 			if (M.takeLoan(3)) {PlaySound('snd/cashIn2.mp3',0.6);Game.SparkleOn(e.target);}
 		});
+
+		var oppBtn=l('bankOpp');
+		if (oppBtn)
+		{
+			AddEvent(oppBtn,'click',function(e){
+				if (M.getOppSlots()<=0) return;
+				if (M.oppT>Date.now()) return;
+				M.generateOpportunities();
+				PlaySound('snd/tick.mp3');
+				Game.SparkleOn(e.target);
+			});
+		}
+
+		var refillBtn=l('bankLumpRefill');
+		if (refillBtn)
+		{
+			AddEvent(refillBtn,'click',function(e){
+				if (!Game.canRefillLump()) return;
+				Game.refillLump(1,function(){
+					M.oppT=0;
+					// Quick economic burst: 10 minutes of highest raw CpS
+					var burst=Game.cookiesPsRawHighest*60*10;
+					Game.Earn(burst);
+					M.toRedraw=2;
+					PlaySound('snd/cashIn2.mp3',0.6);
+					Game.SparkleOn(e.target);
+					Game.Notify('Opportunity timer refilled!','Your financial desk is ready, plus an economic grant of '+Beautify(burst)+' cookies!',[29,14]);
+				});
+			});
+		}
 		
 		for (var i=0;i<M.goodsById.length;i++)
 		{
@@ -847,6 +1255,7 @@ M.launch=function(this: MarketMinigame)
 			str+=parseInt(it.val*100, 10)+':'+parseInt(it.mode, 10)+':'+parseInt(it.d*100, 10)+':'+parseInt(it.dur, 10)+':'+parseInt(it.stock, 10)+':'+parseInt(it.hidden?1:0, 10)+':'+parseInt(it.last, 10)+'!';
 		}
 		str+=' '+parseInt(M.parent.onMinigame?'1':'0', 10);
+		str+=' '+parseFloat((M.oppT||0) as any);
 		return str;
 	}
 	M.load=function(str: string)
@@ -886,6 +1295,8 @@ M.launch=function(this: MarketMinigame)
 		M.onResize();
 		
 		var on=parseInt((spl[i++]||0) as string, 10);if (on && Game.ascensionMode!=1) M.parent.switchMinigame(1);
+		M.oppT=parseFloat((spl[i++]||0) as string)||0;
+		M.dismissOpportunities();
 		return;
 	}
 	M.reset=function(hard?: boolean)
@@ -894,6 +1305,8 @@ M.launch=function(this: MarketMinigame)
 		M.toRedraw=0;
 		M.officeLevel=0;
 		M.brokers=0;
+		M.oppT=0;
+		M.dismissOpportunities();
 		
 		if (hard) {M.graphLines=1;M.graphCols=0;}M.setCols();
 		M.hoverOnGood=-1;
@@ -1213,6 +1626,36 @@ M.launch=function(this: MarketMinigame)
 			{
 				if (Game.hasBuff('Loan '+id) || Game.hasBuff('Loan '+id+' (interest)')) l('bankLoan'+id).classList.add('bankButtonOff');
 				else l('bankLoan'+id).classList.remove('bankButtonOff');
+			}
+
+			var oppL=l('bankOpp');
+			if (oppL)
+			{
+				var oppSlots=M.getOppSlots();
+				if (oppSlots<=0)
+				{
+					oppL.innerHTML='Opportunity (Lvl 2 Office)';
+					oppL.classList.add('bankButtonOff');
+				}
+				else if (M.oppT>Date.now())
+				{
+					var remSec=Math.ceil((M.oppT-Date.now())/1000);
+					var remMin=Math.ceil(remSec/60);
+					oppL.innerHTML='Opportunity ('+remMin+'m)';
+					oppL.classList.add('bankButtonOff');
+				}
+				else
+				{
+					oppL.innerHTML='Generate opportunity';
+					oppL.classList.remove('bankButtonOff');
+				}
+			}
+
+			var refillL=l('bankLumpRefill');
+			if (refillL)
+			{
+				if (!Game.canRefillLump() || Game.lumps<1) refillL.classList.add('bankButtonOff');
+				else refillL.classList.remove('bankButtonOff');
 			}
 			
 			var it=l('bankBalance');
