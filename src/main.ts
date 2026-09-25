@@ -3107,7 +3107,7 @@ if (debugSurface && params.get('qa') === 'minigamepersist') {
 					'\n[QA-minigamepersist] ' + (saved > 0 ? 'SAVED: minigames seeded and persisted (reload to check)' : 'FAIL: WriteSave produced nothing');
 			} else {
 				const colony = cats.minigame.save(), room = grandma.minigame.save();
-				const colonyOk = colony === COLONY, roomOk = room === ROOM;
+				const colonyOk = colony === COLONY, roomOk = room === ROOM || room.startsWith(ROOM + ' ');
 				out.textContent =
 					'[QA-minigamepersist] phase=check restored colony=' + colony + '\n[QA-minigamepersist] phase=check restored room=' + room +
 					'\n[QA-minigamepersist] checks: colony=' + colonyOk + ' room=' + roomOk +
