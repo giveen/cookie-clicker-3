@@ -13,9 +13,9 @@
 import fs from 'node:fs';
 import { defineConfig } from '@playwright/test';
 
-// The baseline is a directory with a built dist/ — its own package.json is
+// The baseline is a directory with a built dist/ — its own dist/index.html is
 // the marker that this isn't a half-provisioned checkout.
-const hasMasterBaseline = fs.existsSync('.cc3-master/package.json');
+const hasMasterBaseline = fs.existsSync('.cc3-master/dist/index.html');
 
 export default defineConfig({
 	testDir: './tests',

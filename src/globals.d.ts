@@ -287,6 +287,7 @@ declare global {
 				ee: number; eeSpent: number; eeEarned: number;
 				transcendences: number; totalPrestigeAllTime: number;
 				milestones: number[]; doctrine: number[];
+				keptUpgrades: string[]; keptCosmetic: string;
 			};
 			DOCTRINE: readonly { id: number; name: string; branch: string; desc: string; icon: number[]; cost: number; parents: number[] }[];
 			MILESTONES: readonly { threshold: number; name: string; desc: string }[];
@@ -294,6 +295,8 @@ declare global {
 			computeEE: (cookiesTotal: number) => number;
 			canTranscend: () => boolean;
 			doTranscend: (bypass?: boolean) => void;
+			startTranscendWithPicker: () => void;
+			showUpgradePicker: (slots: number, onConfirm: (chosen: string[]) => void) => void;
 			purchase: (nodeId: number) => boolean;
 			buyInTree: (nodeId: number) => void;
 			respec: () => void;
@@ -304,6 +307,8 @@ declare global {
 			hasMilestone: (threshold: number) => boolean;
 			showDoctrineTree: () => void;
 			closeDoctrineTree: (instant?: boolean) => void;
+			resetView: () => void;
+			getView3D: () => { rotX: number; rotZ: number; zoom: number; offX: number; offY: number };
 			_addTranscendUI: () => void;
 			save: () => string;
 			load: (str: string) => void;

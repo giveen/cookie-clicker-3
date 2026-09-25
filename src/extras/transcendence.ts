@@ -145,14 +145,22 @@
 	 * ================================================================ */
 
 	const state = {
-		ee: 0,                      // spendable Eternal Essence
-		eeSpent: 0,                // lifetime EE spent on Doctrine nodes
-		eeEarned: 0,               // lifetime EE earned (determines milestones)
-		transcendences: 0,         // number of Transcendences performed
-		totalPrestigeAllTime: 0,   // running total of prestige ever earned (updated on ascension)
-		milestones: [] as number[], // threshold values that have been reached
-		doctrine: [] as number[],   // ids of bought Doctrine nodes
+		ee: 0,                        // spendable Eternal Essence
+		eeSpent: 0,                   // lifetime EE spent on Doctrine nodes
+		eeEarned: 0,                  // lifetime EE earned (determines milestones)
+		transcendences: 0,            // number of Transcendences performed
+		totalPrestigeAllTime: 0,      // running total of prestige ever earned (updated on ascension)
+		milestones: [] as number[],   // threshold values that have been reached
+		doctrine: [] as number[],     // ids of bought Doctrine nodes
+		keptUpgrades: [] as string[], // prestige upgrade names kept by Steady Hand / Timeless milestone
+		keptCosmetic: '' as string,   // cosmetic upgrade name kept by First Light milestone
 	};
+
+	/** Cosmetic prestige upgrades eligible for the First Light milestone keep-slot. */
+	const COSMETIC_UPGRADE_NAMES: readonly string[] = [
+		'Classic dairy selection', 'Fanciful dairy selection',
+		'A world filled with cookies', 'Milk selector',
+	];
 
 	/* Internal tracking for prestige deltas. */
 	let _prestigeSeen = 0;
@@ -217,6 +225,26 @@
 
 	/* What the last completion announced (dialog HTML or toast body). */
 	let _lastAnnouncement = '';
+
+	/* Double Dip (node 10): buff-expiry tracking.
+	 * Maps the golden-cookie effect name (as used in popFunc) to the Game.buffs
+	 * key that the engine creates for it. Effects that don't produce a trackable
+	 * buff (chain, storm, building special) are mapped to ''. */
+	const DD_BUFF_MAP: Record<string, string> = {
+		'frenzy': 'Frenzy',
+		'multiply cookies': 'Elder frenzy',
+		'click frenzy': 'Click frenzy',
+		'blood frenzy': 'Blood frenzy',
+		'dragonflight': 'Dragonflight',
+		'dragon harvest': 'Dragon Harvest',
+		// Non-buff effects — not trackable, skip
+		'chain cookie': '', 'cookie storm': '', 'cookie storm drop': '',
+		'building special': '', 'free sugar lump': '', 'everything must go': '',
+		'cursed finger': '', 'clot': '', 'ruin cookies': '',
+		'blab': '', 'zoomies': '', 'hairball': '',
+	};
+	let _ddPending: { choice: string; buffName: string } | null = null;
+	let _ddBuffWasSeen = false;
 
 	/* The crumbling-cookie ascend intro is driven by Game.AscendTimer in
 	 * drawBackground.ts (the `else` of `if (Game.AscendTimer==0)` at line 173)
@@ -312,6 +340,13 @@
 		}
 		_lastMostOwnedBuilding = bestId;
 
+		// 2b. Snapshot First Light cosmetic (auto-select first owned cosmetic upgrade)
+		if (hasMilestone(1) && !state.keptCosmetic) {
+			for (const name of COSMETIC_UPGRADE_NAMES) {
+				if (G.Has && G.Has(name)) { state.keptCosmetic = name; break; }
+			}
+		}
+
 		// 3. Hard reset — clears buildings, non-prestige upgrades, buffs, seasons, etc.
 		// (Reset(1) also clears prestige upgrades because hard=1 bypasses the
 		//  pool='prestige' gate at reset.ts line 116.)
@@ -322,6 +357,30 @@
 		G.heavenlyChips = 0;
 		G.heavenlyChipsSpent = 0;
 		G.heavenlyCookies = 0;
+
+		// 4b. Restore kept prestige upgrades (Steady Hand / Timeless milestone).
+		// They were selected by the picker before doTranscend() was called, or are
+		// empty when QA-bypassing. Only restore if the milestone has been earned.
+		if (hasMilestone(25) && state.keptUpgrades.length > 0) {
+			for (const uName of state.keptUpgrades) {
+				const u = G.Upgrades && G.Upgrades[uName];
+				if (u && (u.pool === 'prestige' || u.pool === 'toggle')) {
+					u.bought = 1;
+					if (typeof u.buyFunc === 'function') { try { u.buyFunc(); } catch (_) {/* ignore side-effect errors */} }
+				}
+			}
+		}
+		// Restore First Light cosmetic upgrade (always auto-selected, no picker needed)
+		if (hasMilestone(1) && state.keptCosmetic) {
+			const u = G.Upgrades && G.Upgrades[state.keptCosmetic];
+			if (u && u.pool === 'prestige') {
+				u.bought = 1;
+				if (typeof u.buyFunc === 'function') { try { u.buyFunc(); } catch (_) {/* ignore */} }
+			}
+		}
+		// Clear kept lists so they're freshly set by the picker on the next Transcendence
+		state.keptUpgrades = [];
+		state.keptCosmetic = '';
 
 		// 5. Conditionally clear building levels and sugar lumps
 		if (!hasMilestone(100)) {
@@ -502,6 +561,9 @@
 		const G = window.Game;
 		if (!G) return;
 
+		// Close Doctrine view if open when reincarnating
+		closeDoctrineTree(true);
+
 		// Legacy Echo: grant 1 free building of the most-owned type from the previous run
 		if (doctrineHas(13) && _lastMostOwnedBuilding > 0) {
 			const o = G.ObjectsById[_lastMostOwnedBuilding];
@@ -516,13 +578,20 @@
 			G.Objects['Grandma'].getFree(5);
 		}
 
-		// Warm Embers: shimmering veil starts on by default
+		// Warm Embers (node 5): shimmering veil starts on by default after reincarnate.
+		// Deferred one tick so the store has rebuilt its upgrade objects before we toggle.
 		if (doctrineHas(5)) {
-			// The shimmering veil is the "Wrinkler pact" toggle. If it's available,
-			// start it. The game stores this as Game.pledges (0 = not pledged).
-			// Vanilla start: pledges=0. We override with a min pledge.
-			// Actually, this is complex — the veil is the Elder Pledge.
-			// For the draft, this effect is noted as a TODO.
+			window.setTimeout(function () {
+				const G2 = window.Game;
+				if (!G2 || !G2.Has || !G2.Has('Shimmering veil')) return;
+				// 'Shimmering veil [on]'.bought === 1 means the veil is currently ON.
+				// If it's off, buy the [on] upgrade to turn it on.
+				const veilOn = G2.Upgrades && G2.Upgrades['Shimmering veil [on]'];
+				if (veilOn && !veilOn.bought) {
+					veilOn.buy(1);
+					G2.recalculateGains = 1;
+				}
+			}, 0);
 		}
 	}
 
@@ -541,6 +610,9 @@
 
 		// Track prestige running total
 		trackPrestige();
+
+		// Double Dip (node 10): watch for buff expiry and echo the effect
+		_ddCheck();
 
 		// Update the Transcend button on the ascend screen
 		if (G.OnAscend) {
@@ -587,14 +659,142 @@
 		_origEff = G.eff.bind(G);
 		G.eff = function (name: string, def?: number) {
 			let v = _origEff!(name, def);
-			if (name === 'buildingCost' && doctrineHas(11)) {
+			// Skip Doctrine boosts in Born-again runs unless the Omega milestone
+			// has been earned (which unlocks "Born Eternal" — Doctrine works in ascensionMode=1).
+			const bornAgain = G.ascensionMode === 1 && !hasMilestone(1000);
+
+			// ── Rebuilder's Path ──
+			// Frugal Start (node 11): buildings up to 20% cheaper
+			if (name === 'buildingCost' && doctrineHas(11) && !bornAgain) {
 				v *= Math.max(0.8, 1 - 0.02 * state.transcendences);
 			}
-			if (name === 'upgradeCost' && doctrineHas(12)) {
+			// Measured Growth (node 12): upgrades up to 20% cheaper
+			if (name === 'upgradeCost' && doctrineHas(12) && !bornAgain) {
 				v *= Math.max(0.8, 1 - 0.02 * state.transcendences);
 			}
+
+			// ── Idler's Path ──
+			// Ambient Baking (node 6): wrinklers spawn 20% faster and hold 10% more cookies
+			if (!bornAgain && doctrineHas(6)) {
+				if (name === 'wrinklerSpawn') v *= 1.2;
+				if (name === 'wrinklerEat') v *= 1.1;
+			}
+			// Warm Embers (node 5): Elder Pledge / veil reactivation costs 50% less
+			if (name === 'veilActivateCost' && !bornAgain && doctrineHas(5)) v *= 0.5;
+
+			// ── Fatebinder's Path ──
+			// Fortune's Favor (node 7): golden cookies appear 10% more often and last 10% longer
+			if (!bornAgain && doctrineHas(7)) {
+				if (name === 'goldenCookieFreq') v *= 1.1;
+				if (name === 'goldenCookieDur')  v *= 1.1;
+			}
+
 			return v;
 		};
+	}
+
+	/* ================================================================
+	 * SHIMMER HOOKS: Cascade (3), Elder's Whisper (8),
+	 *                Strange Attractor (9), Double Dip (10)
+	 * ================================================================
+	 * All four hook into the engine's existing CCSE-compatible
+	 * customShimmerTypes['golden'] extension points:
+	 *   customListPush  — injection point 1, before effect selection
+	 *   customBuff      — injection point 2, after effect selection
+	 * Neither modifies core engine files. */
+
+	/** Track a golden-cookie effect for Double Dip expiry detection. */
+	function _ddTrackEffect(choice: string): void {
+		const buffName = DD_BUFF_MAP[choice];
+		if (buffName === undefined || buffName === '') return;
+		_ddPending = { choice, buffName };
+		_ddBuffWasSeen = false;
+	}
+
+	/** Called from checkHook every tick: detects buff expiry for Double Dip. */
+	function _ddCheck(): void {
+		if (!_ddPending) return;
+		const G = window.Game;
+		if (!G || !G.buffs) return;
+		const exists = (_ddPending.buffName in G.buffs);
+		if (exists) {
+			_ddBuffWasSeen = true;
+		} else if (_ddBuffWasSeen) {
+			// The tracked buff just expired — roll the Double Dip echo.
+			const choice = _ddPending.choice;
+			_ddPending = null;
+			_ddBuffWasSeen = false;
+			if (doctrineHas(10) && !(G.ascensionMode === 1 && !hasMilestone(1000)) && Math.random() < 0.15) {
+				window.setTimeout(function () {
+					if (!window.Game) return;
+					const s = new (window.Game.shimmer as any)('golden');
+					s.force  = choice;
+					s.spawned = 1;
+				}, 100);
+			}
+		}
+	}
+
+	/** Wire up the four Doctrine shimmer nodes into Game.customShimmerTypes.
+	 *  Safe to call multiple times (idempotent: checks before pushing). */
+	function setupShimmerHooks(): void {
+		const G = window.Game;
+		if (!G) return;
+		if (!(G as any).customShimmerTypes) (G as any).customShimmerTypes = {};
+		const cst = (G as any).customShimmerTypes as Record<string, Record<string, any[]>>;
+		if (!cst['golden']) cst['golden'] = {};
+		const gt = cst['golden'];
+
+		// ── customListPush: Elder's Whisper (8) ──────────────────────────
+		// Force wrath cookies to appear in Born-again (ascensionMode=1) runs,
+		// where Game.elderWrath is always 0 so wrath cookies never naturally spawn.
+		if (!gt.customListPush) gt.customListPush = [];
+		gt.customListPush.push(function (me: any, _list: string[]): void {
+			const G2 = window.Game;
+			if (!G2 || !doctrineHas(8)) return;
+			if (G2.ascensionMode !== 1 || hasMilestone(1000)) return; // not Born-again, or Omega
+			// 20% probability — matches the rough wrath rate at max elderWrath
+			if (Math.random() < 0.20) me.wrath = 1;
+		});
+
+		// ── customBuff: Cascade (3), Strange Attractor (9), Double Dip (10) ──
+		// customBuff runs inside popFunc after the effect choice is resolved,
+		// before the main effect switch. Returning `buff` unchanged leaves normal
+		// effect handling intact; we only add side effects here.
+		if (!gt.customBuff) gt.customBuff = [];
+		gt.customBuff.push(function (me: any, buff: any, choice: string): any {
+			const G2 = window.Game;
+			if (!G2) return buff;
+			if (G2.ascensionMode === 1 && !hasMilestone(1000)) return buff; // Born-again guard
+
+			// Cascade (3): 10% chance to spawn a bonus natural golden cookie
+			if (doctrineHas(3) && Math.random() < 0.1) {
+				window.setTimeout(function () {
+					if (!window.Game) return;
+					const s = new (window.Game.shimmer as any)('golden');
+					s.spawned = 1;
+				}, 150);
+			}
+
+			// Strange Attractor (9): 5% chance to spawn a cluster of 2–3 extra cookies
+			if (doctrineHas(9) && !me.wrath && Math.random() < 0.05) {
+				const extra = 2 + Math.floor(Math.random() * 2);
+				for (let i = 0; i < extra; i++) {
+					(function (delay: number) {
+						window.setTimeout(function () {
+							if (!window.Game) return;
+							const s = new (window.Game.shimmer as any)('golden');
+							s.spawned = 1;
+						}, delay);
+					})(200 + i * 350);
+				}
+			}
+
+			// Double Dip (10): register this pop so _ddCheck can echo it on expiry
+			if (doctrineHas(10)) _ddTrackEffect(choice);
+
+			return buff;
+		});
 	}
 
 	/* ================================================================
@@ -637,7 +837,7 @@
 			G.Prompt(
 				'<h3>Transcend</h3><div class="block">' + msg + '</div>',
 				[
-					['Yes', 'Game.ClosePrompt();window.__cc3Transcendence.doTranscend();'],
+					['Yes', 'Game.ClosePrompt();window.__cc3Transcendence.startTranscendWithPicker();'],
 					['No', 0],
 				]
 			);
@@ -668,15 +868,225 @@
 		container.appendChild(toggle);
 	}
 
+	/* ================================================================
+	 * UPGRADE PICKER (Steady Hand / Timeless milestones)
+	 * ================================================================
+	 * Appears between the Transcend confirmation prompt and the actual
+	 * transcendence: lets the player choose 1 or 2 prestige upgrades to
+	 * preserve across the reset. First Light's cosmetic slot is
+	 * auto-filled (no picker needed). */
+
+	/** Entry point called by the Transcend button's Yes handler.
+	 *  Snapshots the First Light cosmetic, then shows the upgrade picker
+	 *  (if milestones warrant it) before invoking doTranscend(). */
+	function startTranscendWithPicker(): void {
+		const G = window.Game;
+		if (!G) return;
+
+		// First Light (1 EE): auto-snapshot the first owned cosmetic upgrade.
+		// (Stored in state here so doTranscendCore can restore it after reset.)
+		state.keptCosmetic = '';
+		if (hasMilestone(1)) {
+			for (const name of COSMETIC_UPGRADE_NAMES) {
+				if (G.Has && G.Has(name)) { state.keptCosmetic = name; break; }
+			}
+		}
+
+		// Steady Hand (25 EE) → 1 slot; Timeless (500 EE) → 2 slots.
+		const slots = hasMilestone(500) ? 2 : hasMilestone(25) ? 1 : 0;
+		if (slots > 0) {
+			showUpgradePicker(slots, function (chosen: string[]) {
+				state.keptUpgrades = chosen;
+				doTranscend();
+			});
+		} else {
+			state.keptUpgrades = [];
+			doTranscend();
+		}
+	}
+
+	/** Show a modal overlay listing owned prestige upgrades, letting the
+	 *  player select up to `slots` of them to survive the Transcendence. */
+	function showUpgradePicker(slots: number, onConfirm: (chosen: string[]) => void): void {
+		const G = window.Game;
+		if (!G) { onConfirm([]); return; }
+
+		// Collect eligible prestige upgrades (exclude cosmetics — those are auto-kept)
+		const eligible: string[] = [];
+		for (const uName in G.Upgrades) {
+			const u = G.Upgrades[uName];
+			if (u && u.pool === 'prestige' && u.bought &&
+				!(COSMETIC_UPGRADE_NAMES as readonly string[]).includes(uName)) {
+				eligible.push(uName);
+			}
+		}
+		if (eligible.length === 0) { onConfirm([]); return; }
+
+		const chosen = new Set<string>();
+
+		// ── Build DOM ─────────────────────────────────────────────────
+		const overlay = document.createElement('div');
+		overlay.id = 'transcendPicker';
+		overlay.style.cssText =
+			'position:fixed;top:0;left:0;width:100%;height:100%;' +
+			'background:rgba(0,0,0,0.78);z-index:10001;' +
+			'display:flex;align-items:center;justify-content:center;' +
+			'font-family:serif;';
+
+		const box = document.createElement('div');
+		box.style.cssText =
+			'background:#12121e;border:2px solid rgba(255,215,0,0.35);' +
+			'padding:24px;max-width:620px;width:92vw;max-height:82vh;' +
+			'display:flex;flex-direction:column;color:#ddd;box-sizing:border-box;';
+
+		const title = document.createElement('h3');
+		title.style.cssText = 'margin:0 0 6px;color:#ffd700;font-size:17px;';
+		title.textContent = slots === 1
+			? 'Keep 1 heavenly upgrade across Transcendence'
+			: 'Keep up to 2 heavenly upgrades across Transcendence';
+
+		const subtitle = document.createElement('div');
+		subtitle.style.cssText = 'margin-bottom:10px;font-size:12px;color:#999;';
+		subtitle.textContent =
+			'You own ' + eligible.length + ' heavenly upgrade' +
+			(eligible.length === 1 ? '' : 's') + '. ' +
+			'Click to select ' + (slots === 1 ? 'one' : 'up to two') + ' to preserve.';
+
+		const list = document.createElement('div');
+		list.style.cssText =
+			'overflow-y:auto;flex:1;display:flex;flex-wrap:wrap;' +
+			'gap:5px;padding:8px;border:1px solid rgba(255,255,255,0.08);' +
+			'max-height:380px;';
+
+		const counter = document.createElement('div');
+		counter.style.cssText = 'margin:10px 0 6px;font-size:13px;color:#bbb;';
+
+		const btnRow = document.createElement('div');
+		btnRow.style.cssText = 'display:flex;gap:8px;margin-top:4px;';
+
+		const confirmBtn = document.createElement('button');
+		confirmBtn.style.cssText =
+			'flex:1;padding:10px;background:#3a2e05;border:1px solid #ffd700;' +
+			'color:#ffd700;font-family:serif;font-size:14px;cursor:pointer;';
+		confirmBtn.textContent = 'Confirm & Transcend';
+
+		const skipBtn = document.createElement('button');
+		skipBtn.style.cssText =
+			'padding:10px 18px;background:transparent;border:1px solid rgba(255,255,255,0.2);' +
+			'color:#888;font-family:serif;font-size:12px;cursor:pointer;';
+		skipBtn.textContent = 'Skip';
+
+		function updateUI(): void {
+			counter.textContent = 'Selected: ' + chosen.size + ' / ' + slots;
+			confirmBtn.disabled = false; // always allow confirming (even 0 selected)
+			list.querySelectorAll<HTMLElement>('[data-upname]').forEach(function (el) {
+				const name = el.dataset['upname'] || '';
+				el.style.borderColor   = chosen.has(name) ? '#ffd700' : 'rgba(255,255,255,0.14)';
+				el.style.background    = chosen.has(name) ? 'rgba(255,215,0,0.14)' : 'rgba(255,255,255,0.04)';
+			});
+		}
+
+		// Populate list
+		for (const uName of eligible) {
+			const item = document.createElement('div');
+			item.dataset['upname'] = uName;
+			item.style.cssText =
+				'padding:7px 11px;border:1px solid rgba(255,255,255,0.14);' +
+				'background:rgba(255,255,255,0.04);cursor:pointer;' +
+				'min-width:140px;flex:1 0 auto;font-size:12px;line-height:1.3;' +
+				'transition:border-color 0.12s,background 0.12s;';
+			item.title = (G.Upgrades[uName] as any)?.ddesc || uName;
+			item.textContent = uName;
+			item.onclick = function () {
+				if (chosen.has(uName)) {
+					chosen.delete(uName);
+				} else if (chosen.size < slots) {
+					chosen.add(uName);
+				}
+				updateUI();
+			};
+			list.appendChild(item);
+		}
+
+		confirmBtn.onclick = function () {
+			PlaySound('snd/tick.mp3');
+			overlay.remove();
+			onConfirm(Array.from(chosen));
+		};
+		skipBtn.onclick = function () {
+			PlaySound('snd/tickOff.mp3');
+			overlay.remove();
+			onConfirm([]);
+		};
+
+		btnRow.appendChild(confirmBtn);
+		btnRow.appendChild(skipBtn);
+		box.appendChild(title);
+		box.appendChild(subtitle);
+		box.appendChild(list);
+		box.appendChild(counter);
+		box.appendChild(btnRow);
+		overlay.appendChild(box);
+		document.body.appendChild(overlay);
+		updateUI();
+	}
+
+	/* 3D Celestial Branch Configuration:
+	 * Distributes branches across distinct 3D orbital sectors and vertical inclinations,
+	 * preventing plane crowding and enabling endless multi-layer expansion. */
+	interface Branch3DConfig {
+		baseAngle: number; // Azimuth in radians around the central Sun
+		phi: number;       // Celestial elevation angle in radians (vertical inclination / Z separation)
+		fan: number[];     // Lateral angular spread per tier [tier0, tier1, tier2, tier3, ...]
+		color: string;     // Celestial branch glow color
+		glow: string;      // Semi-transparent luminous glow
+	}
+
+	const BRANCH_3D: Record<string, Branch3DConfig> = {
+		glutton: {
+			baseAngle: -Math.PI * 0.28, // ~-50 deg (North-East quadrant)
+			phi: 28 * Math.PI / 180,    // Ascending celestial elevation (+Z)
+			fan: [0, 0.08, -0.06, 0.02],
+			color: '#ff9a28',
+			glow: 'rgba(255,154,40,0.65)'
+		},
+		idler: {
+			baseAngle: Math.PI * 0.22,  // ~+40 deg (South-East quadrant)
+			phi: 14 * Math.PI / 180,    // Upper diagonal elevation (+Z)
+			fan: [0, 0.08, -0.06, 0.02],
+			color: '#38bdf8',
+			glow: 'rgba(56,189,248,0.65)'
+		},
+		fatebinder: {
+			baseAngle: Math.PI * 0.72,  // ~+130 deg (South-West quadrant)
+			phi: -28 * Math.PI / 180,   // Descending abyssal elevation (-Z)
+			fan: [0, -0.08, 0.06, -0.02],
+			color: '#c084fc',
+			glow: 'rgba(192,132,252,0.65)'
+		},
+		rebuilder: {
+			baseAngle: -Math.PI * 0.78, // ~-140 deg (North-West quadrant)
+			phi: -14 * Math.PI / 180,   // Lower diagonal elevation (-Z)
+			fan: [0, -0.08, 0.06, -0.02],
+			color: '#4ade80',
+			glow: 'rgba(74,222,128,0.65)'
+		}
+	};
+
 	/* Orbit radii as fractions of the system half-size (set dynamically).
 	 * Inner orbits hold cheaper nodes, outer hold expensive ones. */
-	const ORBIT_FRACTIONS = [0.24, 0.43, 0.63, 0.87];
+	const ORBIT_FRACTIONS = [0.29, 0.52, 0.75, 0.98];
 	const ORBIT_BY_COST: Record<number, number> = { 1: 0, 3: 1, 8: 2, 15: 3 };
 
-	/* Pan/zoom state for the full-screen view. */
+	/* 3D View and Pan/zoom state for the full-screen view. */
+	let _rotX = 58;  // Tilt angle in degrees (pitch)
+	let _rotZ = 0;   // Orbit rotation angle in degrees (yaw)
 	let _viewOffX = 0, _viewOffY = 0, _viewZoom = 1;
-	let _viewDragging = false, _viewDragStartX = 0, _viewDragStartY = 0;
+	let _viewDragging = false, _didDrag = false;
+	let _viewDragStartX = 0, _viewDragStartY = 0;
+	let _viewDragRotX = 58, _viewDragRotZ = 0;
 	let _viewDragOffX = 0, _viewDragOffY = 0;
+	let _isPanning = false;
 
 	/** Inject the full-screen Doctrine view CSS once. */
 	function _injectSolarCSS(): void {
@@ -686,8 +1096,8 @@
 		s.textContent = `
 #doctrineFullView {
   position:fixed; top:0; left:0; width:100vw; height:100vh;
-  z-index:9999;
-  background:radial-gradient(ellipse at 50% 40%, #0f0f24 0%, #030308 100%);
+  z-index:100000005;
+  background:radial-gradient(ellipse at 50% 40%, #0d0d22 0%, #030308 100%);
   display:flex; flex-direction:column;
   overflow:hidden; user-select:none;
   color:#fff; font-family:serif;
@@ -703,8 +1113,8 @@ body:not(.noMotion) #doctrineFullView.in { opacity:1; transform:scale(1); transi
 body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); transition:opacity 180ms ease-in, transform 180ms ease-in; }
 #doctrineTopBar {
   width:100%; height:48px; display:flex; align-items:center;
-  background:rgba(0,0,0,0.55); flex-shrink:0;
-  border-bottom:1px solid rgba(255,255,255,0.06);
+  background:rgba(0,0,0,0.65); flex-shrink:0;
+  border-bottom:1px solid rgba(255,255,255,0.08);
   z-index:10; padding:0 16px;
 }
 #doctrineBackBtn {
@@ -713,11 +1123,25 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
   white-space:nowrap;
 }
 #doctrineBackBtn:hover { color:#fff; }
+#doctrineHint {
+  font-size:11px; color:#778; margin-left:8px; white-space:nowrap;
+  user-select:none; pointer-events:none;
+}
+@media (max-width: 820px) {
+  #doctrineHint { display:none; }
+}
 #doctrineInfo {
   flex:1; text-align:center; font-size:13px;
   white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
 }
 #doctrineInfo b { color:#ffd700; }
+#doctrineResetBtn {
+  font-size:12px; cursor:pointer; color:#888;
+  transition:color 0.15s, border-color 0.15s;
+  padding:5px 12px; border:1px solid rgba(255,255,255,0.12);
+  border-radius:4px; white-space:nowrap; margin-right:8px;
+}
+#doctrineResetBtn:hover { color:#fff; border-color:rgba(255,255,255,0.35); }
 #doctrineRespecBtn {
   font-size:12px; cursor:pointer; color:#888;
   transition:color 0.15s, border-color 0.15s;
@@ -726,80 +1150,195 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 }
 #doctrineRespecBtn:hover { color:#f84; border-color:rgba(255,136,68,0.4); }
 #doctrineCanvas {
-  flex:1; cursor:grab; perspective:900px;
-  overflow:hidden; position:relative;
+  flex:1; cursor:grab; perspective:1000px; perspective-origin:50% 50%;
+  overflow:hidden; position:relative; touch-action:none;
+  background:
+    radial-gradient(1.5px 1.5px at 15% 20%, rgba(255,255,255,0.7), transparent),
+    radial-gradient(1px 1px at 35% 65%, rgba(255,255,255,0.5), transparent),
+    radial-gradient(1.5px 1.5px at 75% 25%, rgba(200,220,255,0.6), transparent),
+    radial-gradient(1px 1px at 85% 80%, rgba(255,220,200,0.5), transparent),
+    radial-gradient(2px 2px at 50% 15%, rgba(255,255,255,0.8), transparent),
+    radial-gradient(1px 1px at 60% 70%, rgba(255,255,255,0.4), transparent),
+    radial-gradient(circle at 50% 50%, rgba(25,15,45,0.45) 0%, transparent 75%);
+  background-size: 500px 500px, 400px 400px, 600px 600px, 450px 450px, 700px 700px, 350px 350px, 100% 100%;
 }
 #doctrineCanvas.dragging { cursor:grabbing; }
 #doctrineViewport {
   position:absolute; top:50%; left:50%;
   transform-style:preserve-3d;
-  transform:translate(-50%,-50%) scale(var(--zoom,1)) translate(var(--ox,0px),var(--oy,0px));
+  transform:translate(-50%,-50%) translate(var(--ox,0px),var(--oy,0px)) scale(var(--zoom,1));
   pointer-events:none;
 }
 #doctrineSystem {
-  transform-style:preserve-3d; transform:rotateX(14deg);
+  transform-style:preserve-3d;
+  transform:rotateX(var(--rotX,58deg)) rotateZ(var(--rotZ,0deg));
   position:relative; pointer-events:none;
-  filter:drop-shadow(0 0 60px rgba(100,140,255,0.06));
+}
+.doctrine-orbit-ring {
+  position:absolute; top:50%; left:50%; border-radius:50%;
+  transform-style:preserve-3d; pointer-events:none;
+  box-shadow:inset 0 0 15px rgba(255,255,255,0.02);
 }
 .doctrine-sun {
   position:absolute; top:50%; left:50%; border-radius:50%;
-  background:radial-gradient(circle at 30% 30%, #ffd700, #b8860b);
-  box-shadow:0 0 40px rgba(255,215,0,0.6),0 0 80px rgba(255,215,0,0.2);
+  background:radial-gradient(circle at 35% 35%, #fff6a0, #ffd700 45%, #b8860b 80%, #633e00 100%);
+  box-shadow:0 0 45px rgba(255,215,0,0.65), 0 0 90px rgba(255,160,0,0.25);
   display:flex; flex-direction:column;
   align-items:center; justify-content:center;
-  z-index:10; transform:translateZ(40px);
-  color:#000; font-weight:bold; font-size:13px; cursor:default;
+  transform-style:preserve-3d;
+  transform:rotateZ(var(--invRotZ,0deg)) rotateX(var(--invRotX,-58deg));
+  color:#201000; font-weight:bold; font-size:13px; cursor:default;
   line-height:1.2; pointer-events:auto;
+  text-shadow:0 1px 2px rgba(255,255,255,0.6);
 }
 .doctrine-sun .sun-ee { font-size:20px; }
-.doctrine-sun .sun-label { font-size:10px; opacity:0.8; }
+.doctrine-sun .sun-label { font-size:10px; opacity:0.85; font-weight:normal; }
 .doctrine-planet {
-  position:absolute; border-radius:50%;
-  background:radial-gradient(circle at 30% 30%, #2a2a3a, #1a1a2a);
-  border:2px solid rgba(255,255,255,0.12);
+  position:absolute;
   display:flex; flex-direction:column;
-  align-items:center; justify-content:center;
-  transition:transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  align-items:center; justify-content:flex-start;
+  transform-style:preserve-3d;
   cursor:default; pointer-events:auto;
-  box-shadow:0 0 10px rgba(0,0,0,0.5);
-  transform:translateZ(var(--z,0px));
+  transition:opacity 0.2s ease;
+  user-select:none;
 }
+/* Round spherical 3D planet body */
+.planet-sphere {
+  border-radius:50%;
+  position:relative;
+  display:flex; align-items:center; justify-content:center;
+  box-shadow:inset -5px -5px 12px rgba(0,0,0,0.85), inset 2px 2px 5px rgba(255,255,255,0.4), 0 4px 12px rgba(0,0,0,0.6);
+  transition:box-shadow 0.25s ease, transform 0.25s ease;
+  z-index:1; flex-shrink:0;
+}
+/* Specular highlight shine overlay */
+.planet-shine {
+  position:absolute; top:3px; left:6px; width:45%; height:35%;
+  border-radius:50%;
+  background:radial-gradient(ellipse at center, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0) 80%);
+  pointer-events:none; z-index:3;
+}
+/* Branch-specific celestial planet themes */
+.doctrine-planet.branch-glutton .planet-sphere {
+  background:radial-gradient(circle at 32% 30%, #ffc272 0%, #ff7a18 35%, #b53800 70%, #440c00 100%);
+  border:1.5px solid rgba(255, 180, 80, 0.45);
+}
+.doctrine-planet.branch-idler .planet-sphere {
+  background:radial-gradient(circle at 32% 30%, #a4eeff 0%, #20a0d8 35%, #084880 70%, #021a36 100%);
+  border:1.5px solid rgba(80, 210, 255, 0.45);
+}
+.doctrine-planet.branch-fatebinder .planet-sphere {
+  background:radial-gradient(circle at 32% 30%, #f4b4ff 0%, #a83ce4 35%, #5a1082 70%, #220238 100%);
+  border:1.5px solid rgba(220, 120, 255, 0.45);
+}
+.doctrine-planet.branch-rebuilder .planet-sphere {
+  background:radial-gradient(circle at 32% 30%, #8efcc0 0%, #22c06a 35%, #08602c 70%, #02260e 100%);
+  border:1.5px solid rgba(80, 240, 140, 0.45);
+}
+/* Saturn-like planetary rings for apex tier 3/4 planets */
+.planet-ring {
+  position:absolute; top:50%; left:50%;
+  width:145%; height:40%; border-radius:50%;
+  transform:translate(-50%, -50%) rotate(-25deg);
+  border:2px solid rgba(220, 160, 255, 0.5);
+  box-shadow:0 0 8px rgba(220, 160, 255, 0.35), inset 0 0 6px rgba(220, 160, 255, 0.2);
+  pointer-events:none; z-index:0; flex-shrink:0;
+}
+/* 3D Luminous constellation filaments */
+.doctrine-filament {
+  position:absolute;
+  height:2px;
+  transform-style:preserve-3d;
+  pointer-events:none;
+  transform-origin:0% 50%;
+  border-radius:1px;
+}
+/* The icon centered on the planet face */
 .doctrine-planet .planet-icon {
   width:26px; height:26px; image-rendering:pixelated;
-  background-size:auto; flex-shrink:0;
+  background-size:auto; flex-shrink:0; position:relative; z-index:2;
+  filter:drop-shadow(0 2px 4px rgba(0,0,0,0.85));
+}
+/* Floating label underneath */
+.planet-badge {
+  position:absolute; top:calc(100% + 5px); left:50%;
+  transform:translateX(-50%);
+  display:flex; flex-direction:column; align-items:center;
+  background:rgba(8, 8, 18, 0.85);
+  border:1px solid rgba(255,255,255,0.12);
+  border-radius:8px; padding:2px 8px;
+  pointer-events:none; white-space:nowrap;
+  box-shadow:0 2px 8px rgba(0,0,0,0.65);
+  transition:border-color 0.2s ease, background 0.2s ease;
+  max-width:120px;
 }
 .doctrine-planet .planet-name {
-  font-size:9px; color:#bbb; text-align:center;
-  line-height:1.1; margin-top:2px;
+  font-size:10px; color:#ddd; text-align:center;
+  line-height:1.15; font-weight:500;
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  max-width:110px;
 }
 .doctrine-planet .planet-cost {
-  font-size:10px; font-weight:bold; margin-top:1px;
+  font-size:10px; font-weight:bold; margin-top:1px; color:#ffd700;
 }
+/* Interactive states */
+.doctrine-planet.buyable {
+  cursor:pointer;
+}
+.doctrine-planet.buyable .planet-sphere {
+  box-shadow:inset -5px -5px 12px rgba(0,0,0,0.85), inset 2px 2px 5px rgba(255,255,255,0.5), 0 0 18px rgba(100,190,255,0.65);
+}
+.doctrine-planet.buyable .planet-badge {
+  border-color:rgba(100, 180, 255, 0.45);
+}
+.doctrine-planet.buyable:hover .planet-sphere {
+  transform:scale(1.22);
+  box-shadow:inset -5px -5px 12px rgba(0,0,0,0.85), inset 2px 2px 5px rgba(255,255,255,0.65), 0 0 28px rgba(100,210,255,0.9), 0 0 10px #fff;
+}
+.doctrine-planet.buyable:hover .planet-badge {
+  border-color:rgba(100, 220, 255, 0.85);
+  background:rgba(12, 20, 36, 0.95);
+}
+/* Owned state */
+.doctrine-planet.owned .planet-sphere {
+  box-shadow:inset -5px -5px 12px rgba(0,0,0,0.85), inset 2px 2px 5px rgba(255,255,255,0.4), 0 0 18px rgba(70,240,110,0.6);
+}
+.doctrine-planet.owned .planet-badge {
+  border-color:rgba(70, 240, 110, 0.4);
+}
+.doctrine-planet.owned .planet-cost {
+  color:#4ef; font-weight:bold;
+}
+.doctrine-planet.owned:hover .planet-sphere {
+  transform:scale(1.15);
+  box-shadow:inset -5px -5px 12px rgba(0,0,0,0.85), inset 2px 2px 5px rgba(255,255,255,0.5), 0 0 24px rgba(70,255,120,0.8);
+}
+/* Locked state */
 .doctrine-planet.locked {
-  opacity:0.35; filter:grayscale(0.8);
+  opacity:0.38;
   cursor:default;
 }
-.doctrine-planet.buyable {
-  border-color:#6af; cursor:pointer;
-  box-shadow:0 0 14px rgba(100,170,255,0.3);
+.doctrine-planet.locked .planet-sphere {
+  box-shadow:inset -5px -5px 12px rgba(0,0,0,0.95), inset 2px 2px 5px rgba(255,255,255,0.15), 0 2px 6px rgba(0,0,0,0.8);
 }
-.doctrine-planet.buyable:hover {
-  transform:translateZ(var(--z,0px)) scale(1.22);
-  box-shadow:0 0 28px rgba(100,170,255,0.6);
-}
-.doctrine-planet.owned {
-  border-color:#4a4;
-  box-shadow:0 0 14px rgba(68,170,68,0.3);
-}
-.doctrine-planet.owned .planet-cost { color:#4a4; }
 `;
 		document.head.appendChild(s);
 	}
 
 	/** Compute the optimal system size for the current viewport. */
 	function _getSystemSize(): number {
-		return Math.min(window.innerHeight * 0.72, window.innerWidth * 0.86, 960);
+		return Math.min(window.innerHeight * 0.88, window.innerWidth * 0.92, 1200);
+	}
+
+	/** Reset 3D view angles, pan, and zoom to defaults. */
+	function resetView(): void {
+		_rotX = 58;
+		_rotZ = 0;
+		_viewOffX = 0;
+		_viewOffY = 0;
+		_viewZoom = 1;
+		const viewport = document.getElementById('doctrineViewport');
+		if (viewport) _applyViewTransform(viewport);
 	}
 
 	/** Show the Doctrine tree as a full-screen 3D solar system view,
@@ -832,18 +1371,28 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 		back.id = 'doctrineBackBtn';
 		back.textContent = '← Back';
 		back.onclick = function () { PlaySound('snd/tickOff.mp3'); closeDoctrineTree(); };
+		const hint = document.createElement('div');
+		hint.id = 'doctrineHint';
+		hint.textContent = 'Drag: Rotate • Shift+Drag: Pan • Scroll: Zoom';
 		const info = document.createElement('div');
 		info.id = 'doctrineInfo';
+		const resetBtn = document.createElement('div');
+		resetBtn.id = 'doctrineResetBtn';
+		resetBtn.textContent = 'Reset 3D';
+		resetBtn.title = 'Reset view rotation and zoom';
+		resetBtn.onclick = function () { PlaySound('snd/tick.mp3'); resetView(); };
 		const respec = document.createElement('div');
 		respec.id = 'doctrineRespecBtn';
 		respec.textContent = 'Respec';
 		respec.onclick = function () { PlaySound('snd/tick.mp3'); respecAndRedraw(); };
 		top.appendChild(back);
+		top.appendChild(hint);
 		top.appendChild(info);
+		top.appendChild(resetBtn);
 		top.appendChild(respec);
 		view.appendChild(top);
 
-		// Canvas with pan/zoom
+		// Canvas with 3D orbit pan/zoom
 		const canvas = document.createElement('div');
 		canvas.id = 'doctrineCanvas';
 		const viewport = document.createElement('div');
@@ -859,6 +1408,8 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 		view.appendChild(canvas);
 
 		document.body.appendChild(view);
+
+		_applyViewTransform(viewport);
 
 		// Eased entrance: start hidden (CSS base state), then flip to the visible
 		// state one frame later so the transition always plays. Skipped when the
@@ -898,54 +1449,161 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 				}, 240);
 			}
 		}
-		_viewOffX = 0; _viewOffY = 0; _viewZoom = 1;
+		_rotX = 58; _rotZ = 0; _viewOffX = 0; _viewOffY = 0; _viewZoom = 1;
 	}
 
-	/** Set up mouse-drag panning and wheel zoom on the canvas. */
+	/** Set up 3D mouse-drag rotation, shift/right-drag panning, and wheel zoom on the canvas. */
 	function _initDoctrinePanZoom(canvas: HTMLElement, viewport: HTMLElement): void {
+		let isMouseDown = false;
+
+		canvas.addEventListener('contextmenu', function (e: MouseEvent) {
+			e.preventDefault();
+		});
+
 		canvas.addEventListener('mousedown', function (e: MouseEvent) {
+			if (e.button !== 0 && e.button !== 1 && e.button !== 2) return;
+			isMouseDown = true;
 			_viewDragging = false;
+			_didDrag = false;
 			_viewDragStartX = e.clientX;
 			_viewDragStartY = e.clientY;
+			_viewDragRotX = _rotX;
+			_viewDragRotZ = _rotZ;
 			_viewDragOffX = _viewOffX;
 			_viewDragOffY = _viewOffY;
+			_isPanning = e.shiftKey || e.button === 1 || e.button === 2;
 		});
-		canvas.addEventListener('mousemove', function (e: MouseEvent) {
-			if (e.buttons !== 1) { _viewDragging = false; return; }
+
+		window.addEventListener('mousemove', function (e: MouseEvent) {
+			if (!isMouseDown) return;
 			const dx = e.clientX - _viewDragStartX;
 			const dy = e.clientY - _viewDragStartY;
-			if (Math.abs(dx) > 4 || Math.abs(dy) > 4) {
+			if (!_viewDragging && (Math.abs(dx) > 3 || Math.abs(dy) > 3)) {
 				_viewDragging = true;
+				_didDrag = true;
 				canvas.classList.add('dragging');
 			}
 			if (_viewDragging) {
-				_viewOffX = _viewDragOffX + dx / _viewZoom;
-				_viewOffY = _viewDragOffY + dy / _viewZoom;
+				if (_isPanning || e.shiftKey) {
+					_viewOffX = _viewDragOffX + dx / _viewZoom;
+					_viewOffY = _viewDragOffY + dy / _viewZoom;
+				} else {
+					// 3D orbit rotation: horizontal drag rotates azimuth/yaw, vertical tilts pitch
+					_rotZ = (_viewDragRotZ + dx * 0.45) % 360;
+					_rotX = Math.max(15, Math.min(82, _viewDragRotX + dy * 0.35));
+				}
 				_applyViewTransform(viewport);
 			}
 		});
-		canvas.addEventListener('mouseup', function () {
+
+		window.addEventListener('mouseup', function () {
+			if (!isMouseDown) return;
+			isMouseDown = false;
 			canvas.classList.remove('dragging');
 			_viewDragging = false;
+			setTimeout(function () { _didDrag = false; }, 60);
 		});
-		canvas.addEventListener('mouseleave', function () {
+
+		window.addEventListener('blur', function () {
+			if (!isMouseDown) return;
+			isMouseDown = false;
 			canvas.classList.remove('dragging');
 			_viewDragging = false;
+			setTimeout(function () { _didDrag = false; }, 60);
 		});
+
 		canvas.addEventListener('wheel', function (e: WheelEvent) {
 			e.preventDefault();
 			const delta = e.deltaY > 0 ? -0.1 : 0.1;
-			_viewZoom = Math.max(0.4, Math.min(1.6, _viewZoom + delta));
+			_viewZoom = Math.max(0.4, Math.min(2.0, _viewZoom + delta));
 			_applyViewTransform(viewport);
 		}, { passive: false });
+
+		// Touch controls: single finger to rotate 3D, two fingers to pan & pinch zoom
+		let touchMode: 'none' | 'rotate' | 'pinch' = 'none';
+		let touchStartDist = 0;
+		let touchStartZoom = 1;
+
+		canvas.addEventListener('touchstart', function (e: TouchEvent) {
+			if (e.touches.length === 1) {
+				touchMode = 'rotate';
+				_viewDragging = false;
+				_didDrag = false;
+				_viewDragStartX = e.touches[0].clientX;
+				_viewDragStartY = e.touches[0].clientY;
+				_viewDragRotX = _rotX;
+				_viewDragRotZ = _rotZ;
+			} else if (e.touches.length === 2) {
+				touchMode = 'pinch';
+				_viewDragging = true;
+				_didDrag = true;
+				const t1 = e.touches[0], t2 = e.touches[1];
+				touchStartDist = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
+				touchStartZoom = _viewZoom;
+				_viewDragStartX = (t1.clientX + t2.clientX) / 2;
+				_viewDragStartY = (t1.clientY + t2.clientY) / 2;
+				_viewDragOffX = _viewOffX;
+				_viewDragOffY = _viewOffY;
+			}
+		}, { passive: true });
+
+		canvas.addEventListener('touchmove', function (e: TouchEvent) {
+			if (touchMode === 'rotate' && e.touches.length === 1) {
+				const dx = e.touches[0].clientX - _viewDragStartX;
+				const dy = e.touches[0].clientY - _viewDragStartY;
+				if (!_viewDragging && (Math.abs(dx) > 4 || Math.abs(dy) > 4)) {
+					_viewDragging = true;
+					_didDrag = true;
+				}
+				if (_viewDragging) {
+					_rotZ = (_viewDragRotZ + dx * 0.45) % 360;
+					_rotX = Math.max(15, Math.min(82, _viewDragRotX + dy * 0.35));
+					_applyViewTransform(viewport);
+				}
+			} else if (touchMode === 'pinch' && e.touches.length === 2) {
+				const t1 = e.touches[0], t2 = e.touches[1];
+				const dist = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
+				if (touchStartDist > 0) {
+					_viewZoom = Math.max(0.4, Math.min(2.0, touchStartZoom * (dist / touchStartDist)));
+				}
+				const midX = (t1.clientX + t2.clientX) / 2;
+				const midY = (t1.clientY + t2.clientY) / 2;
+				_viewOffX = _viewDragOffX + (midX - _viewDragStartX) / _viewZoom;
+				_viewOffY = _viewDragOffY + (midY - _viewDragStartY) / _viewZoom;
+				_applyViewTransform(viewport);
+			}
+		}, { passive: true });
+
+		canvas.addEventListener('touchend', function () {
+			touchMode = 'none';
+			_viewDragging = false;
+			setTimeout(function () { _didDrag = false; }, 60);
+		});
+
 		window.addEventListener('keydown', function (e: KeyboardEvent) {
 			if (!document.getElementById('doctrineFullView')) return;
+			if (e.key === 'Escape') {
+				e.preventDefault();
+				closeDoctrineTree();
+				return;
+			}
 			const step = 20 / _viewZoom;
-			switch (e.key) {
-				case 'ArrowLeft': _viewOffX -= step; _applyViewTransform(viewport); break;
-				case 'ArrowRight': _viewOffX += step; _applyViewTransform(viewport); break;
-				case 'ArrowUp': _viewOffY -= step; _applyViewTransform(viewport); break;
-				case 'ArrowDown': _viewOffY += step; _applyViewTransform(viewport); break;
+			if (e.shiftKey) {
+				// Shift + Arrow keys: pan
+				switch (e.key) {
+					case 'ArrowLeft': _viewOffX -= step; _applyViewTransform(viewport); break;
+					case 'ArrowRight': _viewOffX += step; _applyViewTransform(viewport); break;
+					case 'ArrowUp': _viewOffY -= step; _applyViewTransform(viewport); break;
+					case 'ArrowDown': _viewOffY += step; _applyViewTransform(viewport); break;
+				}
+			} else {
+				// Arrow keys: 3D orbit rotate
+				switch (e.key) {
+					case 'ArrowLeft': _rotZ = (_rotZ - 6) % 360; _applyViewTransform(viewport); break;
+					case 'ArrowRight': _rotZ = (_rotZ + 6) % 360; _applyViewTransform(viewport); break;
+					case 'ArrowUp': _rotX = Math.max(15, _rotX - 5); _applyViewTransform(viewport); break;
+					case 'ArrowDown': _rotX = Math.min(82, _rotX + 5); _applyViewTransform(viewport); break;
+				}
 			}
 		});
 	}
@@ -954,6 +1612,10 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 		viewport.style.setProperty('--zoom', String(_viewZoom));
 		viewport.style.setProperty('--ox', Math.round(_viewOffX) + 'px');
 		viewport.style.setProperty('--oy', Math.round(_viewOffY) + 'px');
+		viewport.style.setProperty('--rotX', Math.round(_rotX) + 'deg');
+		viewport.style.setProperty('--invRotX', (-Math.round(_rotX)) + 'deg');
+		viewport.style.setProperty('--rotZ', Math.round(_rotZ) + 'deg');
+		viewport.style.setProperty('--invRotZ', (-Math.round(_rotZ)) + 'deg');
 	}
 
 	/** Render the central sun (EE display). */
@@ -981,19 +1643,23 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 		if (respecBtn) respecBtn.textContent = 'Respec (' + state.doctrine.length + '/' + DOCTRINE.length + ')';
 	}
 
-	/** Render or re-render all planet nodes on their orbits. */
+	/** Render or re-render all planet nodes on their 3D orbits and celestial shells. */
 	function _renderSolarSystem(container: HTMLElement): void {
 		const size = container.clientWidth || _getSystemSize();
 		const cx = size / 2, cy = size / 2;
-		const planetSize = Math.max(90, Math.round(size * 0.12));
 		const radii = ORBIT_FRACTIONS.map((f) => Math.round(cx * f));
 
-		// Remove old planets and orbit rings
-		const old = container.querySelectorAll('.doctrine-planet, .doctrine-orbit-ring');
+		// Remove old planets, filaments, and orbit rings
+		const old = container.querySelectorAll('.doctrine-planet, .doctrine-orbit-ring, .doctrine-filament');
 		for (let i = old.length - 1; i >= 0; i--) old[i].remove();
 
-		// Draw orbit rings
-		const ringColors = ['rgba(255,200,100,0.06)', 'rgba(100,200,255,0.06)', 'rgba(200,100,255,0.06)', 'rgba(100,255,200,0.06)'];
+		// Draw 4 celestial tier orbit rings (golden baseline requirement for QA)
+		const ringColors = [
+			'rgba(255,215,80,0.20)',
+			'rgba(100,200,255,0.20)',
+			'rgba(210,120,255,0.20)',
+			'rgba(100,255,200,0.20)'
+		];
 		for (const orbitIndex of [0, 1, 2, 3]) {
 			const r = radii[orbitIndex];
 			const ring = document.createElement('div');
@@ -1001,65 +1667,147 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 			ring.style.cssText =
 				'position:absolute;top:50%;left:50%;width:' + (r * 2) + 'px;height:' + (r * 2) + 'px;' +
 				'margin:' + (-r) + 'px;border-radius:50%;' +
-				'border:1px solid ' + ringColors[orbitIndex] + ';' +
+				'border:1px dashed ' + ringColors[orbitIndex] + ';' +
+				'box-shadow:0 0 14px ' + ringColors[orbitIndex].replace('0.20', '0.05') + ',inset 0 0 14px ' + ringColors[orbitIndex].replace('0.20', '0.05') + ';' +
 				'pointer-events:none;';
 			container.appendChild(ring);
 		}
 
-		// Place each node on its orbit
+		// Calculate 3D spherical coordinates for all nodes in the galaxy
+		const coords: Record<number, { x: number; y: number; z: number; branch: string; owned: boolean; canBuy: boolean }> = {};
 		for (const node of DOCTRINE) {
-			const orbitIndex = ORBIT_BY_COST[node.cost];
-			if (orbitIndex === undefined) continue;
+			const orbitIndex = ORBIT_BY_COST[node.cost] ?? 0;
 			const radius = radii[orbitIndex];
+			const b = (node.branch && BRANCH_3D[node.branch]) || BRANCH_3D.glutton;
+			const fanOffset = b.fan[orbitIndex] || 0;
+			const angle = b.baseAngle + fanOffset;
 
-			const sameOrbit = DOCTRINE.filter((n) => ORBIT_BY_COST[n.cost] === orbitIndex);
-			const idx = sameOrbit.indexOf(node);
-			const angle = (idx / sameOrbit.length) * Math.PI * 2 - Math.PI / 2;
-
-			const x = cx + Math.cos(angle) * radius;
-			const y = cy + Math.sin(angle) * radius;
+			// Spherical coordinate projection into 3D Cartesian space
+			const x = Math.round(radius * Math.cos(angle) * Math.cos(b.phi));
+			const y = Math.round(radius * Math.sin(angle) * Math.cos(b.phi));
+			const z = Math.round(radius * Math.sin(b.phi));
 
 			const owned = doctrineHas(node.id);
 			const canAfford = state.ee >= node.cost;
 			const parentsMet = node.parents.every((pid) => doctrineHas(pid));
 			const canBuy = !owned && canAfford && parentsMet;
 
+			coords[node.id] = { x, y, z, branch: node.branch, owned, canBuy };
+		}
+
+		// Draw 3D luminous constellation filaments connecting parent and child nodes
+		for (const node of DOCTRINE) {
+			if (!node.parents || node.parents.length === 0) continue;
+			const c2 = coords[node.id];
+			if (!c2) continue;
+			for (const pid of node.parents) {
+				const c1 = coords[pid];
+				if (!c1) continue;
+
+				const dx = c2.x - c1.x;
+				const dy = c2.y - c1.y;
+				const dz = c2.z - c1.z;
+				const length = Math.hypot(dx, dy, dz);
+				const distXY = Math.hypot(dx, dy);
+				const rotZ = (Math.atan2(dy, dx) * 180) / Math.PI;
+				const pitch = (Math.atan2(dz, distXY) * 180) / Math.PI;
+
+				const b = (node.branch && BRANCH_3D[node.branch]) || BRANCH_3D.glutton;
+				const filament = document.createElement('div');
+				filament.className = 'doctrine-filament';
+				const isOwnedLink = c1.owned && c2.owned;
+				const isAvailableLink = c1.owned && c2.canBuy;
+				const opacity = isOwnedLink ? '0.92' : isAvailableLink ? '0.72' : '0.22';
+				const glowSize = isOwnedLink ? '10px' : isAvailableLink ? '6px' : '2px';
+
+				filament.style.cssText =
+					'position:absolute;left:' + (cx + c1.x) + 'px;top:' + (cy + c1.y) + 'px;' +
+					'width:' + length + 'px;height:2px;' +
+					'transform-origin:0% 50%;' +
+					'transform:translateZ(' + c1.z + 'px) rotateZ(' + rotZ + 'deg) rotateY(' + (-pitch) + 'deg);' +
+					'background:' + b.glow + ';' +
+					'box-shadow:0 0 ' + glowSize + ' ' + b.glow + ';' +
+					'opacity:' + opacity + ';' +
+					'border-radius:1px;pointer-events:none;';
+				container.appendChild(filament);
+			}
+		}
+
+		// Place each 3D spherical planet node
+		for (const node of DOCTRINE) {
+			const pos = coords[node.id];
+			if (!pos) continue;
+
+			const owned = pos.owned;
+			const canBuy = pos.canBuy;
+			const parentsMet = node.parents.every((pid) => doctrineHas(pid));
+			const canAfford = state.ee >= node.cost;
+
+			// Sizing based on tier: Tier 1: 46px, Tier 2: 52px, Tier 3: 58px, Apex: 66px
+			const sphereSize = node.cost >= 15 ? 66 : node.cost >= 8 ? 58 : node.cost >= 3 ? 52 : 46;
+
 			const planet = document.createElement('div');
+			planet.dataset['nodeId'] = String(node.id);
 			planet.className = 'doctrine-planet' +
+				(node.branch ? ' branch-' + node.branch : '') +
 				(owned ? ' owned' : '') +
 				(canBuy ? ' buyable' : '') +
 				(!owned && !canBuy ? ' locked' : '');
-			planet.style.left = x + 'px';
-			planet.style.top = y + 'px';
-			// Planet size via CSS variable
-			planet.style.setProperty('--ps', planetSize + 'px');
-			planet.style.width = planetSize + 'px';
-			planet.style.height = planetSize + 'px';
-			planet.style.margin = (-planetSize / 2) + 'px';
+			planet.style.left = (cx + pos.x) + 'px';
+			planet.style.top = (cy + pos.y) + 'px';
+			planet.style.setProperty('--ps', sphereSize + 'px');
+			planet.style.width = sphereSize + 'px';
+			planet.style.height = sphereSize + 'px';
+			planet.style.margin = (-sphereSize / 2) + 'px';
+			planet.style.transform = 'translateZ(' + pos.z + 'px) rotateZ(var(--invRotZ,0deg)) rotateX(var(--invRotX,-58deg))';
 
-			const zDepth = [30, 15, 0, -15][orbitIndex] || 0;
-			planet.style.setProperty('--z', zDepth + 'px');
+			// Optional celestial ring for apex & high-tier planets (cost >= 8)
+			if (node.cost >= 8) {
+				const ring = document.createElement('div');
+				ring.className = 'planet-ring';
+				planet.appendChild(ring);
+			}
 
-			// Icon
+			// 3D Spherical planet body
+			const sphere = document.createElement('div');
+			sphere.className = 'planet-sphere';
+			sphere.style.width = sphereSize + 'px';
+			sphere.style.height = sphereSize + 'px';
+
+			// Specular shine highlight
+			const shine = document.createElement('div');
+			shine.className = 'planet-shine';
+			sphere.appendChild(shine);
+
+			// Center icon
 			const icon = document.createElement('div');
 			icon.className = 'planet-icon';
 			icon.style.cssText = 'background:url(img/icons.webp) -' + (node.icon[0] * 48) + 'px -' + (node.icon[1] * 48) + 'px;';
-			planet.appendChild(icon);
+			sphere.appendChild(icon);
 
-			// Name
+			planet.appendChild(sphere);
+
+			// Floating badge for label and cost
+			const badge = document.createElement('div');
+			badge.className = 'planet-badge';
+
 			const name = document.createElement('div');
 			name.className = 'planet-name';
 			name.textContent = node.name;
-			planet.appendChild(name);
+			badge.appendChild(name);
 
-			// Cost
 			const cost = document.createElement('div');
 			cost.className = 'planet-cost';
-			cost.textContent = owned ? '✓' : node.cost + ' EE';
-			planet.appendChild(cost);
+			cost.textContent = owned ? '✓ Owned' : node.cost + ' EE';
+			badge.appendChild(cost);
+
+			planet.appendChild(badge);
 
 			if (canBuy) {
-				planet.onclick = function () { buyInTreeSolar(node.id); };
+				planet.onclick = function () {
+					if (_didDrag) return;
+					buyInTreeSolar(node.id);
+				};
 			}
 
 			if (!canBuy && !owned) {
@@ -1211,6 +1959,8 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 			tpa: state.totalPrestigeAllTime,
 			milestones: state.milestones,
 			doctrine: state.doctrine,
+			keptUpgrades: state.keptUpgrades,
+			keptCosmetic: state.keptCosmetic,
 		};
 		return JSON.stringify(data);
 	}
@@ -1225,6 +1975,8 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 			state.totalPrestigeAllTime = data.tpa || 0;
 			state.milestones = data.milestones || [];
 			state.doctrine = data.doctrine || [];
+			state.keptUpgrades = data.keptUpgrades || [];
+			state.keptCosmetic = data.keptCosmetic || '';
 		} catch (e) {
 			state.ee = 0;
 			state.eeSpent = 0;
@@ -1233,6 +1985,8 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 			state.totalPrestigeAllTime = 0;
 			state.milestones = [];
 			state.doctrine = [];
+			state.keptUpgrades = [];
+			state.keptCosmetic = '';
 		}
 
 		// Sync _prestigeSeen from the loaded game state so we don't
@@ -1259,8 +2013,22 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 		G.registerHook('reincarnate', reincarnateHook);
 		G.registerHook('check', checkHook);
 
-		// Patch cost discounts
+		// Patch cost discounts and shimmer hooks
 		patchEff();
+		setupShimmerHooks();
+
+		// Warm Embers (node 5): 50% discount on reactivating Shimmering veil
+		const veilOff = G.Upgrades && G.Upgrades['Shimmering veil [off]'];
+		if (veilOff && typeof veilOff.priceFunc === 'function') {
+			const origPriceFunc = veilOff.priceFunc.bind(veilOff);
+			veilOff.priceFunc = function () {
+				let p = origPriceFunc();
+				if (doctrineHas(5) && !(G.ascensionMode === 1 && !hasMilestone(1000))) {
+					p *= 0.5;
+				}
+				return p;
+			};
+		}
 
 		// Check if the gate is already met (for returning players who loaded a save)
 		if (canTranscend()) {
@@ -1307,6 +2075,8 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 		computeEE,
 		canTranscend,
 		doTranscend,
+		startTranscendWithPicker,
+		showUpgradePicker,
 		purchase: purchaseDoctrineNode,
 		buyInTree,
 		respec: respecDoctrine,
@@ -1317,6 +2087,10 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 		hasMilestone,
 		showDoctrineTree,
 		closeDoctrineTree,
+		resetView,
+		getView3D: function () {
+			return { rotX: _rotX, rotZ: _rotZ, zoom: _viewZoom, offX: _viewOffX, offY: _viewOffY };
+		},
 		_addTranscendUI,
 		save,
 		load,
@@ -1334,32 +2108,26 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 			state.eeEarned = 0;
 			state.milestones = [];
 			state.doctrine = [];
+			state.keptUpgrades = [];
+			state.keptCosmetic = '';
 			_unlockShown = false;
 			_uiAdded = false;
 		},
 	};
 
 	/* ================================================================
-	 * TODO (Phase 2 / polish)
-	 * ================================================================
-	 * - Cascade (node 3): hook into golden cookie click for the 10% spawn
-	 * - Warm Embers (node 5): shimmering veil auto-start (needs to understand
-	 *   the elder pledge / shimmering veil toggle in the engine)
-	 * - Ambient Baking (node 6): modify wrinkler spawn rate and capacity
-	 * - Fortune's Favor (node 7): modify golden cookie frequency/duration
-	 *   through Game.eff
-	 * - Elder's Whisper (node 8): allow wrath cookies in Ascetic mode
-	 * - Strange Attractor (node 9): golden cookie cluster on spawn
-	 * - Double Dip (node 10): golden cookie effect doubling on expiry
-	 * - Milestone "First Light" (1 EE): keep 1 cosmetic heavenly upgrade
-	 * - Milestone "Steady Hand" (25 EE) / "Timeless" (500 EE): keep heavenly
-	 *   upgrades of choice (needs a UI for selecting which ones)
-	 * - The Doctrine tree should use the full DAG renderer (BuildAscendTree
-	 *   pattern) with Game.crate, not the current prompt-based overlay.
-	 *   The prompt overlay is functional for the MVP but the full tree
-	 *   is the polished experience.
-	 * - The transcend button / doctrine toggle should be part of the ascend
-	 *   screen's layout, not appended after the fact.
-	 * - Eternal Recipes: a set of repeatable challenge runs (Phase 2).
-	 */
+	 * Phase 2 complete. All 13 Doctrine nodes are implemented:
+	 *   Glutton's Path:    Persistent Hand (1), Echoing Click (2), Cascade (3)
+	 *   Idler's Path:      Lazy Oven (4), Warm Embers (5), Ambient Baking (6)
+	 *   Fatebinder's Path: Fortune's Favor (7), Elder's Whisper (8),
+	 *                      Strange Attractor (9), Double Dip (10)
+	 *   Rebuilder's Path:  Frugal Start (11), Measured Growth (12), Legacy Echo (13)
+	 *
+	 * Phase 3 / future ideas:
+	 * - Eternal Recipes: repeatable restricted runs with first-clear rewards
+	 *   (modelled on existing ascensionModes in engine/main.ts:1284–1291).
+	 * - Expand Doctrine from 4×3 to 4×5 nodes (12→20).
+	 * - Balance pass using Game.AnalyzeEconomy with Doctrine active vs. off.
+	 * - Doctrine tree DAG renderer (BuildAscendTree + Game.crate) for Phase 3.
+	 * ================================================================ */
 })();

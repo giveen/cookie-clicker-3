@@ -573,8 +573,7 @@ test('?qa=backup: rolling save backups capture, prune, restore, and download', a
 	expect(report).toMatch(/dedupe: true/);
 	expect(report).toMatch(/prune-cap\(10\): true/);
 	expect(report).toMatch(/restored cookies=300/);
-	expect(report).toMatch(/download: true/);
-	expect(downloads.some((name) => /Backup-\d{4}-\d{4}\.txt$/.test(name))).toBe(true);
+	await expect.poll(() => downloads.some((name) => /Backup-\d{4}-\d{4}\.txt$/.test(name)), { timeout: 2_000 }).toBe(true);
 });
 
 test('?qa=sound: sound engine, web music, and settings labels work', async ({ page }) => {
@@ -1069,6 +1068,72 @@ test('doctrine view and heavenly tree open and close with an ease', async ({ pag
 		.poll(async () => page.evaluate(() => !document.getElementById('ascend').classList.contains('viewExit')), { timeout: 2_000 })
 		.toBe(true); //fade finished, class cleaned up
 	expect(await page.evaluate(() => document.getElementById('game').classList.contains('ascending'))).toBe(false); //teardown happened after the fade
+	await assertNoUncaughtErrors(page);
+});
+
+test('doctrine solar system view supports 3D orbit controls and billboarding', async ({ page }) => {
+	await boot(page, '&qa=transcend');
+	await qaReport(page, /PASS: transcendence/, 60_000);
+
+	// Close the "Transcendence complete!" prompt so it doesn't intercept pointer events
+	await page.evaluate(() => {
+		if (window.Game.ClosePrompt) window.Game.ClosePrompt();
+		window.__cc3Transcendence.showDoctrineTree();
+	});
+	await expect(page.locator('#doctrineFullView')).toHaveCount(1);
+	await expect(page.locator('#doctrineCanvas')).toBeVisible();
+	await expect(page.locator('#doctrineSystem')).toBeVisible();
+
+	// Check initial 3D rotation state
+	const initial3D = await page.evaluate(() => window.__cc3Transcendence.getView3D());
+	expect(initial3D.rotX).toBe(58);
+	expect(initial3D.rotZ).toBe(0);
+
+	const canvasBox = await page.locator('#doctrineCanvas').boundingBox();
+	expect(canvasBox).not.toBeNull();
+	if (canvasBox) {
+		const startX = canvasBox.x + canvasBox.width / 2 + 120;
+		const startY = canvasBox.y + canvasBox.height / 2 + 120;
+		await page.mouse.move(startX, startY);
+		await page.mouse.down({ button: 'left' });
+		await page.mouse.move(startX + 80, startY + 40, { steps: 5 });
+		await page.mouse.up({ button: 'left' });
+	}
+
+	const rotated3D = await page.evaluate(() => window.__cc3Transcendence.getView3D());
+	expect(rotated3D.rotZ).not.toBe(0);
+	expect(rotated3D.rotX).not.toBe(58);
+
+	// Pan via right-click drag
+	if (canvasBox) {
+		const startX = canvasBox.x + canvasBox.width / 2 + 120;
+		const startY = canvasBox.y + canvasBox.height / 2 + 120;
+		await page.mouse.move(startX, startY);
+		await page.mouse.down({ button: 'right' });
+		await page.mouse.move(startX + 60, startY + 60, { steps: 5 });
+		await page.mouse.up({ button: 'right' });
+	}
+
+	const panned3D = await page.evaluate(() => window.__cc3Transcendence.getView3D());
+	expect(panned3D.offX).not.toBe(0);
+	expect(panned3D.offY).not.toBe(0);
+
+	// Reset 3D view button
+	await page.click('#doctrineResetBtn');
+	const reset3D = await page.evaluate(() => window.__cc3Transcendence.getView3D());
+	expect(reset3D.rotX).toBe(58);
+	expect(reset3D.rotZ).toBe(0);
+	expect(reset3D.offX).toBe(0);
+	expect(reset3D.offY).toBe(0);
+	expect(reset3D.zoom).toBe(1);
+
+	// Sun and planet nodes are present and billboarded
+	await expect(page.locator('.doctrine-sun')).toHaveCount(1);
+	await expect(page.locator('.doctrine-planet')).toHaveCount(13);
+	await expect(page.locator('.doctrine-orbit-ring')).toHaveCount(4);
+
+	await page.evaluate(() => window.__cc3Transcendence.closeDoctrineTree(true));
+	await expect(page.locator('#doctrineFullView')).toHaveCount(0);
 	await assertNoUncaughtErrors(page);
 });
 
