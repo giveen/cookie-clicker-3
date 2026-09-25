@@ -13,7 +13,7 @@ import { Game } from "./core/game";
 import { SynergyUpgrade, TieredUpgrade, Upgrade } from "./core/upgrade";
 import { installAchievementsExtra, resetExtraAchCounters } from "./systems/achievementsExtra";//CC3: achievement expansion runtime (save/load of the counter field happens in systems/save.ts)
 import { Ascend, AscendBrowseClose, AscendBrowseView, AscendRefocus, BuildAscendTree, canLumps, canRefillLump, clickLump, computeLumpTimes, computeLumpType, doLumps, gainLumps, getLumpRefillMax, getLumpRefillRemaining, harvestLumps, loadLumps, lumpTooltip, PickAscensionMode, PurchaseHeavenlyUpgrade, Reincarnate, ResetHeavenlyLayout, refillLump, SaveHeavenlyLayout, spendLump, ToggleArrangeHeavenly, UpdateAscend, UpdateAscendIntro, UpdateAscensionModePrompt, UpdateReincarnateIntro } from "./systems/ascend";
-import { CaptureSave, DownloadBackup, ListBackups, RefreshBackupList, RestoreBackup } from "./systems/backup";
+import { CaptureSave, CreateManualSnapshot, DeleteBackup, DownloadBackup, ListBackups, OpenBackupManager, RefreshBackupList, RestoreBackup } from "./systems/backup";
 import { bakeryNamePrompt, bakeryNamePromptRandom, bakeryNameRefresh, bakeryNameSet, GetBakeryName, RandomBakeryName } from "./systems/bakeryName";
 /* CC3 rewrite (phase 6, slice 3): systems + UI extracted to typed modules. */
 import { buffType, buffTypes, buffTypesByName, declareVanillaBuffs, gainBuff, hasBuff, killBuff, killBuffs, updateBuffs } from "./systems/buffs";
@@ -1402,7 +1402,10 @@ Game.Launch=function()
 		
 		// CC3: rolling save backups (systems/backup.ts). CaptureSave is also
 		// called from WriteSave itself; the Game slots expose the menu + QA.
-		Game.CaptureSave=function(saveData: string){return CaptureSave(Game,saveData);};
+		Game.CaptureSave=function(saveData: string, label?: string, isManual?: boolean){return CaptureSave(Game,saveData,label,isManual);};
+		Game.CreateManualSnapshot=function(label?: string){return CreateManualSnapshot(Game,label);};
+		Game.DeleteBackup=function(timestamp: number){return DeleteBackup(Game,timestamp);};
+		Game.OpenBackupManager=function(defaultTab?: 'backups' | 'legacy'){return OpenBackupManager(Game,defaultTab);};
 		Game.ListBackups=function(){return ListBackups(Game);};
 		Game.RestoreBackup=function(timestamp: number){return RestoreBackup(Game,timestamp);};
 		Game.DownloadBackup=function(timestamp: number){return DownloadBackup(Game,timestamp);};

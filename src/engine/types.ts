@@ -544,10 +544,12 @@ export interface Game {
 	CopySaveToClipboard(): void;
 	/* CC3 rolling save backups (systems/backup.ts): CaptureSave is called from
 	 * WriteSave; ListBackups/RestoreBackup/DownloadBackup/RefreshBackupList
-	 * drive the Options menu history. The backup entry shape is
-	 * `{ timestamp, save }`. */
-	CaptureSave(saveData: string): void;
-	ListBackups(): Array<{ timestamp: number; save: string }>;
+	 * drive the Options menu history. */
+	CaptureSave(saveData: string, label?: string, isManual?: boolean): void;
+	CreateManualSnapshot(label?: string): boolean;
+	DeleteBackup(timestamp: number): boolean;
+	OpenBackupManager(defaultTab?: 'backups' | 'legacy'): void;
+	ListBackups(): Array<{ timestamp: number; save: string; label?: string; isManual?: boolean; bakeryName?: string; cookies?: number; cps?: number; prestige?: number; buildingsOwned?: number; version?: number }>;
 	RestoreBackup(timestamp: number): boolean;
 	DownloadBackup(timestamp: number): boolean;
 	RefreshBackupList(): void;
