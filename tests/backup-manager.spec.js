@@ -99,7 +99,8 @@ test.describe('Backup & Legacy Save Manager', () => {
 			const report = document.getElementById('bmLegacyReport');
 			const reportHasContent = report && report.innerText.includes('Cookie Clicker');
 
-			G.ClosePrompt();
+			// Switch back to backups tab to capture the snapshot list in full width
+			if (G.__bmSwitchTab) G.__bmSwitchTab('backups');
 
 			return {
 				modalOpen,
@@ -110,6 +111,23 @@ test.describe('Backup & Legacy Save Manager', () => {
 				reportHasContent,
 			};
 		});
+
+		await expect(page.locator('#prompt')).toHaveClass(/backupPrompt/);
+		const promptBox = await page.locator('#prompt').boundingBox();
+		expect(promptBox).not.toBeNull();
+		if (promptBox) {
+			expect(promptBox.width).toBeGreaterThanOrEqual(600);
+		}
+		await page.locator('#prompt').screenshot({ path: '/home/jabbatheduck/.gemini/antigravity/brain/9f3e0bba-bec4-4efa-aec6-1c6e5b5ddc8b/backup_modal_fixed.png' });
+
+		await page.evaluate(() => {
+			const G = window.Game;
+			G.CreateManualSnapshot('Pre-Transcendence Snapshot');
+			G.CreateManualSnapshot('Speedrun Milestone');
+			G.OpenBackupManager('backups');
+		});
+		await page.locator('#prompt').screenshot({ path: '/home/jabbatheduck/.gemini/antigravity/brain/9f3e0bba-bec4-4efa-aec6-1c6e5b5ddc8b/backup_modal_populated.png' });
+		await page.evaluate(() => window.Game.ClosePrompt());
 
 		expect(result.modalOpen).toBe(true);
 		expect(result.hasPromptContent).toBe(true);

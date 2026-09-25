@@ -349,18 +349,18 @@ export function OpenBackupManager(game: Game, defaultTab?: 'backups' | 'legacy')
 
 	var buildContent = function(): string {
 		var backups = ListBackups(game);
-		var str = '<id BackupManager><div style="width:680px;max-width:92vw;text-align:left;font-size:12px;">';
+		var str = '<id BackupManager><div style="width:100%;box-sizing:border-box;text-align:left;font-size:12px;">';
 		
 		// Header Tabs
 		str += '<div style="display:flex;border-bottom:1px solid rgba(255,255,255,0.2);margin-bottom:14px;gap:8px;">';
-		str += '<a id="bmTabBackups" class="option smallFancyButton" style="padding:6px 14px;font-size:12px;' + (activeTab === 'backups' ? 'color:#ffd700;font-weight:bold;border-color:#ffd700;' : '') + '" onclick="Game.__bmSwitchTab(\'backups\');PlaySound(\'snd/tick.mp3\');">Snapshots & Backups (' + backups.length + ')</a>';
-		str += '<a id="bmTabLegacy" class="option smallFancyButton" style="padding:6px 14px;font-size:12px;' + (activeTab === 'legacy' ? 'color:#ffd700;font-weight:bold;border-color:#ffd700;' : '') + '" onclick="Game.__bmSwitchTab(\'legacy\');PlaySound(\'snd/tick.mp3\');">Legacy / CC2 Save Loader</a>';
+		str += '<a id="bmTabBackups" class="option smallFancyButton" style="width:auto;text-align:center;padding:6px 14px;font-size:12px;' + (activeTab === 'backups' ? 'color:#ffd700;font-weight:bold;border-color:#ffd700;' : '') + '" onclick="Game.__bmSwitchTab(\'backups\');PlaySound(\'snd/tick.mp3\');">Snapshots & Backups (' + backups.length + ')</a>';
+		str += '<a id="bmTabLegacy" class="option smallFancyButton" style="width:auto;text-align:center;padding:6px 14px;font-size:12px;' + (activeTab === 'legacy' ? 'color:#ffd700;font-weight:bold;border-color:#ffd700;' : '') + '" onclick="Game.__bmSwitchTab(\'legacy\');PlaySound(\'snd/tick.mp3\');">Legacy / CC2 Save Loader</a>';
 		str += '</div>';
 
 		if (activeTab === 'backups') {
 			str += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">';
 			str += '<div style="color:rgba(255,255,255,0.7);font-size:11px;">Keep track of autosaves, restore previous states, or create protected snapshots before major decisions.</div>';
-			str += '<a class="option smallFancyButton" style="font-weight:bold;color:#73f21e;border-color:#73f21e;padding:4px 10px;white-space:nowrap;" onclick="Game.__bmCreateSnapshot();PlaySound(\'snd/tick.mp3\');">+ Take Snapshot</a>';
+			str += '<a class="option smallFancyButton" style="width:auto;text-align:center;font-weight:bold;color:#73f21e;border-color:#73f21e;padding:4px 10px;white-space:nowrap;" onclick="Game.__bmCreateSnapshot();PlaySound(\'snd/tick.mp3\');">+ Take Snapshot</a>';
 			str += '</div>';
 
 			if (backups.length === 0) {
@@ -393,10 +393,10 @@ export function OpenBackupManager(game: Game, defaultTab?: 'backups' | 'legacy')
 					str += '</div>';
 
 					// Action buttons
-					str += '<div style="display:flex;gap:4px;flex-shrink:0;">';
-					str += '<a class="option smallFancyButton" style="padding:4px 8px;font-size:10px;" onclick="Game.__bmRestore(' + b.timestamp + ');PlaySound(\'snd/tick.mp3\');">Restore</a>';
-					str += '<a class="option smallFancyButton" style="padding:4px 8px;font-size:10px;" onclick="Game.DownloadBackup(' + b.timestamp + ');PlaySound(\'snd/tick.mp3\');">Export</a>';
-					str += '<a class="option smallFancyButton warning" style="padding:4px 6px;font-size:10px;color:#f21e3c;" onclick="Game.__bmDelete(' + b.timestamp + ');PlaySound(\'snd/tick.mp3\');">&times;</a>';
+					str += '<div style="display:flex;gap:6px;flex-shrink:0;">';
+					str += '<a class="option smallFancyButton" style="width:auto;text-align:center;padding:4px 10px;font-size:10px;" onclick="Game.__bmRestore(' + b.timestamp + ');PlaySound(\'snd/tick.mp3\');">Restore</a>';
+					str += '<a class="option smallFancyButton" style="width:auto;text-align:center;padding:4px 10px;font-size:10px;" onclick="Game.DownloadBackup(' + b.timestamp + ');PlaySound(\'snd/tick.mp3\');">Export</a>';
+					str += '<a class="option smallFancyButton warning" style="width:20px;text-align:center;padding:4px 0;font-size:11px;color:#f21e3c;" onclick="Game.__bmDelete(' + b.timestamp + ');PlaySound(\'snd/tick.mp3\');">&times;</a>';
 					str += '</div>';
 					str += '</div>';
 				}
@@ -407,8 +407,8 @@ export function OpenBackupManager(game: Game, defaultTab?: 'backups' | 'legacy')
 			str += '<div style="color:rgba(255,255,255,0.7);font-size:11px;margin-bottom:10px;">Import, diagnose, and safely load saves from upstream Cookie Clicker 2.048, earlier v2.x versions, or legacy text formats.</div>';
 			str += '<div style="margin-bottom:8px;"><textarea id="bmLegacyInput" style="width:100%;height:90px;font-size:10px;box-sizing:border-box;background:#111;color:#eee;border:1px solid #444;padding:6px;border-radius:4px;" placeholder="Paste legacy or Cookie Clicker 2 save text here..."></textarea></div>';
 			str += '<div style="display:flex;gap:8px;margin-bottom:12px;">';
-			str += '<a class="option smallFancyButton" style="padding:4px 12px;font-size:11px;" onclick="Game.__bmInspectLegacy();PlaySound(\'snd/tick.mp3\');">Inspect Save</a>';
-			str += '<a class="option smallFancyButton" style="padding:4px 12px;font-size:11px;position:relative;">Load from File<input id="bmLegacyFileInput" type="file" style="cursor:pointer;opacity:0;position:absolute;left:0;top:0;width:100%;height:100%;" onchange="Game.__bmLoadLegacyFile(event);" /></a>';
+			str += '<a class="option smallFancyButton" style="width:auto;text-align:center;padding:4px 12px;font-size:11px;" onclick="Game.__bmInspectLegacy();PlaySound(\'snd/tick.mp3\');">Inspect Save</a>';
+			str += '<a class="option smallFancyButton" style="width:auto;text-align:center;padding:4px 12px;font-size:11px;position:relative;">Load from File<input id="bmLegacyFileInput" type="file" style="cursor:pointer;opacity:0;position:absolute;left:0;top:0;width:100%;height:100%;" onchange="Game.__bmLoadLegacyFile(event);" /></a>';
 			str += '</div>';
 			str += '<div id="bmLegacyReport" style="background:#111;border:1px solid #333;border-radius:4px;padding:10px;min-height:90px;font-size:11px;color:rgba(255,255,255,0.8);">';
 			str += '<div style="color:rgba(255,255,255,0.4);text-align:center;padding:24px 0;">Paste a save code and click "Inspect Save" to preview its contents and verify compatibility before loading.</div>';
@@ -423,7 +423,10 @@ export function OpenBackupManager(game: Game, defaultTab?: 'backups' | 'legacy')
 	(game as any).__bmSwitchTab = function(tab: 'backups' | 'legacy') {
 		activeTab = tab;
 		var contentL = l('promptContentBackupManager');
-		if (contentL) contentL.innerHTML = buildContent();
+		if (contentL) {
+			contentL.innerHTML = buildContent();
+			game.UpdatePrompt();
+		}
 	};
 
 	(game as any).__bmCreateSnapshot = function() {
@@ -431,7 +434,10 @@ export function OpenBackupManager(game: Game, defaultTab?: 'backups' | 'legacy')
 		if (name !== null) {
 			CreateManualSnapshot(game, name.trim() || 'Manual Snapshot');
 			var contentL = l('promptContentBackupManager');
-			if (contentL) contentL.innerHTML = buildContent();
+			if (contentL) {
+				contentL.innerHTML = buildContent();
+				game.UpdatePrompt();
+			}
 			game.Notify('Snapshot Created', 'Saved snapshot: ' + (name.trim() || 'Manual Snapshot'), [1, 33]);
 		}
 	};
@@ -452,7 +458,10 @@ export function OpenBackupManager(game: Game, defaultTab?: 'backups' | 'legacy')
 		if (confirm('Delete this backup entry?')) {
 			DeleteBackup(game, timestamp);
 			var contentL = l('promptContentBackupManager');
-			if (contentL) contentL.innerHTML = buildContent();
+			if (contentL) {
+				contentL.innerHTML = buildContent();
+				game.UpdatePrompt();
+			}
 		}
 	};
 
@@ -493,6 +502,7 @@ export function OpenBackupManager(game: Game, defaultTab?: 'backups' | 'legacy')
 
 		(game as any).__bmPendingLegacy = rep.cleanedSave;
 		reportL.innerHTML = rStr;
+		game.UpdatePrompt();
 	};
 
 	(game as any).__bmApplyLegacy = function() {
@@ -526,7 +536,7 @@ export function OpenBackupManager(game: Game, defaultTab?: 'backups' | 'legacy')
 		reader.readAsText(file);
 	};
 
-	game.Prompt(buildContent(), [loc("Close")]);
+	game.Prompt(buildContent(), [loc("Close")], 0, 'backupPrompt');
 }
 
 /** The Options-menu markup for the backup entry point. */

@@ -3065,6 +3065,20 @@ body:not(.noMotion) #buildingsMaster .tinyProductIcon.catSleepIcon
 	left:-200px;
 }
 
+#prompt.backupPrompt, #prompt.superWidePrompt
+{
+	width:680px;
+	max-width:calc(94vw - 32px);
+	left:-340px;
+}
+@media (max-width: 760px)
+{
+	#prompt.backupPrompt, #prompt.superWidePrompt
+	{
+		left:calc(-47vw + 16px);
+	}
+}
+
 /* Tutorial coach-marks (ui/tutorial.ts). #tutorialSpotlight is a
 transparent box the size of the target element; its giant box-shadow
 darkens everything else on the page (the same "spotlight" trick used
