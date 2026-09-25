@@ -1186,6 +1186,40 @@ test('transcendence access points: top bar widget, stats menu, and Layer 1 full 
 	expect(prestigeState.heavenlyChips).toBe(0);
 	expect(prestigeState.heavenlyChipsSpent).toBe(0);
 
+	// 5. Verify widget only shows up if player can afford it
+	// When EE is 0 and run gain is 0 -> widget must hide
+	await page.evaluate(() => {
+		const T = window.__cc3Transcendence;
+		T.state.ee = 0;
+		window.Game.cookiesReset = 0;
+		window.Game.cookiesEarned = 0;
+		T.updateTopBarWidget();
+	});
+	await expect(topBarWidget).toBeHidden();
+
+	// When player can afford Transcendence (>= 1e36 cookies -> +1 EE) -> widget appears with +1 EE
+	await page.evaluate(() => {
+		const T = window.__cc3Transcendence;
+		window.Game.cookiesReset = 1e36;
+		T.updateTopBarWidget();
+	});
+	await expect(topBarWidget).toBeVisible();
+	const transcendGainText = await topBarWidget.innerText();
+	expect(transcendGainText).toContain('+1');
+	expect(transcendGainText).toContain('EE');
+
+	// When player has spendable EE to afford doctrine nodes -> widget appears
+	await page.evaluate(() => {
+		const T = window.__cc3Transcendence;
+		window.Game.cookiesReset = 0;
+		T.state.ee = 5;
+		T.updateTopBarWidget();
+	});
+	await expect(topBarWidget).toBeVisible();
+	const doctrineAffordText = await topBarWidget.innerText();
+	expect(doctrineAffordText).toContain('5');
+	expect(doctrineAffordText).toContain('EE');
+
 	await assertNoUncaughtErrors(page);
 });
 

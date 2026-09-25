@@ -312,6 +312,9 @@ declare global {
 			_addTranscendUI: () => void;
 			updateTopBarWidget: () => void;
 			appendStats: () => void;
+			canAffordDoctrine?: () => boolean;
+			canAffordTranscend?: () => boolean;
+			canAffordCelestial?: () => boolean;
 			save: () => string;
 			load: (str: string) => void;
 			/* What the last completion announced ('<h3>…</h3>…' for a dialog,

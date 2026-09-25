@@ -474,6 +474,7 @@
 		// Apply immediate effects & sound
 		PlaySound('snd/shimmerClick.mp3');
 		G.recalculateGains = 1;
+		updateTopBarWidget();
 		return true;
 	}
 
@@ -495,6 +496,7 @@
 			PlaySound('snd/tick.mp3');
 			G.recalculateGains = 1;
 		}
+		updateTopBarWidget();
 	}
 
 	/* ================================================================
@@ -879,7 +881,34 @@
 	 * UI: TOP BAR CELESTIAL WIDGET
 	 * ================================================================
 	 * Displays spendable EE in the top comments bar (above Legacy) and
-	 * gives direct access to the 3D celestial sphere during live gameplay. */
+	 * gives direct access to the 3D celestial sphere during live gameplay.
+	 * Only shows up when the player can actually afford a Doctrine node
+	 * or can afford to Transcend (earns >= 1 EE). */
+
+	/** Whether the player can afford any currently available doctrine node. */
+	function canAffordDoctrine(): boolean {
+		return DOCTRINE.some(function (node) {
+			if (doctrineHas(node.id)) return false;
+			if (state.ee < node.cost) return false;
+			for (const pid of node.parents) {
+				if (!doctrineHas(pid)) return false;
+			}
+			return true;
+		});
+	}
+
+	/** Whether the player can afford Transcendence (meets gate and earns >= 1 EE). */
+	function canAffordTranscend(): boolean {
+		const G = window.Game;
+		if (!G) return false;
+		const eeGain = computeEE(G.cookiesReset + G.cookiesEarned);
+		return canTranscend() && eeGain > 0;
+	}
+
+	/** Whether the player can afford either Transcendence or a Doctrine purchase. */
+	function canAffordCelestial(): boolean {
+		return canAffordDoctrine() || canAffordTranscend();
+	}
 
 	function updateTopBarWidget(): void {
 		const G = window.Game;
@@ -887,9 +916,9 @@
 		const comments = document.getElementById('comments');
 		if (!comments) return;
 
-		const visible = canTranscend() || state.eeEarned > 0 || state.transcendences > 0;
+		const canAfford = canAffordCelestial();
 		let btn = document.getElementById('transcendTopBarBtn');
-		if (!visible) {
+		if (!canAfford) {
 			if (btn) btn.style.display = 'none';
 			return;
 		}
@@ -910,10 +939,20 @@
 			};
 			btn.onmouseenter = function () {
 				if (G.tooltip && G.tooltip.draw) {
+					const eeGain = computeEE(G.cookiesReset + G.cookiesEarned);
+					const canT = canTranscend() && eeGain > 0;
+					let content = '';
+					if (state.ee > 0) {
+						content += 'Spendable EE: <b>' + state.ee + '</b>' + (canAffordDoctrine() ? ' <span style="color:#86efac;">(Upgrades available!)</span>' : '') + '<br>';
+					}
+					if (canT) {
+						content += '<div style="color:#86efac;margin-top:2px;">Transcendence ready: <b>+' + eeGain + ' EE</b></div>';
+					}
+					content += 'Doctrine Nodes: <b>' + state.doctrine.length + '/' + DOCTRINE.length + '</b>';
 					const desc = '<div style="min-width:180px;text-align:center;font-size:11px;padding:6px;">' +
 						'<b style="color:#ffd700;">Celestial Doctrine Tree</b><div class="line"></div>' +
-						'Spendable EE: <b>' + state.ee + '</b><br>' +
-						'Doctrine Nodes: <b>' + state.doctrine.length + '/' + DOCTRINE.length + '</b><div class="line"></div>' +
+						content +
+						'<div class="line"></div>' +
 						'<small>Click to open the 3D celestial sphere.</small></div>';
 					G.tooltip.draw(this, desc, 'bottom-right');
 				}
@@ -925,7 +964,14 @@
 		}
 
 		btn.style.display = 'block';
-		btn.innerHTML = '<span style="color:#f8c0ff;">✦</span> ' + state.ee + ' <small style="font-size:9px;color:#ddd;">EE</small>';
+		const eeGain = computeEE(G.cookiesReset + G.cookiesEarned);
+		if (state.ee > 0 && eeGain > 0 && canTranscend()) {
+			btn.innerHTML = '<span style="color:#f8c0ff;">✦</span> ' + state.ee + ' <small style="font-size:9px;color:#86efac;">(+' + eeGain + ') EE</small>';
+		} else if (state.ee > 0) {
+			btn.innerHTML = '<span style="color:#f8c0ff;">✦</span> ' + state.ee + ' <small style="font-size:9px;color:#ddd;">EE</small>';
+		} else {
+			btn.innerHTML = '<span style="color:#f8c0ff;">✦</span> +' + eeGain + ' <small style="font-size:9px;color:#ddd;">EE</small>';
+		}
 	}
 
 	/* ================================================================
@@ -1492,6 +1538,25 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 		top.appendChild(info);
 		top.appendChild(resetBtn);
 		top.appendChild(respec);
+
+		const eeGain = computeEE(G.cookiesReset + G.cookiesEarned);
+		if (canTranscend() && eeGain > 0) {
+			const trBtn = document.createElement('div');
+			trBtn.id = 'doctrineTranscendBtn';
+			trBtn.textContent = '✦ Transcend (+' + eeGain + ' EE)';
+			trBtn.style.cssText =
+				'color:#ffd700;background:radial-gradient(ellipse at 50% 50%, rgba(130,60,230,0.88) 0%, rgba(20,5,40,0.95) 100%);' +
+				'border:1px solid #ffd700;padding:4px 10px;border-radius:4px;cursor:pointer;font-weight:bold;font-size:11px;' +
+				'box-shadow:0 0 8px rgba(180,80,255,0.5);margin-left:8px;user-select:none;';
+			trBtn.title = 'Transcend now to claim +' + eeGain + ' Eternal Essence';
+			trBtn.onclick = function () {
+				PlaySound('snd/tick.mp3');
+				closeDoctrineTree(true);
+				doTranscend();
+			};
+			top.appendChild(trBtn);
+		}
+
 		view.appendChild(top);
 
 		// Canvas with 3D orbit pan/zoom
@@ -1738,11 +1803,22 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 
 	/** Update the top bar info text. */
 	function _updateDoctrineInfo(): void {
+		const G = window.Game;
 		const info = document.getElementById('doctrineInfo');
 		if (!info) return;
 		info.innerHTML = 'Eternal Essence: <b>' + state.ee + '</b> &nbsp;|&nbsp; Nodes: ' + state.doctrine.length + '/' + DOCTRINE.length;
 		const respecBtn = document.getElementById('doctrineRespecBtn');
 		if (respecBtn) respecBtn.textContent = 'Respec (' + state.doctrine.length + '/' + DOCTRINE.length + ')';
+		const trBtn = document.getElementById('doctrineTranscendBtn');
+		if (G && trBtn) {
+			const eeGain = computeEE(G.cookiesReset + G.cookiesEarned);
+			if (canTranscend() && eeGain > 0) {
+				trBtn.textContent = '✦ Transcend (+' + eeGain + ' EE)';
+				trBtn.style.display = 'block';
+			} else {
+				trBtn.style.display = 'none';
+			}
+		}
 	}
 
 	/** Render or re-render all planet nodes on their 3D orbits and celestial shells. */
@@ -2204,6 +2280,9 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 		_addTranscendUI,
 		updateTopBarWidget,
 		appendStats,
+		canAffordDoctrine,
+		canAffordTranscend,
+		canAffordCelestial,
 		save,
 		load,
 		/* What the last completion announced ('<h3>…</h3>…' for a dialog, the
