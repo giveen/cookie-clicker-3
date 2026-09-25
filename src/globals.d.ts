@@ -307,6 +307,7 @@ declare global {
 			hasMilestone: (threshold: number) => boolean;
 			showDoctrineTree: () => void;
 			closeDoctrineTree: (instant?: boolean) => void;
+			showNodeDetail: (nodeId: number) => void;
 			resetView: () => void;
 			getView3D: () => { rotX: number; rotZ: number; zoom: number; offX: number; offY: number };
 			_addTranscendUI: () => void;

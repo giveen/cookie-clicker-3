@@ -525,6 +525,21 @@
 		return cps * mult;
 	}
 
+	/** CookiesPerClick hook: Persistent Hand (+0.5% of CpS per 100 Cursors). */
+	function cookiesPerClickHook(cpc: number): number {
+		const G = window.Game;
+		if (!G) return cpc;
+		if (G.ascensionMode === 1 && !hasMilestone(1000)) return cpc;
+		if (doctrineHas(1)) {
+			const cursors = G.Objects['Cursor'] ? G.Objects['Cursor'].amount : 0;
+			const bonusPer100 = Math.floor(cursors / 100);
+			if (bonusPer100 > 0) {
+				cpc += G.cookiesPs * 0.005 * bonusPer100;
+			}
+		}
+		return cpc;
+	}
+
 	/** Click hook: every click on the big cookie. */
 	function clickHook(): void {
 		const G = window.Game;
@@ -533,7 +548,7 @@
 		if (doctrineHas(2)) {
 			// Skip Born-again unless Omega
 			if (G.ascensionMode === 1 && !hasMilestone(1000)) return;
-			const bonus = G.cookiesPs * 0.5 / G.fps;
+			const bonus = G.cookiesPs * 0.5;
 			if (bonus > 0) {
 				G.cookies += bonus;
 				G.cookiesEarned += bonus;
@@ -1973,12 +1988,10 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 
 			planet.appendChild(badge);
 
-			if (canBuy) {
-				planet.onclick = function () {
-					if (_didDrag) return;
-					buyInTreeSolar(node.id);
-				};
-			}
+			planet.onclick = function () {
+				if (_didDrag) return;
+				showNodeDetail(node.id);
+			};
 
 			if (!canBuy && !owned) {
 				let reason = '';
@@ -1998,6 +2011,65 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 
 			container.appendChild(planet);
 		}
+	}
+
+	/** Show confirmation / detail modal for a doctrine node before purchasing. */
+	function showNodeDetail(nodeId: number): void {
+		const G = window.Game;
+		if (!G) return;
+		const node = DOCTRINE.find((d) => d.id === nodeId);
+		if (!node) return;
+
+		const owned = doctrineHas(node.id);
+		const canAfford = state.ee >= node.cost;
+		const parentsMet = node.parents.every((pid) => doctrineHas(pid));
+		const canBuy = !owned && canAfford && parentsMet;
+
+		const b = (node.branch && BRANCH_3D[node.branch]) || BRANCH_3D.glutton;
+		const branchTitle = node.branch ? node.branch.charAt(0).toUpperCase() + node.branch.slice(1) + "'s Path" : '';
+
+		let html = '<div style="text-align:center;padding:6px 12px;user-select:none;">';
+		html += '<div style="display:inline-block;width:48px;height:48px;background:url(img/icons.webp) -' + (node.icon[0] * 48) + 'px -' + (node.icon[1] * 48) + 'px;margin-bottom:8px;border-radius:50%;box-shadow:0 0 16px ' + b.color + ';"></div>';
+		html += '<h3 style="margin:0 0 4px;color:#ffd700;font-size:18px;">' + node.name + '</h3>';
+		if (branchTitle) {
+			html += '<div style="font-size:12px;color:' + b.color + ';margin-bottom:12px;font-style:italic;">' + branchTitle + ' • ' + node.cost + ' Eternal Essence</div>';
+		}
+		html += '<div class="line" style="margin:10px 0;"></div>';
+		html += '<div style="font-size:14px;line-height:1.45;margin:14px 0;color:#f0f0f0;">' + node.desc + '</div>';
+
+		if (owned) {
+			html += '<div style="color:#4ade80;font-weight:bold;margin:12px 0 6px;font-size:13px;">✓ Already Owned & Active</div>';
+		} else if (!parentsMet) {
+			const missing = node.parents.filter((pid) => !doctrineHas(pid)).map((pid) => {
+				const p = DOCTRINE.find((d) => d.id === pid);
+				return p ? p.name : '?';
+			});
+			html += '<div style="color:#f87171;font-size:12px;margin:10px 0 4px;">Locked: Requires <b>' + missing.join(', ') + '</b></div>';
+		} else if (!canAfford) {
+			const need = node.cost - state.ee;
+			html += '<div style="color:#fbbf24;font-size:12px;margin:10px 0 4px;">Costs <b>' + node.cost + ' EE</b> (you have ' + state.ee + ' EE, need ' + need + ' more)</div>';
+		} else {
+			html += '<div style="color:#4ade80;font-size:12px;margin:10px 0 4px;">Available! Balance: <b>' + state.ee + ' EE</b> → <b>' + (state.ee - node.cost) + ' EE</b></div>';
+		}
+
+		html += '</div>';
+
+		const options: [string, any, string?][] = [];
+		if (canBuy) {
+			options.push([
+				'Purchase (' + node.cost + ' EE)',
+				function () {
+					G.ClosePrompt();
+					buyInTreeSolar(node.id);
+				},
+				'float:left;'
+			]);
+			options.push(['Cancel', 0, 'float:right;']);
+		} else {
+			options.push(['Close', 0]);
+		}
+
+		G.Prompt(html, options as any);
 	}
 
 	/** Purchase a node from the solar system UI and re-render in place. */
@@ -2179,6 +2251,7 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 		// Register hooks
 		G.registerHook('create', createHook);
 		G.registerHook('cps', cpsHook);
+		G.registerHook('cookiesPerClick', cookiesPerClickHook);
 		G.registerHook('click', clickHook);
 		G.registerHook('reset', resetHook);
 		G.registerHook('reincarnate', reincarnateHook);
@@ -2265,6 +2338,7 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 		hasMilestone,
 		showDoctrineTree,
 		closeDoctrineTree,
+		showNodeDetail,
 		resetView,
 		getView3D: function () {
 			return { rotX: _rotX, rotZ: _rotZ, zoom: _viewZoom, offX: _viewOffX, offY: _viewOffY };
