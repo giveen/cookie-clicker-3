@@ -130,7 +130,7 @@ export function computeSeasons()
 			}
 			if (Game.season!='' && Game.season!=this.season)
 			{
-				Game.Notify(Game.seasons[Game.season].over+'<div class="line"></div>','',Game.seasons[Game.season].triggerUpgrade.icon,4);
+				Game.Notify(Game.seasons[Game.season].over+'<div class="line"></div>','',Game.seasons[Game.season].triggerUpgrade ? Game.seasons[Game.season].triggerUpgrade.icon : undefined,4);
 			}
 			Game.season=this.season;
 			Game.seasonT=Game.getSeasonDuration();
@@ -143,16 +143,20 @@ export function computeSeasons()
 		me.clickFunction=function(me: any){return function()
 		{
 			//undo season
-			if (me.bought && Game.season && me==Game.seasons[Game.season].triggerUpgrade)
+			if (me.bought && Game.season && (me==Game.seasons[Game.season]?.triggerUpgrade || me.name==Game.seasons[Game.season]?.trigger))
 			{
+				const curSeason = Game.season;
+				const seasonObj = Game.seasons[curSeason];
 				me.lose();
-				Game.Notify(Game.seasons[Game.season].over,'',Game.seasons[Game.season].triggerUpgrade.icon);
-				if (Game.Has('Season switcher')) {Game.Unlock(Game.seasons[Game.season].trigger);Game.seasons[Game.season].triggerUpgrade.bought=0;}
+				if (seasonObj) Game.Notify(seasonObj.over,'',me.icon);
+				if (Game.Has('Season switcher')) Game.Unlock(me.name);
 				
 				Game.upgradesToRebuild=1;
+				Game.storeToRefresh=1;
 				Game.recalculateGains=1;
 				Game.season=Game.baseSeason;
 				Game.seasonT=-1;
+				if (Game.Objects['Grandma']) Game.Objects['Grandma'].redraw();
 				PlaySound('snd/tick.mp3');
 				return false;
 			}

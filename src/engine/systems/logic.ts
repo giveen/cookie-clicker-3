@@ -107,10 +107,21 @@ export function Logic()
 			}
 			if (Game.seasonT<=0 && Game.season!='' && Game.season!=Game.baseSeason && !Game.Has('Eternal seasons'))
 			{
-				Game.Notify(Game.seasons[Game.season].over,'',Game.seasons[Game.season].triggerUpgrade.icon);
-				if (Game.Has('Season switcher')) {Game.Unlock(Game.seasons[Game.season].trigger);Game.seasons[Game.season].triggerUpgrade.bought=0;}
-				Game.season=Game.baseSeason;
-				Game.seasonT=-1;
+				const curSeason = Game.season;
+				const seasonObj = Game.seasons[curSeason];
+				const triggerUpgrade = seasonObj ? (seasonObj.triggerUpgrade || Game.Upgrades[seasonObj.trigger]) : null;
+				if (seasonObj) Game.Notify(seasonObj.over, '', triggerUpgrade ? triggerUpgrade.icon : undefined);
+				if (triggerUpgrade)
+				{
+					triggerUpgrade.lose();
+					if (Game.Has('Season switcher')) Game.Unlock(triggerUpgrade.name);
+				}
+				Game.season = Game.baseSeason;
+				Game.seasonT = -1;
+				Game.upgradesToRebuild = 1;
+				Game.storeToRefresh = 1;
+				Game.recalculateGains = 1;
+				if (Game.Objects['Grandma']) Game.Objects['Grandma'].redraw();
 			}
 			
 			//press ctrl to bulk-buy 10, shift to bulk-buy 100
