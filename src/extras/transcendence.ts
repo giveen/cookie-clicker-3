@@ -1839,7 +1839,8 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 			ring.style.cssText =
 				'position:absolute;top:50%;left:50%;width:' + (r * 2) + 'px;height:' + (r * 2) + 'px;' +
 				'margin:' + (-r) + 'px;border-radius:50%;' +
-				'border:1px dashed ' + ringColors[orbitIndex] + ';' +
+				'border:1px solid ' + ringColors[orbitIndex] + ';' +
+				'box-shadow:none;' +
 				'pointer-events:none;';
 			container.appendChild(ring);
 		}
@@ -1889,7 +1890,6 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 				const isOwnedLink = c1.owned && c2.owned;
 				const isAvailableLink = c1.owned && c2.canBuy;
 				const opacity = isOwnedLink ? '0.70' : isAvailableLink ? '0.45' : '0.15';
-				const glowSize = isOwnedLink ? '2px' : '0px';
 
 				filament.style.cssText =
 					'position:absolute;left:' + (cx + c1.x) + 'px;top:' + (cy + c1.y) + 'px;' +
@@ -1897,9 +1897,8 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 					'transform-origin:0% 50%;' +
 					'transform:translateZ(' + c1.z + 'px) rotateZ(' + rotZ + 'deg) rotateY(' + (-pitch) + 'deg);' +
 					'background:' + b.glow + ';' +
-					(glowSize !== '0px' ? 'box-shadow:0 0 ' + glowSize + ' ' + b.glow + ';' : '') +
 					'opacity:' + opacity + ';' +
-					'border-radius:1px;pointer-events:none;';
+					'pointer-events:none;';
 				container.appendChild(filament);
 			}
 		}
