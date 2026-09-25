@@ -27,6 +27,7 @@
  * the vanilla icons render correctly for the pilot and keep this self-contained.
  */
 import type { Building, Game as EngineGame } from '../engine/types';
+import { STACK_TARGET_H, stackDims, stackPosition } from '../engine/content/buildings/stackDraw';
 
 (function () {
 	if (window.__cc3Binverter) return;
@@ -35,9 +36,9 @@ import type { Building, Game as EngineGame } from '../engine/types';
 	const NAME = 'Black hole inverter';
 	const DESC = 'Inverts the flow of gravity to get the infinitely delicious cookies from an infinitely dense singularity.';
 	const COMMON = 'black hole inverter|black hole inverters|extracted|[X]% larger event horizon|[X]% larger event horizon';
-	const STORE_ICON = 'img/blackholeinverter.png';
-	const CANVAS_PIC = 'blackholeinverter.png';
-	const CANVAS_BG = 'antimattercondenserBackground.webp';
+	const STORE_ICON = 'img/blackholeinverter.webp';
+	const CANVAS_PIC = 'blackholeinverter.webp';
+	const CANVAS_BG = 'blackholeinverterBackground.webp';
 	const ORDER_BASE = 100000;
 
 	// The exact content this mod declares, so save()/load() can target it by name.
@@ -158,6 +159,101 @@ import type { Building, Game as EngineGame } from '../engine/types';
 		// as the original CCSE.NewUpgrade/NewAchievement wrappers did.
 		if (typeof window.LocalizeUpgradesAndAchievs === 'function') window.LocalizeUpgradesAndAchievs();
 
+		// CC3: same staggered, overlapping vertical-stack treatment as other remastered buildings,
+		// on the shared STACK layout. Back rows are shaded for atmospheric depth.
+		var biCellW = 64;
+		var biCellH = 80;
+		var biSheetCols = 3;
+		var biSheetRows = 2;
+		me.draw = function (this: Building) {
+			if (this.amount <= 0 || !this.canvas || !this.ctx) return false;
+			if (this.toResize || this.canvas.width === 0) {
+				if (this.canvas.clientWidth > 0) {
+					this.canvas.width = this.canvas.clientWidth;
+					this.canvas.height = this.canvas.clientHeight;
+					this.pics = [];
+					this.toResize = false;
+				}
+			}
+			var ctx = this.ctx;
+			ctx.globalAlpha = 1;
+			var bg = (window as any).Pic(this.art.bg);
+			if (bg && bg.complete && bg.naturalWidth > 0) {
+				ctx.imageSmoothingEnabled = true;
+				var bgW = Math.max(1, Math.ceil(this.canvas.height * bg.naturalWidth / bg.naturalHeight));
+				for (var bgX = 0; bgX < this.canvas.width; bgX += bgW) {
+					ctx.drawImage(bg, 0, 0, bg.naturalWidth, bg.naturalHeight, bgX, 0, bgW, this.canvas.height);
+				}
+			} else if (typeof this.art.bg == 'string') {
+				ctx.fillPattern((window as any).Pic(this.art.bg), 0, 0, this.canvas.width, this.canvas.height, 128, 128);
+			}
+
+			var sheet = (window as any).Pic(this.art.pic);
+			if (sheet.width !== this._stackSheetW || sheet.height !== this._stackSheetH) {
+				this.pics = [];
+				this._stackSheetW = sheet.width;
+				this._stackSheetH = sheet.height;
+			}
+			var cellSrcW = sheet.naturalWidth ? Math.round(sheet.naturalWidth / biSheetCols) : biCellW;
+			var cellSrcH = sheet.naturalHeight ? Math.round(sheet.naturalHeight / biSheetRows) : biCellH;
+			var scale = Math.min(1, STACK_TARGET_H / biCellH);
+			var drawW = biCellW * scale;
+			var drawH = biCellH * scale;
+			var canvasW = this.canvas.width;
+			var canvasH = this.canvas.height;
+			var dims = stackDims(canvasW, canvasH, drawW, drawH);
+			var iT = Math.min(this.amount, dims.perRow * dims.numRows);
+
+			var i = this.pics.length;
+			if (i != iT) {
+				while (i < iT) {
+					Math.seedrandom(Game.seed + ' ' + this.id + ' ' + i);
+					var pos = stackPosition(i, canvasW, canvasH, drawW, drawH);
+					var sx = (i % biSheetCols) * cellSrcW;
+					var sy = (Math.floor(i / biSheetCols) % biSheetRows) * cellSrcH;
+					this.pics.push({
+						x: Math.floor(pos.x),
+						y: Math.floor(pos.y),
+						z: pos.z,
+						pic: this.art.pic,
+						id: i,
+						frame: 0,
+						flip: Math.random() < 0.5,
+						sx: sx,
+						sy: sy,
+						srcW: cellSrcW,
+						srcH: cellSrcH,
+						drawW: drawW,
+						drawH: drawH,
+						born: Game.T,
+					});
+					i++;
+				}
+				while (i > iT) {
+					this.pics.sort(Game.sortSpritesById);
+					this.pics.pop();
+					i--;
+				}
+				this.pics.sort(Game.sortSprites);
+			}
+			ctx.imageSmoothingEnabled = true;
+			for (var i = 0; i < this.pics.length; i++) {
+				var pic: any = this.pics[i];
+				ctx.globalAlpha = Math.floor(pic.id / dims.perRow) > 0 ? 0.88 : 1;
+				if (pic.flip) {
+					ctx.save();
+					ctx.translate(pic.x + pic.drawW, pic.y);
+					ctx.scale(-1, 1);
+					ctx.drawImage(sheet, pic.sx, pic.sy, pic.srcW || cellSrcW, pic.srcH || cellSrcH, 0, 0, pic.drawW, pic.drawH);
+					ctx.restore();
+				} else {
+					ctx.drawImage(sheet, pic.sx, pic.sy, pic.srcW || cellSrcW, pic.srcH || cellSrcH, pic.x, pic.y, pic.drawW, pic.drawH);
+				}
+			}
+			ctx.globalAlpha = 1;
+			return true;
+		};
+
 		// Build the store row + canvas for this building (the vanilla ones were built at
 		// module-eval, before we existed).
 		setupBuildingDom(Game, me);
@@ -179,7 +275,7 @@ import type { Building, Game as EngineGame } from '../engine/types';
 		// l() returns HTMLElement | null; the engine built this as a <canvas>.
 		const canvas = window.l('rowCanvas' + me.id) as HTMLCanvasElement;
 		me.canvas = canvas;
-		me.ctx = canvas.getContext('2d', { alpha: false });
+		me.ctx = canvas.getContext('2d');
 		me.pics = [];
 		if (window.AddEvent) {
 			window.AddEvent(canvas, 'mouseover', function () { me.mouseOn = true; });
@@ -211,8 +307,17 @@ import type { Building, Game as EngineGame } from '../engine/types';
 		const url = 'url(' + STORE_ICON + ')';
 		const on = document.getElementById('productIcon' + me.id);
 		const off = document.getElementById('productIconOff' + me.id);
-		if (on) { on.style.backgroundImage = url; on.style.backgroundPosition = '0px 0px'; }
-		if (off) { off.style.backgroundImage = url; off.style.backgroundPosition = '0px 0px'; }
+		if (on) {
+			on.style.backgroundImage = url;
+			on.style.backgroundSize = '192px 160px';
+			on.style.backgroundPosition = '0px -6px';
+		}
+		if (off) {
+			off.style.backgroundImage = url;
+			off.style.backgroundSize = '192px 160px';
+			off.style.backgroundPosition = '0px -6px';
+			off.style.filter = 'brightness(0.45) saturate(0.35)';
+		}
 	}
 
 	/* ------------------------------------------------------------------ */
