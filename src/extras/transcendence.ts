@@ -111,6 +111,165 @@
 		},
 	];
 
+	/** Moon definitions: 2 minor orbital nodes per major Doctrine planet. */
+	const DOCTRINE_MOONS = [
+		// ── Moons of 1: Persistent Hand (Glutton) ──
+		{
+			id: '1-1', planetId: 1, name: 'Phobos-C',
+			desc: 'Clicks gain +0.2% of your CpS per 100 Cursors owned.',
+			cost: 1, icon: [12, 0], orbitRadius: 56, orbitPeriod: 14, baseAngle: 0,
+		},
+		{
+			id: '1-2', planetId: 1, name: 'Deimos-C',
+			desc: 'Clicking the big cookie boosts Cursor production by +10% for 5 seconds.',
+			cost: 2, icon: [0, 1], orbitRadius: 86, orbitPeriod: 22, baseAngle: Math.PI,
+		},
+
+		// ── Moons of 2: Echoing Click (Glutton) ──
+		{
+			id: '2-1', planetId: 2, name: 'Resonance',
+			desc: 'Echoing Click duration increased by +0.25 seconds (total 0.75s passive CpS per click).',
+			cost: 2, icon: [1, 0], orbitRadius: 58, orbitPeriod: 15, baseAngle: 0.8,
+		},
+		{
+			id: '2-2', planetId: 2, name: 'Harmonic',
+			desc: 'Every 15th click unleashes a harmonic surge granting 1 second of passive CpS.',
+			cost: 3, icon: [2, 0], orbitRadius: 88, orbitPeriod: 24, baseAngle: 3.9,
+		},
+
+		// ── Moons of 3: Cascade (Glutton) ──
+		{
+			id: '3-1', planetId: 3, name: 'Splinter',
+			desc: 'Cascade chance increased by +5% (total 15% chance to spawn another golden cookie).',
+			cost: 3, icon: [21, 6], orbitRadius: 62, orbitPeriod: 16, baseAngle: 1.5,
+		},
+		{
+			id: '3-2', planetId: 3, name: 'Stardust',
+			desc: 'Cascaded golden cookies linger 25% longer before fading away.',
+			cost: 4, icon: [10, 0], orbitRadius: 94, orbitPeriod: 26, baseAngle: 4.6,
+		},
+
+		// ── Moons of 4: Lazy Oven (Idler) ──
+		{
+			id: '4-1', planetId: 4, name: 'Warm Hearth',
+			desc: 'Offline cookie production gains an additional +10% efficiency.',
+			cost: 1, icon: [17, 1], orbitRadius: 56, orbitPeriod: 14, baseAngle: 0.5,
+		},
+		{
+			id: '4-2', planetId: 4, name: 'Slumber',
+			desc: 'Active CpS is boosted by +5% during the first 10 minutes after loading your bakery.',
+			cost: 2, icon: [9, 0], orbitRadius: 86, orbitPeriod: 22, baseAngle: 3.6,
+		},
+
+		// ── Moons of 5: Warm Embers (Idler) ──
+		{
+			id: '5-1', planetId: 5, name: 'Spark',
+			desc: 'The shimmering veil grants +1% additional CpS while active.',
+			cost: 2, icon: [12, 1], orbitRadius: 58, orbitPeriod: 15, baseAngle: 1.2,
+		},
+		{
+			id: '5-2', planetId: 5, name: 'Insulation',
+			desc: 'Shimmering veil reactivation cost is reduced by an additional 25%.',
+			cost: 3, icon: [7, 0], orbitRadius: 88, orbitPeriod: 23, baseAngle: 4.3,
+		},
+
+		// ── Moons of 6: Ambient Baking (Idler) ──
+		{
+			id: '6-1', planetId: 6, name: 'Brood',
+			desc: 'Your cookie circle can attract +1 additional Wrinkler (exceeding normal capacity).',
+			cost: 3, icon: [19, 8], orbitRadius: 62, orbitPeriod: 16, baseAngle: 2.0,
+		},
+		{
+			id: '6-2', planetId: 6, name: 'Digestive Hive',
+			desc: 'Wrinklers digest and regurgitate 5% more cookies when popped.',
+			cost: 4, icon: [15, 8], orbitRadius: 94, orbitPeriod: 25, baseAngle: 5.1,
+		},
+
+		// ── Moons of 7: Fortune\'s Favor (Fatebinder) ──
+		{
+			id: '7-1', planetId: 7, name: 'Lucky Orbit',
+			desc: 'Golden cookies appear 5% faster.',
+			cost: 1, icon: [23, 7], orbitRadius: 56, orbitPeriod: 14, baseAngle: 0.3,
+		},
+		{
+			id: '7-2', planetId: 7, name: 'Linger',
+			desc: 'Golden cookie buff durations are increased by +5%.',
+			cost: 2, icon: [27, 7], orbitRadius: 86, orbitPeriod: 22, baseAngle: 3.4,
+		},
+
+		// ── Moons of 8: Elder\'s Whisper (Fatebinder) ──
+		{
+			id: '8-1', planetId: 8, name: 'Eerie Gloom',
+			desc: 'Wrath cookies grant +10% more direct cookies on successful positive effects.',
+			cost: 2, icon: [28, 8], orbitRadius: 58, orbitPeriod: 15, baseAngle: 1.0,
+		},
+		{
+			id: '8-2', planetId: 8, name: 'Baleful Beacon',
+			desc: 'Clot negative debuff duration is shortened by 20%.',
+			cost: 3, icon: [22, 8], orbitRadius: 88, orbitPeriod: 24, baseAngle: 4.1,
+		},
+
+		// ── Moons of 9: Strange Attractor (Fatebinder) ──
+		{
+			id: '9-1', planetId: 9, name: 'Cluster Core',
+			desc: 'Cluster golden cookie spawn chance increased by +3% (total 8%).',
+			cost: 3, icon: [26, 6], orbitRadius: 62, orbitPeriod: 16, baseAngle: 1.8,
+		},
+		{
+			id: '9-2', planetId: 9, name: 'Graviton',
+			desc: 'Golden cookies expand their celestial gravitational field (larger click hitbox).',
+			cost: 4, icon: [20, 7], orbitRadius: 94, orbitPeriod: 26, baseAngle: 5.0,
+		},
+
+		// ── Moons of 10: Double Dip (Fatebinder) ──
+		{
+			id: '10-1', planetId: 10, name: 'Echo Chamber',
+			desc: 'Double Dip repeat chance increased by +5% (total 20% chance to repeat on expiry).',
+			cost: 3, icon: [25, 7], orbitRadius: 62, orbitPeriod: 18, baseAngle: 2.2,
+		},
+		{
+			id: '10-2', planetId: 10, name: 'Prolong',
+			desc: 'Repeated buffs triggered by Double Dip last 20% longer.',
+			cost: 4, icon: [11, 6], orbitRadius: 94, orbitPeriod: 28, baseAngle: 5.4,
+		},
+
+		// ── Moons of 11: Frugal Start (Rebuilder) ──
+		{
+			id: '11-1', planetId: 11, name: 'Cornerstone',
+			desc: 'Building cost discount increased by an extra +0.5% per Transcendence performed.',
+			cost: 1, icon: [2, 7], orbitRadius: 56, orbitPeriod: 14, baseAngle: 0.6,
+		},
+		{
+			id: '11-2', planetId: 11, name: 'Architect\'s Mark',
+			desc: 'Every 100th building milestone purchase (e.g. 100, 200, 300) costs 15% less.',
+			cost: 2, icon: [3, 7], orbitRadius: 86, orbitPeriod: 22, baseAngle: 3.7,
+		},
+
+		// ── Moons of 12: Measured Growth (Rebuilder) ──
+		{
+			id: '12-1', planetId: 12, name: 'Apprentice Token',
+			desc: 'Upgrade cost discount increased by an extra +0.5% per Transcendence performed.',
+			cost: 2, icon: [19, 7], orbitRadius: 58, orbitPeriod: 15, baseAngle: 1.4,
+		},
+		{
+			id: '12-2', planetId: 12, name: 'Bulk Thrift',
+			desc: 'Buying upgrades in bulk or rapid succession grants +1% refund as cookies.',
+			cost: 3, icon: [20, 0], orbitRadius: 88, orbitPeriod: 23, baseAngle: 4.5,
+		},
+
+		// ── Moons of 13: Legacy Echo (Rebuilder) ──
+		{
+			id: '13-1', planetId: 13, name: 'Echo Hearth',
+			desc: 'Legacy Echo grants +2 additional free buildings of your most-owned type (total 3 free buildings).',
+			cost: 3, icon: [16, 7], orbitRadius: 62, orbitPeriod: 16, baseAngle: 2.1,
+		},
+		{
+			id: '13-2', planetId: 13, name: 'Continuum',
+			desc: 'Free buildings granted at run start produce +10% more CpS during the first hour.',
+			cost: 4, icon: [22, 3], orbitRadius: 94, orbitPeriod: 26, baseAngle: 5.2,
+		},
+	];
+
 	/** Milestone thresholds (lifetime EE → unlock). */
 	const MILESTONES = [
 		{ threshold: 1, name: 'First Light',
@@ -152,6 +311,7 @@
 		totalPrestigeAllTime: 0,      // running total of prestige ever earned (updated on ascension)
 		milestones: [] as number[],   // threshold values that have been reached
 		doctrine: [] as number[],     // ids of bought Doctrine nodes
+		moons: [] as string[],        // ids of bought minor orbital Moons
 		keptUpgrades: [] as string[], // prestige upgrade names kept by Steady Hand / Timeless milestone
 		keptCosmetic: '' as string,   // cosmetic upgrade name kept by First Light milestone
 	};
@@ -479,18 +639,48 @@
 	}
 
 	/* ================================================================
-	 * RESPEC
+	 * MOON PURCHASE & RESPEC
 	 * ================================================================ */
 
+	function moonHas(moonId: string): boolean {
+		return state.moons.indexOf(moonId) !== -1;
+	}
+
+	function purchaseMoon(moonId: string): boolean {
+		const G = window.Game;
+		if (!G) return false;
+		const moon = DOCTRINE_MOONS.find((m) => m.id === moonId);
+		if (!moon) return false;
+		if (moonHas(moonId)) return false;
+		// Parent planet must be owned
+		if (!doctrineHas(moon.planetId)) return false;
+		if (state.ee < moon.cost) return false;
+
+		state.ee -= moon.cost;
+		state.eeSpent += moon.cost;
+		state.moons.push(moonId);
+
+		PlaySound('snd/shimmerClick.mp3');
+		G.recalculateGains = 1;
+		updateTopBarWidget();
+		return true;
+	}
+
 	function respecDoctrine(): void {
-		if (state.doctrine.length === 0) return;
-		const refund = state.doctrine.reduce((sum, id) => {
+		if (state.doctrine.length === 0 && state.moons.length === 0) return;
+		const doctrineRefund = state.doctrine.reduce((sum, id) => {
 			const n = DOCTRINE.find((d) => d.id === id);
 			return sum + (n ? n.cost : 0);
 		}, 0);
-		state.ee += refund;
-		state.eeSpent -= refund;
+		const moonRefund = state.moons.reduce((sum, id) => {
+			const m = DOCTRINE_MOONS.find((d) => d.id === id);
+			return sum + (m ? m.cost : 0);
+		}, 0);
+		const totalRefund = doctrineRefund + moonRefund;
+		state.ee += totalRefund;
+		state.eeSpent -= totalRefund;
 		state.doctrine = [];
+		state.moons = [];
 		const G = window.Game;
 		if (G) {
 			PlaySound('snd/tick.mp3');
@@ -503,7 +693,11 @@
 	 * GAME HOOKS
 	 * ================================================================ */
 
-	/** CpS hook: apply Doctrine production bonuses. */
+	let _slumberUntil = Date.now() + 10 * 60 * 1000;
+	let _harmonicClicks = 0;
+	let _deimosTimer = 0;
+
+	/** CpS hook: apply Doctrine and Moon production bonuses. */
 	function cpsHook(cps: number): number {
 		const G = window.Game;
 		if (!G) return cps;
@@ -512,14 +706,26 @@
 
 		let mult = 1;
 
-		// Lazy Oven: +5% offline CpS per Idler node owned
+		// Lazy Oven: +5% offline CpS per Idler node owned (Warm Hearth 4-1: +10% extra)
 		let idlerCount = 0;
 		for (const id of state.doctrine) {
 			const n = DOCTRINE.find((d) => d.id === id);
 			if (n && n.branch === 'idler') idlerCount++;
 		}
 		if (idlerCount > 0) {
-			mult *= (1 + 0.05 * idlerCount);
+			let idlerBonus = 0.05 * idlerCount;
+			if (moonHas('4-1')) idlerBonus += 0.10;
+			mult *= (1 + idlerBonus);
+		}
+
+		// Slumber (4-2): active CpS boosted by +5% first 10 minutes
+		if (moonHas('4-2') && Date.now() < _slumberUntil) {
+			mult *= 1.05;
+		}
+
+		// Spark (5-1): Shimmering Veil gives +1% additional CpS while active
+		if (moonHas('5-1') && G.Has && G.Has('Shimmering veil [on]')) {
+			mult *= 1.01;
 		}
 
 		return cps * mult;
@@ -534,7 +740,15 @@
 			const cursors = G.Objects['Cursor'] ? G.Objects['Cursor'].amount : 0;
 			const bonusPer100 = Math.floor(cursors / 100);
 			if (bonusPer100 > 0) {
-				cpc += G.cookiesPs * 0.005 * bonusPer100;
+				const pct = 0.005 + (moonHas('1-1') ? 0.002 : 0);
+				cpc += G.cookiesPs * pct * bonusPer100;
+			}
+		}
+		// Deimos-C (1-2): active click boost adds 10% Cursor CpS
+		if (moonHas('1-2') && G.T < _deimosTimer) {
+			const cursorObj = G.Objects['Cursor'];
+			if (cursorObj) {
+				cpc += cursorObj.storedTotalCps * 0.10;
 			}
 		}
 		return cpc;
@@ -544,14 +758,30 @@
 	function clickHook(): void {
 		const G = window.Game;
 		if (!G) return;
-		// Echoing Click: each click triggers 0.5 seconds of passive CpS
+		const bornAgain = G.ascensionMode === 1 && !hasMilestone(1000);
+		if (bornAgain) return;
+
+		// Deimos-C (1-2): maintain 5s boost window
+		if (moonHas('1-2')) {
+			_deimosTimer = Math.max(_deimosTimer, G.T + 150);
+		}
+
+		// Echoing Click: each click triggers passive CpS
 		if (doctrineHas(2)) {
-			// Skip Born-again unless Omega
-			if (G.ascensionMode === 1 && !hasMilestone(1000)) return;
-			const bonus = G.cookiesPs * 0.5;
+			let duration = 0.5;
+			if (moonHas('2-1')) duration = 0.75;
+			const bonus = G.cookiesPs * duration;
 			if (bonus > 0) {
 				G.cookies += bonus;
 				G.cookiesEarned += bonus;
+			}
+			// Harmonic (2-2): every 15th click grants 1 full second of CpS
+			if (moonHas('2-2')) {
+				_harmonicClicks++;
+				if (_harmonicClicks % 15 === 0) {
+					G.cookies += G.cookiesPs;
+					G.cookiesEarned += G.cookiesPs;
+				}
 			}
 		}
 	}
@@ -584,10 +814,11 @@
 		// Close Doctrine view if open when reincarnating
 		closeDoctrineTree(true);
 
-		// Legacy Echo: grant 1 free building of the most-owned type from the previous run
+		// Legacy Echo: grant 1 free building (or 3 with Echo Hearth 13-1)
 		if (doctrineHas(13) && _lastMostOwnedBuilding > 0) {
 			const o = G.ObjectsById[_lastMostOwnedBuilding];
-			if (o) o.getFree(1);
+			const count = moonHas('13-1') ? 3 : 1;
+			if (o) o.getFree(count);
 		}
 
 		// Milestone: free cursors / grandmas
@@ -687,29 +918,37 @@
 			const bornAgain = G.ascensionMode === 1 && !hasMilestone(1000);
 
 			// ── Rebuilder's Path ──
-			// Frugal Start (node 11): buildings up to 20% cheaper
+			// Frugal Start (node 11): buildings up to 20% cheaper (Cornerstone 11-1: up to 25% cheaper)
 			if (name === 'buildingCost' && doctrineHas(11) && !bornAgain) {
-				v *= Math.max(0.8, 1 - 0.02 * state.transcendences);
+				const rate = moonHas('11-1') ? 0.025 : 0.02;
+				const maxDiscount = moonHas('11-1') ? 0.75 : 0.8;
+				v *= Math.max(maxDiscount, 1 - rate * state.transcendences);
 			}
-			// Measured Growth (node 12): upgrades up to 20% cheaper
+			// Measured Growth (node 12): upgrades up to 20% cheaper (Apprentice Token 12-1: up to 25% cheaper)
 			if (name === 'upgradeCost' && doctrineHas(12) && !bornAgain) {
-				v *= Math.max(0.8, 1 - 0.02 * state.transcendences);
+				const rate = moonHas('12-1') ? 0.025 : 0.02;
+				const maxDiscount = moonHas('12-1') ? 0.75 : 0.8;
+				v *= Math.max(maxDiscount, 1 - rate * state.transcendences);
 			}
 
 			// ── Idler's Path ──
-			// Ambient Baking (node 6): wrinklers spawn 20% faster and hold 10% more cookies
+			// Ambient Baking (node 6): wrinklers spawn 20% faster and hold 10% more cookies (Digestive Hive 6-2: 15%)
 			if (!bornAgain && doctrineHas(6)) {
 				if (name === 'wrinklerSpawn') v *= 1.2;
-				if (name === 'wrinklerEat') v *= 1.1;
+				if (name === 'wrinklerEat') v *= (moonHas('6-2') ? 1.15 : 1.1);
 			}
-			// Warm Embers (node 5): Elder Pledge / veil reactivation costs 50% less
-			if (name === 'veilActivateCost' && !bornAgain && doctrineHas(5)) v *= 0.5;
+			// Warm Embers (node 5): Elder Pledge / veil reactivation costs 50% less (Insulation 5-2: 62.5% less)
+			if (name === 'veilActivateCost' && !bornAgain && doctrineHas(5)) {
+				v *= (moonHas('5-2') ? 0.375 : 0.5);
+			}
 
 			// ── Fatebinder's Path ──
-			// Fortune's Favor (node 7): golden cookies appear 10% more often and last 10% longer
+			// Fortune's Favor (node 7): golden cookies appear 10% more often and last 10% longer (Lucky Orbit 7-1, Linger 7-2)
 			if (!bornAgain && doctrineHas(7)) {
-				if (name === 'goldenCookieFreq') v *= 1.1;
-				if (name === 'goldenCookieDur')  v *= 1.1;
+				const freq = 1.1 * (moonHas('7-1') ? 1.05 : 1.0);
+				const dur = 1.1 * (moonHas('7-2') ? 1.05 : 1.0);
+				if (name === 'goldenCookieFreq') v *= freq;
+				if (name === 'goldenCookieDur')  v *= dur;
 			}
 
 			return v;
@@ -747,11 +986,13 @@
 			const choice = _ddPending.choice;
 			_ddPending = null;
 			_ddBuffWasSeen = false;
-			if (doctrineHas(10) && !(G.ascensionMode === 1 && !hasMilestone(1000)) && Math.random() < 0.15) {
+			const ddChance = moonHas('10-1') ? 0.20 : 0.15;
+			if (doctrineHas(10) && !(G.ascensionMode === 1 && !hasMilestone(1000)) && Math.random() < ddChance) {
 				window.setTimeout(function () {
 					if (!window.Game) return;
 					const s = new (window.Game.shimmer as any)('golden');
 					s.force  = choice;
+					if (moonHas('10-2')) s.dur = (s.dur || 13) * 1.2;
 					s.spawned = 1;
 				}, 100);
 			}
@@ -790,17 +1031,20 @@
 			if (!G2) return buff;
 			if (G2.ascensionMode === 1 && !hasMilestone(1000)) return buff; // Born-again guard
 
-			// Cascade (3): 10% chance to spawn a bonus natural golden cookie
-			if (doctrineHas(3) && Math.random() < 0.1) {
+			// Cascade (3): 10% chance to spawn a bonus natural golden cookie (Splinter 3-1: 15%)
+			const cascadeChance = moonHas('3-1') ? 0.15 : 0.10;
+			if (doctrineHas(3) && Math.random() < cascadeChance) {
 				window.setTimeout(function () {
 					if (!window.Game) return;
 					const s = new (window.Game.shimmer as any)('golden');
+					if (moonHas('3-2')) s.dur = (s.dur || 13) * 1.25;
 					s.spawned = 1;
 				}, 150);
 			}
 
-			// Strange Attractor (9): 5% chance to spawn a cluster of 2–3 extra cookies
-			if (doctrineHas(9) && !me.wrath && Math.random() < 0.05) {
+			// Strange Attractor (9): 5% chance to spawn a cluster (Cluster Core 9-1: 8%)
+			const clusterChance = moonHas('9-1') ? 0.08 : 0.05;
+			if (doctrineHas(9) && !me.wrath && Math.random() < clusterChance) {
 				const extra = 2 + Math.floor(Math.random() * 2);
 				for (let i = 0; i < extra; i++) {
 					(function (delay: number) {
@@ -1247,7 +1491,7 @@
 	/* Orbit radii as fractions of the system half-size (set dynamically).
 	 * Inner orbits hold cheaper nodes, outer hold expensive ones. */
 	const ORBIT_FRACTIONS = [0.29, 0.52, 0.75, 0.98];
-	const ORBIT_BY_COST: Record<number, number> = { 1: 0, 3: 1, 8: 2, 15: 3 };
+	const ORBIT_BY_COST: Record<number, number> = { 5: 0, 15: 1, 40: 2, 75: 3 };
 
 	/* 3D View and Pan/zoom state for the full-screen view. */
 	let _rotX = 58;  // Tilt angle in degrees (pitch)
@@ -1486,6 +1730,111 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 .doctrine-planet.locked .planet-sphere {
   box-shadow:inset -5px -5px 12px rgba(0,0,0,0.95), inset 2px 2px 5px rgba(255,255,255,0.15), 0 2px 6px rgba(0,0,0,0.8);
 }
+/* Planetary Moons */
+.moon-orbit-ring {
+  position:absolute; top:50%; left:50%;
+  border-radius:50%;
+  border:1px dashed rgba(255,255,255,0.18);
+  transform:translate(-50%, -50%);
+  pointer-events:none; z-index:0;
+}
+@keyframes doctrineOrbitMoon {
+  from { transform: rotate(0deg) translateX(var(--m-dist)) rotate(0deg); }
+  to { transform: rotate(360deg) translateX(var(--m-dist)) rotate(-360deg); }
+}
+.doctrine-moon {
+  position:absolute; top:50%; left:50%;
+  width:0px; height:0px;
+  transform-style:preserve-3d;
+  pointer-events:auto;
+  cursor:pointer;
+  z-index:4;
+}
+.moon-sphere {
+  position:absolute; top:0; left:0;
+  width:18px; height:18px;
+  margin:-9px 0 0 -9px;
+  border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  overflow:hidden;
+  box-shadow:inset -2px -2px 5px rgba(0,0,0,0.8), 0 0 6px rgba(255,255,255,0.4);
+  transition:transform 0.2s ease, box-shadow 0.2s ease, width 0.2s ease, height 0.2s ease, margin 0.2s ease;
+  border:1px solid rgba(255,255,255,0.3);
+}
+.doctrine-planet.branch-glutton .moon-sphere {
+  background:radial-gradient(circle at 30% 30%, #ffc272, #ff7a18 40%, #551500 100%);
+}
+.doctrine-planet.branch-idler .moon-sphere {
+  background:radial-gradient(circle at 30% 30%, #a4eeff, #20a0d8 40%, #032042 100%);
+}
+.doctrine-planet.branch-fatebinder .moon-sphere {
+  background:radial-gradient(circle at 30% 30%, #f4b4ff, #a83ce4 40%, #2e034e 100%);
+}
+.doctrine-planet.branch-rebuilder .moon-sphere {
+  background:radial-gradient(circle at 30% 30%, #8efcc0, #22c06a 40%, #033614 100%);
+}
+.doctrine-moon:hover .moon-sphere {
+  transform:scale(1.35);
+  box-shadow:0 0 14px rgba(100,220,255,0.9), 0 0 4px #fff;
+}
+.doctrine-moon.owned .moon-sphere {
+  border-color:#4ade80;
+  box-shadow:0 0 8px rgba(74,222,128,0.7);
+}
+.doctrine-moon.locked {
+  opacity:0.35;
+}
+.doctrine-moon.buyable .moon-sphere {
+  border-color:#60a5fa;
+  box-shadow:0 0 8px rgba(96,165,250,0.7);
+}
+.moon-icon {
+  width:48px; height:48px;
+  image-rendering:pixelated;
+  border-radius:50%;
+  pointer-events:none;
+  transform:scale(0.32);
+  transform-origin:center center;
+}
+.doctrine-full-view.zoomed-in .moon-icon {
+  transform:scale(0.55);
+}
+.moon-badge {
+  position:absolute; top:12px; left:0;
+  transform:translateX(-50%);
+  display:flex; flex-direction:column; align-items:center;
+  white-space:nowrap;
+  opacity:0;
+  transition:opacity 0.2s ease;
+  pointer-events:none;
+}
+.doctrine-full-view.zoomed-in .moon-badge,
+.doctrine-planet:hover .moon-badge,
+.doctrine-moon:hover .moon-badge {
+  opacity:1;
+}
+.moon-name {
+  font-size:9px; color:#e0e0e0;
+  font-weight:600;
+  text-shadow:0 1px 2px rgba(0,0,0,0.9), 0 0 5px rgba(0,0,0,0.8);
+}
+.moon-cost {
+  font-size:8px; color:#ffd700; font-weight:bold;
+  text-shadow:0 1px 2px rgba(0,0,0,0.9);
+}
+.doctrine-moon.owned .moon-cost {
+  color:#4ade80;
+}
+.doctrine-full-view.zoomed-in .moon-sphere {
+  width:28px; height:28px;
+  margin:-14px 0 0 -14px;
+}
+.doctrine-full-view.zoomed-in .moon-badge {
+  top:18px;
+}
+.doctrine-full-view.zoomed-in .moon-name {
+  font-size:11px;
+}
 `;
 		document.head.appendChild(s);
 	}
@@ -1495,8 +1844,83 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 		return Math.min(window.innerHeight * 0.88, window.innerWidth * 0.92, 1200);
 	}
 
+	let _lastPlanetCoords: Record<number, { x: number; y: number; z: number }> = {};
+	let _focusAnimTimer: number | null = null;
+
+	function _updateMoonsLOD(): void {
+		const fullView = document.getElementById('doctrineFullView');
+		if (!fullView) return;
+		if (_viewZoom >= 1.7) {
+			fullView.classList.add('zoomed-in');
+		} else {
+			fullView.classList.remove('zoomed-in');
+		}
+	}
+
+	/** Smoothly focus and zoom camera onto a specific planet node and its moons. */
+	function focusOnPlanet(planetId: number): void {
+		const viewport = document.getElementById('doctrineViewport');
+		if (!viewport) return;
+		const vp: HTMLElement = viewport;
+		const pos = _lastPlanetCoords[planetId];
+		if (!pos) return;
+
+		if (_focusAnimTimer !== null) {
+			cancelAnimationFrame(_focusAnimTimer);
+			_focusAnimTimer = null;
+		}
+
+		const startX = _viewOffX;
+		const startY = _viewOffY;
+		const startZoom = _viewZoom;
+
+		// Project 3D coordinate (pos.x, pos.y, pos.z) into screen 2D space according to #doctrineSystem's pitch and yaw
+		const radZ = (_rotZ * Math.PI) / 180;
+		const radX = (_rotX * Math.PI) / 180;
+		// rotateZ
+		const rzX = pos.x * Math.cos(radZ) - pos.y * Math.sin(radZ);
+		const rzY = pos.x * Math.sin(radZ) + pos.y * Math.cos(radZ);
+		// rotateX (Z tilts Y into screen depth)
+		const projX = rzX;
+		const projY = rzY * Math.cos(radX) - (pos.z || 0) * Math.sin(radX);
+
+		const targetZoom = Math.max(3.8, Math.min(5.5, _viewZoom < 2 ? 4.2 : _viewZoom));
+		// Because #doctrineViewport has `translate(var(--ox), var(--oy)) scale(var(--zoom))`,
+		// any point at (px, py) in the viewport renders on screen at (px * zoom + ox, py * zoom + oy).
+		// For the planet to be at screen center (0, 0), ox must equal -projX * zoom.
+		const targetX = -projX * targetZoom;
+		const targetY = -projY * targetZoom;
+		const startTime = performance.now();
+		const duration = 400;
+
+		function step(now: number) {
+			const elapsed = now - startTime;
+			const progress = Math.min(1, elapsed / duration);
+			// Ease-out cubic
+			const ease = 1 - Math.pow(1 - progress, 3);
+
+			_viewOffX = startX + (targetX - startX) * ease;
+			_viewOffY = startY + (targetY - startY) * ease;
+			_viewZoom = startZoom + (targetZoom - startZoom) * ease;
+
+			_applyViewTransform(vp);
+			_updateMoonsLOD();
+
+			if (progress < 1) {
+				_focusAnimTimer = requestAnimationFrame(step);
+			} else {
+				_focusAnimTimer = null;
+			}
+		}
+		_focusAnimTimer = requestAnimationFrame(step);
+	}
+
 	/** Reset 3D view angles, pan, and zoom to defaults. */
 	function resetView(): void {
+		if (_focusAnimTimer !== null) {
+			cancelAnimationFrame(_focusAnimTimer);
+			_focusAnimTimer = null;
+		}
 		_rotX = 58;
 		_rotZ = 0;
 		_viewOffX = 0;
@@ -1504,6 +1928,7 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 		_viewZoom = 1;
 		const viewport = document.getElementById('doctrineViewport');
 		if (viewport) _applyViewTransform(viewport);
+		_updateMoonsLOD();
 	}
 
 	/** Show the Doctrine tree as a full-screen 3D solar system view,
@@ -1538,7 +1963,7 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 		back.onclick = function () { PlaySound('snd/tickOff.mp3'); closeDoctrineTree(); };
 		const hint = document.createElement('div');
 		hint.id = 'doctrineHint';
-		hint.textContent = 'Drag: Rotate • Shift+Drag: Pan • Scroll: Zoom';
+		hint.textContent = 'Drag: Rotate • Shift+Drag: Pan • Scroll: Zoom (0.4x–8x) • Dbl-Click: Focus';
 		const info = document.createElement('div');
 		info.id = 'doctrineInfo';
 		const resetBtn = document.createElement('div');
@@ -1698,9 +2123,23 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 
 		canvas.addEventListener('wheel', function (e: WheelEvent) {
 			e.preventDefault();
-			const delta = e.deltaY > 0 ? -0.1 : 0.1;
-			_viewZoom = Math.max(0.4, Math.min(2.0, _viewZoom + delta));
+			const factor = e.deltaY < 0 ? 1.15 : (1 / 1.15);
+			const oldZoom = _viewZoom;
+			const newZoom = Math.max(0.4, Math.min(8.0, _viewZoom * factor));
+			if (newZoom === oldZoom) return;
+
+			const rect = canvas.getBoundingClientRect();
+			const cx = rect.left + rect.width / 2;
+			const cy = rect.top + rect.height / 2;
+			const mx = e.clientX - cx;
+			const my = e.clientY - cy;
+
+			_viewOffX += (mx - _viewOffX) * (1 - newZoom / oldZoom);
+			_viewOffY += (my - _viewOffY) * (1 - newZoom / oldZoom);
+			_viewZoom = newZoom;
+
 			_applyViewTransform(viewport);
+			_updateMoonsLOD();
 		}, { passive: false });
 
 		// Touch controls: single finger to rotate 3D, two fingers to pan & pinch zoom
@@ -1748,7 +2187,8 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 				const t1 = e.touches[0], t2 = e.touches[1];
 				const dist = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
 				if (touchStartDist > 0) {
-					_viewZoom = Math.max(0.4, Math.min(2.0, touchStartZoom * (dist / touchStartDist)));
+					_viewZoom = Math.max(0.4, Math.min(8.0, touchStartZoom * (dist / touchStartDist)));
+					_updateMoonsLOD();
 				}
 				const midX = (t1.clientX + t2.clientX) / 2;
 				const midY = (t1.clientY + t2.clientY) / 2;
@@ -1823,9 +2263,10 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 		const G = window.Game;
 		const info = document.getElementById('doctrineInfo');
 		if (!info) return;
-		info.innerHTML = 'Eternal Essence: <b>' + state.ee + '</b> &nbsp;|&nbsp; Nodes: ' + state.doctrine.length + '/' + DOCTRINE.length;
+		info.innerHTML = 'Eternal Essence: <b>' + state.ee + '</b> &nbsp;|&nbsp; Nodes: ' + state.doctrine.length + '/' + DOCTRINE.length + ' &nbsp;|&nbsp; Moons: ' + state.moons.length + '/' + DOCTRINE_MOONS.length;
 		const respecBtn = document.getElementById('doctrineRespecBtn');
-		if (respecBtn) respecBtn.textContent = 'Respec (' + state.doctrine.length + '/' + DOCTRINE.length + ')';
+		const totalPurchased = state.doctrine.length + state.moons.length;
+		if (respecBtn) respecBtn.textContent = 'Respec (' + totalPurchased + ')';
 		const trBtn = document.getElementById('doctrineTranscendBtn');
 		if (G && trBtn) {
 			const eeGain = computeEE(G.cookiesReset + G.cookiesEarned);
@@ -1937,7 +2378,7 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 			const canAfford = state.ee >= node.cost;
 
 			// Sizing based on tier: Tier 1: 46px, Tier 2: 52px, Tier 3: 58px, Apex: 66px
-			const sphereSize = node.cost >= 15 ? 66 : node.cost >= 8 ? 58 : node.cost >= 3 ? 52 : 46;
+			const sphereSize = node.cost >= 75 ? 66 : node.cost >= 40 ? 58 : node.cost >= 15 ? 52 : 46;
 
 			const planet = document.createElement('div');
 			planet.dataset['nodeId'] = String(node.id);
@@ -1954,8 +2395,8 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 			planet.style.margin = (-sphereSize / 2) + 'px';
 			planet.style.transform = 'translateZ(' + pos.z + 'px) rotateZ(var(--invRotZ,0deg)) rotateX(var(--invRotX,-58deg))';
 
-			// Optional celestial ring for apex & high-tier planets (cost >= 8)
-			if (node.cost >= 8) {
+			// Optional celestial ring for apex & high-tier planets (cost >= 40)
+			if (node.cost >= 40) {
 				const ring = document.createElement('div');
 				ring.className = 'planet-ring';
 				planet.appendChild(ring);
@@ -1996,10 +2437,77 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 
 			planet.appendChild(badge);
 
+			_lastPlanetCoords[node.id] = { x: pos.x, y: pos.y, z: pos.z };
+
 			planet.onclick = function () {
 				if (_didDrag) return;
 				showNodeDetail(node.id);
 			};
+
+			planet.ondblclick = function (e: MouseEvent) {
+				e.stopPropagation();
+				focusOnPlanet(node.id);
+			};
+
+			// Moons orbiting this planet
+			const planetMoons = DOCTRINE_MOONS.filter((m) => m.planetId === node.id);
+			const ringsDone = new Set<number>();
+			for (const moon of planetMoons) {
+				if (!ringsDone.has(moon.orbitRadius)) {
+					ringsDone.add(moon.orbitRadius);
+					const mRing = document.createElement('div');
+					mRing.className = 'moon-orbit-ring';
+					mRing.style.width = (moon.orbitRadius * 2) + 'px';
+					mRing.style.height = (moon.orbitRadius * 2) + 'px';
+					planet.appendChild(mRing);
+				}
+
+				const isOwned = moonHas(moon.id);
+				const canAffordMoon = state.ee >= moon.cost;
+				const canBuyMoon = !isOwned && pos.owned && canAffordMoon;
+
+				const moonEl = document.createElement('div');
+				moonEl.className = 'doctrine-moon' +
+					(node.branch ? ' branch-' + node.branch : '') +
+					(isOwned ? ' owned' : '') +
+					(canBuyMoon ? ' buyable' : '') +
+					(!isOwned && !canBuyMoon ? ' locked' : '');
+				moonEl.dataset['moonId'] = moon.id;
+				moonEl.style.setProperty('--m-dist', moon.orbitRadius + 'px');
+				moonEl.style.animation = 'doctrineOrbitMoon ' + moon.orbitPeriod + 's linear infinite';
+				moonEl.style.animationDelay = (-(moon.baseAngle / (2 * Math.PI)) * moon.orbitPeriod) + 's';
+
+				const mSphere = document.createElement('div');
+				mSphere.className = 'moon-sphere';
+				const mIcon = document.createElement('div');
+				mIcon.className = 'moon-icon';
+				mIcon.style.backgroundImage = 'url(img/icons.webp)';
+				mIcon.style.backgroundPosition = '-' + (moon.icon[0] * 48) + 'px -' + (moon.icon[1] * 48) + 'px';
+				mSphere.appendChild(mIcon);
+				moonEl.appendChild(mSphere);
+
+				const mBadge = document.createElement('div');
+				mBadge.className = 'moon-badge';
+				const mName = document.createElement('span');
+				mName.className = 'moon-name';
+				mName.textContent = moon.name;
+				mBadge.appendChild(mName);
+				const mCost = document.createElement('span');
+				mCost.className = 'moon-cost';
+				mCost.textContent = isOwned ? '✓' : moon.cost + ' EE';
+				mBadge.appendChild(mCost);
+				moonEl.appendChild(mBadge);
+
+				moonEl.title = moon.name + ' (' + (isOwned ? 'Owned' : moon.cost + ' EE') + ')\n' + moon.desc;
+
+				moonEl.onclick = function (e: MouseEvent) {
+					e.stopPropagation();
+					if (_didDrag) return;
+					showMoonDetail(moon.id);
+				};
+
+				planet.appendChild(moonEl);
+			}
 
 			if (!canBuy && !owned) {
 				let reason = '';
@@ -2123,6 +2631,74 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 		}
 	}
 
+	/** Show confirmation / detail modal for a moon node before purchasing. */
+	function showMoonDetail(moonId: string): void {
+		const G = window.Game;
+		if (!G) return;
+		const moon = DOCTRINE_MOONS.find((m) => m.id === moonId);
+		if (!moon) return;
+		const parent = DOCTRINE.find((d) => d.id === moon.planetId);
+
+		const owned = moonHas(moon.id);
+		const parentOwned = parent ? doctrineHas(parent.id) : false;
+		const canAfford = state.ee >= moon.cost;
+		const canBuy = !owned && parentOwned && canAfford;
+
+		const b = (parent && parent.branch && BRANCH_3D[parent.branch]) || BRANCH_3D.glutton;
+		const parentName = parent ? parent.name : 'Parent Doctrine';
+
+		let html = '<div style="text-align:center;padding:6px 12px;user-select:none;">';
+		html += '<div style="display:inline-block;width:40px;height:40px;background:url(img/icons.webp) -' + (moon.icon[0] * 48) + 'px -' + (moon.icon[1] * 48) + 'px;background-size:calc(100% * 48 / 40);margin-bottom:8px;border-radius:50%;box-shadow:0 0 14px ' + b.color + ';"></div>';
+		html += '<h3 style="margin:0 0 4px;color:#ffd700;font-size:18px;">' + moon.name + '</h3>';
+		html += '<div style="font-size:12px;color:' + b.color + ';margin-bottom:12px;font-style:italic;">Moon of ' + parentName + ' • ' + moon.cost + ' Eternal Essence</div>';
+		html += '<div class="line" style="margin:10px 0;"></div>';
+		html += '<div style="font-size:14px;line-height:1.45;margin:14px 0;color:#f0f0f0;">' + moon.desc + '</div>';
+
+		if (owned) {
+			html += '<div style="color:#4ade80;font-weight:bold;margin:12px 0 6px;font-size:13px;">✓ Already Owned & Active</div>';
+		} else if (!parentOwned) {
+			html += '<div style="color:#f87171;font-size:12px;margin:10px 0 4px;">Locked: Requires parent doctrine <b>' + parentName + '</b></div>';
+		} else if (!canAfford) {
+			const need = moon.cost - state.ee;
+			html += '<div style="color:#fbbf24;font-size:12px;margin:10px 0 4px;">Costs <b>' + moon.cost + ' EE</b> (you have ' + state.ee + ' EE, need ' + need + ' more)</div>';
+		} else {
+			html += '<div style="color:#4ade80;font-size:12px;margin:10px 0 4px;">Available! Balance: <b>' + state.ee + ' EE</b> → <b>' + (state.ee - moon.cost) + ' EE</b></div>';
+		}
+
+		html += '</div>';
+
+		const options: [string, any, string?][] = [];
+		if (canBuy) {
+			options.push([
+				'Purchase (' + moon.cost + ' EE)',
+				'Game.ClosePrompt();if(window.__cc3Transcendence)window.__cc3Transcendence.buyMoon(\'' + moon.id + '\');',
+				'float:left;'
+			]);
+			options.push(['Cancel', 0, 'float:right;']);
+		} else {
+			options.push(['Close', 0]);
+		}
+
+		G.Prompt(html, options as any);
+	}
+
+	/** Purchase a moon node and re-render the solar system view. */
+	function buyMoon(moonId: string): void {
+		const G = window.Game;
+		if (!G) return;
+		if (purchaseMoon(moonId)) {
+			PlaySound('snd/shimmerClick.mp3');
+			const system = document.getElementById('doctrineSystem');
+			if (system) {
+				_renderSun(system);
+				_renderSolarSystem(system);
+				_updateDoctrineInfo();
+			} else {
+				showDoctrineTree();
+			}
+		}
+	}
+
 	/* ================================================================
 	 * UNLOCK CHECK
 	 * ================================================================ */
@@ -2207,6 +2783,7 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 			tpa: state.totalPrestigeAllTime,
 			milestones: state.milestones,
 			doctrine: state.doctrine,
+			moons: state.moons,
 			keptUpgrades: state.keptUpgrades,
 			keptCosmetic: state.keptCosmetic,
 		};
@@ -2223,6 +2800,7 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 			state.totalPrestigeAllTime = data.tpa || 0;
 			state.milestones = data.milestones || [];
 			state.doctrine = data.doctrine || [];
+			state.moons = Array.isArray(data.moons) ? data.moons : [];
 			state.keptUpgrades = data.keptUpgrades || [];
 			state.keptCosmetic = data.keptCosmetic || '';
 		} catch (e) {
@@ -2233,6 +2811,7 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 			state.totalPrestigeAllTime = 0;
 			state.milestones = [];
 			state.doctrine = [];
+			state.moons = [];
 			state.keptUpgrades = [];
 			state.keptCosmetic = '';
 		}
@@ -2249,6 +2828,22 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 	 * INIT
 	 * ================================================================ */
 
+	let _origGetWrinklersMax: (() => number) | null = null;
+	function patchWrinklersMax(): void {
+		const G = window.Game;
+		if (!G || _origGetWrinklersMax) return;
+		if (typeof G.getWrinklersMax === 'function') {
+			_origGetWrinklersMax = G.getWrinklersMax.bind(G);
+			G.getWrinklersMax = function () {
+				let max = _origGetWrinklersMax!();
+				if (moonHas('6-1') && !(G.ascensionMode === 1 && !hasMilestone(1000))) {
+					max += 1;
+				}
+				return max;
+			};
+		}
+	}
+
 	function init(): void {
 		const G = window.Game;
 		if (!G) return;
@@ -2262,8 +2857,9 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 		G.registerHook('reincarnate', reincarnateHook);
 		G.registerHook('check', checkHook);
 
-		// Patch cost discounts and shimmer hooks
+		// Patch cost discounts, wrinkler cap, and shimmer hooks
 		patchEff();
+		patchWrinklersMax();
 		setupShimmerHooks();
 
 		// Warm Embers (node 5): 50% discount on reactivating Shimmering veil
@@ -2326,6 +2922,7 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 	window.__cc3Transcendence = {
 		state,
 		DOCTRINE,
+		DOCTRINE_MOONS,
 		MILESTONES,
 		ACHIEVEMENTS,
 		computeEE,
@@ -2336,15 +2933,20 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 		purchase: purchaseDoctrineNode,
 		buyInTree,
 		buyInTreeSolar,
+		purchaseMoon,
+		buyMoon,
 		respec: respecDoctrine,
 		respecAndRedraw,
 		checkMilestones,
 		checkAchievements,
 		doctrineHas,
+		moonHas,
 		hasMilestone,
 		showDoctrineTree,
 		closeDoctrineTree,
 		showNodeDetail,
+		showMoonDetail,
+		focusOnPlanet,
 		resetView,
 		getView3D: function () {
 			return { rotX: _rotX, rotZ: _rotZ, zoom: _viewZoom, offX: _viewOffX, offY: _viewOffY };

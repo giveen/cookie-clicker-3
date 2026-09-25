@@ -1188,6 +1188,136 @@ test('doctrine tree node purchase via detail prompt works and updates state and 
 	await assertNoUncaughtErrors(page);
 });
 
+test('doctrine solar system deep zoom and planetary moons minor purchase nodes', async ({ page }) => {
+	await boot(page, '&qa=transcend');
+	await qaReport(page, /PASS: transcendence/, 60_000);
+
+	// Close prompt and open doctrine tree
+	await page.evaluate(() => {
+		if (window.Game.ClosePrompt) window.Game.ClosePrompt();
+		window.__cc3Transcendence.showDoctrineTree();
+	});
+	await expect(page.locator('#doctrineFullView.in')).toBeVisible();
+	await page.waitForTimeout(300); // allow 200ms ease-in transition to finish
+
+	// 1. Verify 13 planets and 26 moons exist in the DOM
+	await expect(page.locator('.doctrine-planet')).toHaveCount(13);
+	await expect(page.locator('.doctrine-moon')).toHaveCount(26);
+	await page.screenshot({ path: '/home/jabbatheduck/.gemini/antigravity/brain/9f3e0bba-bec4-4efa-aec6-1c6e5b5ddc8b/doctrine_moons_overview.png' });
+
+	// 2. Test deep zoom capability (up to 8.0x)
+	const initialZoom = await page.evaluate(() => window.__cc3Transcendence.getView3D().zoom);
+	expect(initialZoom).toBe(1);
+
+	// Scroll wheel in to zoom way in
+	const canvas = page.locator('#doctrineCanvas');
+	const box = await canvas.boundingBox();
+	expect(box).not.toBeNull();
+	if (box) {
+		await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+		for (let i = 0; i < 15; i++) {
+			await page.mouse.wheel(0, -120);
+		}
+	}
+	const zoomedIn = await page.evaluate(() => window.__cc3Transcendence.getView3D().zoom);
+	expect(zoomedIn).toBeGreaterThan(3.5);
+	expect(zoomedIn).toBeLessThanOrEqual(8.0);
+
+	// Check LOD class is active when zoomed in
+	await expect(page.locator('#doctrineFullView')).toHaveClass(/\bzoomed-in\b/);
+
+	// 3. Test double-click focus on planet 1
+	await page.evaluate(() => window.__cc3Transcendence.focusOnPlanet(1));
+	await page.waitForTimeout(500); // allow ease animation to complete
+	const focused3D = await page.evaluate(() => window.__cc3Transcendence.getView3D());
+	expect(focused3D.zoom).toBeGreaterThanOrEqual(3.8);
+	await page.screenshot({ path: '/home/jabbatheduck/.gemini/antigravity/brain/9f3e0bba-bec4-4efa-aec6-1c6e5b5ddc8b/doctrine_moons_zoomed.png' });
+
+	// Reset 3D view
+	await page.click('#doctrineResetBtn');
+	const reset3D = await page.evaluate(() => window.__cc3Transcendence.getView3D());
+	expect(reset3D.zoom).toBe(1);
+	expect(reset3D.offX).toBe(0);
+	expect(reset3D.offY).toBe(0);
+	await expect(page.locator('#doctrineFullView')).not.toHaveClass(/\bzoomed-in\b/);
+
+	// 4. Test moon gating, purchase, and respec
+	await page.evaluate(() => {
+		const T = window.__cc3Transcendence;
+		T.state.ee = 25;
+		T.state.doctrine = [];
+		T.state.moons = [];
+		T.showDoctrineTree();
+	});
+
+	// Moon '1-1' requires planet 1
+	const buyUnownedParent = await page.evaluate(() => window.__cc3Transcendence.purchaseMoon('1-1'));
+	expect(buyUnownedParent).toBe(false);
+
+	// Detail prompt shows locked state for moon when parent unowned
+	await page.evaluate(() => window.__cc3Transcendence.showMoonDetail('1-1'));
+	await expect(page.locator('#prompt')).toContainText('Locked: Requires parent doctrine');
+	await page.click('#promptOption0'); // Close
+
+	// Buy parent planet 1 (Persistent Hand, cost 5 EE)
+	const buyPlanet = await page.evaluate(() => window.__cc3Transcendence.purchase(1));
+	expect(buyPlanet).toBe(true);
+	let eeLeft = await page.evaluate(() => window.__cc3Transcendence.state.ee);
+	expect(eeLeft).toBe(20);
+
+	// Now moon '1-1' can be purchased (Phobos-C, cost 1 EE)
+	await page.evaluate(() => window.__cc3Transcendence.showMoonDetail('1-1'));
+	await expect(page.locator('#prompt')).toContainText('Available!');
+	await expect(page.locator('#promptOption0')).toContainText('Purchase (1 EE)');
+	await page.screenshot({ path: '/home/jabbatheduck/.gemini/antigravity/brain/9f3e0bba-bec4-4efa-aec6-1c6e5b5ddc8b/doctrine_moon_detail_prompt.png' });
+	await page.click('#promptOption0'); // Purchase
+	await expect(page.locator('#promptAnchor')).toBeHidden();
+
+	const moon1Owned = await page.evaluate(() => window.__cc3Transcendence.moonHas('1-1'));
+	expect(moon1Owned).toBe(true);
+	eeLeft = await page.evaluate(() => window.__cc3Transcendence.state.ee);
+	expect(eeLeft).toBe(19);
+
+	// Buy moon '1-2' (Deimos-C, cost 2 EE) via buyMoon
+	await page.evaluate(() => window.__cc3Transcendence.buyMoon('1-2'));
+	const moon2Owned = await page.evaluate(() => window.__cc3Transcendence.moonHas('1-2'));
+	expect(moon2Owned).toBe(true);
+	eeLeft = await page.evaluate(() => window.__cc3Transcendence.state.ee);
+	expect(eeLeft).toBe(17);
+
+	// 5. Test Respec refunds both planet (5 EE) + moons (1 + 2 = 3 EE) = 8 EE refund -> back to 25 EE
+	await page.click('#doctrineRespecBtn');
+	const afterRespec = await page.evaluate(() => ({
+		ee: window.__cc3Transcendence.state.ee,
+		doctrineLen: window.__cc3Transcendence.state.doctrine.length,
+		moonsLen: window.__cc3Transcendence.state.moons.length,
+	}));
+	expect(afterRespec.ee).toBe(25);
+	expect(afterRespec.doctrineLen).toBe(0);
+	expect(afterRespec.moonsLen).toBe(0);
+
+	// 6. Test save / load persistence with moons
+	await page.evaluate(() => {
+		const T = window.__cc3Transcendence;
+		T.purchase(1);
+		T.purchaseMoon('1-1');
+		const saved = T.save();
+		T.state.doctrine = [];
+		T.state.moons = [];
+		T.load(saved);
+	});
+	const loadedState = await page.evaluate(() => ({
+		p1: window.__cc3Transcendence.doctrineHas(1),
+		m1: window.__cc3Transcendence.moonHas('1-1'),
+	}));
+	expect(loadedState.p1).toBe(true);
+	expect(loadedState.m1).toBe(true);
+
+	await page.evaluate(() => window.__cc3Transcendence.closeDoctrineTree(true));
+	await expect(page.locator('#doctrineFullView')).toHaveCount(0);
+	await assertNoUncaughtErrors(page);
+});
+
 test('transcendence access points: top bar widget, stats menu, and Layer 1 full reset', async ({ page }) => {
 	await boot(page, '&qa=transcend');
 	await qaReport(page, /PASS: transcendence/, 60_000);
