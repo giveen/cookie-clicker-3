@@ -2449,19 +2449,22 @@ from {transform:translateY(20px);opacity:0;}
 	background-image:url(img/ascendSlot.webp);
 	background-position:88px 0px;
 }
-/*.crate.heavenly:after
+.crate.heavenly.enabled:after,
+.crate.heavenly.bought:after
 {
 	content:'';
 	position:absolute;
-	left:-6px;
-	top:-6px;
-	width:60px;
-	height:60px;
+	left:-4px;
+	top:-4px;
+	width:56px;
+	height:56px;
 	display:block;
-	background:var(--red-pure);
-	border-radius:30px;
-	z-index:-10;
-}*/
+	border-radius:50%;
+	background:radial-gradient(circle at 50% 50%, rgba(255, 240, 160, 0.55) 0%, rgba(210, 150, 40, 0.6) 45%, rgba(120, 65, 10, 0.8) 85%, rgba(40, 20, 5, 0.95) 100%);
+	box-shadow:inset 0 0 10px rgba(255, 230, 100, 0.7), 0 0 12px rgba(255, 200, 50, 0.4);
+	z-index:-1;
+	pointer-events:none;
+}
 #menu .crate.heavenly {margin:var(--sp-3);}
 /*#menu .crate.heavenly:nth-child(even) {margin-top:var(--sp-4);margin-bottom:var(--sp-2);}
 #menu .crate.heavenly:nth-child(3n) {margin-right:var(--sp-4);margin-left:var(--sp-2);}*/

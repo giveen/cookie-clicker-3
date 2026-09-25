@@ -37,6 +37,7 @@ export function crate(me: any,context: any,forceClickStr: any,id: any,style: any
 		
 		classes+=' upgrade';
 		if (me.pool=='prestige') classes+=' heavenly';
+		if (me.bought>0) classes+=' bought';
 		
 		
 		if (neuromancy) clickStr='Game.UpgradesById['+me.id+'].toggle();';
