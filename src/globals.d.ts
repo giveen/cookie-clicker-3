@@ -299,6 +299,7 @@ declare global {
 			showUpgradePicker: (slots: number, onConfirm: (chosen: string[]) => void) => void;
 			purchase: (nodeId: number) => boolean;
 			buyInTree: (nodeId: number) => void;
+			buyInTreeSolar?: (nodeId: number) => void;
 			respec: () => void;
 			respecAndRedraw: () => void;
 			checkMilestones: () => void;

@@ -2058,10 +2058,7 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 		if (canBuy) {
 			options.push([
 				'Purchase (' + node.cost + ' EE)',
-				function () {
-					G.ClosePrompt();
-					buyInTreeSolar(node.id);
-				},
+				'Game.ClosePrompt();if(window.__cc3Transcendence)window.__cc3Transcendence.buyInTree(' + node.id + ');',
 				'float:left;'
 			]);
 			options.push(['Cancel', 0, 'float:right;']);
@@ -2330,6 +2327,7 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 		showUpgradePicker,
 		purchase: purchaseDoctrineNode,
 		buyInTree,
+		buyInTreeSolar,
 		respec: respecDoctrine,
 		respecAndRedraw,
 		checkMilestones,

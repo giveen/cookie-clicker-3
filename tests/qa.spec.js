@@ -1137,6 +1137,57 @@ test('doctrine solar system view supports 3D orbit controls and billboarding', a
 	await assertNoUncaughtErrors(page);
 });
 
+test('doctrine tree node purchase via detail prompt works and updates state and UI', async ({ page }) => {
+	await boot(page, '&qa=transcend');
+	await qaReport(page, /PASS: transcendence/, 60_000);
+
+	// Close initial prompt if open and open Doctrine Tree
+	await page.evaluate(() => {
+		if (window.Game.ClosePrompt) window.Game.ClosePrompt();
+		window.__cc3Transcendence.showDoctrineTree();
+	});
+	await expect(page.locator('#doctrineFullView')).toHaveCount(1);
+
+	// Give test player 5 EE and clear doctrine state
+	await page.evaluate(() => {
+		const T = window.__cc3Transcendence;
+		T.state.ee = 5;
+		T.state.doctrine = [];
+		T.showDoctrineTree();
+	});
+
+	// Verify node 11 (Frugal Start, cost 1 EE) is unowned
+	const isOwnedBefore = await page.evaluate(() => window.__cc3Transcendence.doctrineHas(11));
+	expect(isOwnedBefore).toBe(false);
+
+	// Open node 11 detail prompt
+	await page.evaluate(() => window.__cc3Transcendence.showNodeDetail(11));
+	await expect(page.locator('#prompt')).toBeVisible();
+	await expect(page.locator('#promptOption0')).toHaveText('Purchase (1 EE)');
+
+	// Click Purchase
+	await page.click('#promptOption0');
+
+	// Prompt must close and node 11 must now be owned, EE decremented
+	await expect(page.locator('#promptAnchor')).toBeHidden();
+	const result = await page.evaluate(() => ({
+		owned: window.__cc3Transcendence.doctrineHas(11),
+		ee: window.__cc3Transcendence.state.ee,
+	}));
+	expect(result.owned).toBe(true);
+	expect(result.ee).toBe(4);
+
+	// Inspecting node 11 again should show already owned and Close button
+	await page.evaluate(() => window.__cc3Transcendence.showNodeDetail(11));
+	await expect(page.locator('#prompt')).toContainText('Already Owned');
+	await expect(page.locator('#promptOption0')).toHaveText('Close');
+	await page.click('#promptOption0');
+
+	await page.evaluate(() => window.__cc3Transcendence.closeDoctrineTree(true));
+	await expect(page.locator('#doctrineFullView')).toHaveCount(0);
+	await assertNoUncaughtErrors(page);
+});
+
 test('transcendence access points: top bar widget, stats menu, and Layer 1 full reset', async ({ page }) => {
 	await boot(page, '&qa=transcend');
 	await qaReport(page, /PASS: transcendence/, 60_000);
