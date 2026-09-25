@@ -175,34 +175,34 @@ and the arrange/preset mode — the engineering cost is low.
 
 | Node | Effect | Cost (EE) |
 |------|--------|-----------|
-| Persistent Hand | Clicking the cookie gains +0.5% of your CpS per 100 Cursors owned | 1 |
-| Echoing Click | Each click triggers 0.5 seconds of passive CpS | 3 |
-| Cascade | Golden cookie clicks have a 10% chance to spawn another golden cookie | 8 |
+| Persistent Hand | Clicking the cookie gains +0.5% of your CpS per 100 Cursors owned | 5 |
+| Echoing Click | Each click triggers 0.5 seconds of passive CpS | 15 |
+| Cascade | Golden cookie clicks have a 10% chance to spawn another golden cookie | 40 |
 
 #### Idler's Path (production-focused)
 
 | Node | Effect | Cost (EE) |
 |------|--------|-----------|
-| Lazy Oven | +5% offline CpS per Idler node owned (including this one) | 1 |
-| Warm Embers | The shimmering veil starts on by default and costs 50% less to reactivate | 3 |
-| Ambient Baking | Wrinklers spawn 20% faster and hold 10% more cookies | 8 |
+| Lazy Oven | +5% offline CpS per Idler node owned (including this one) | 5 |
+| Warm Embers | The shimmering veil starts on by default and costs 50% less to reactivate | 15 |
+| Ambient Baking | Wrinklers spawn 20% faster and hold 10% more cookies | 40 |
 
 #### Fatebinder's Path (golden-cookie/wrinkler-focused)
 
 | Node | Effect | Cost (EE) |
 |------|--------|-----------|
-| Fortune's Favor | Golden cookies appear 10% more often and last 10% longer | 1 |
-| Elder's Whisper | Wrath cookies can still spawn in Ascetic runs (your first challenge-breaker) | 3 |
-| Strange Attractor | Natural golden cookies have a 5% chance to be a "cluster" (spawns n more) | 8 |
-| Double Dip | Golden cookie effects have a 15% chance to double on expiry (trigger again) | 15 |
+| Fortune's Favor | Golden cookies appear 10% more often and last 10% longer | 5 |
+| Elder's Whisper | Wrath cookies can still spawn in Ascetic runs (your first challenge-breaker) | 15 |
+| Strange Attractor | Natural golden cookies have a 5% chance to be a "cluster" (spawns n more) | 40 |
+| Double Dip | Golden cookie effects have a 15% chance to double on expiry (trigger again) | 75 |
 
 #### Rebuilder's Path (economy-shaping)
 
 | Node | Effect | Cost (EE) |
 |------|--------|-----------|
-| Frugal Start | Buildings are 2% cheaper per Transcendence performed (max −20%) | 1 |
-| Measured Growth | Upgrades are 2% cheaper per Transcendence performed (max −20%) | 3 |
-| Legacy Echo | Start each run with 1 free building of the type you owned the most of last run | 8 |
+| Frugal Start | Buildings are 2% cheaper per Transcendence performed (max −20%) | 5 |
+| Measured Growth | Upgrades are 2% cheaper per Transcendence performed (max −20%) | 15 |
+| Legacy Echo | Start each run with 1 free building of the type you owned the most of last run | 40 |
 
 ### 4.2 Respec
 
@@ -340,7 +340,7 @@ tree/layout/crate code. No engine-core rewrites.
 | `Game.EEfactor` | transcendence.ts | `1.0` (log base-10) | Tunes how fast EE grows per order of magnitude |
 | `Game.EEoffset` | transcendence.ts | `8` | Controls the gate: EE = floor(log₁₀(cookiesReset/1e¹²) − offset) |
 | Gate cookiesReset | transcendence.ts | `1e²⁹` | The full ascend meter — first transcendence threshold |
-| Doctrine node costs | transcendence.ts | 1–15 EE | Per-node pricing (see branch tables) |
+| Doctrine node costs | transcendence.ts | 5–75 EE | Per-node pricing (see branch tables) |
 | Milestone thresholds | transcendence.ts | 1–1000 EE | 8 thresholds (see milestone table) |
 | Milestone carried counts | transcendence.ts | 1–2 upgrades | How many heavenly upgrades survive |
 

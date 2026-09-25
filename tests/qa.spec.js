@@ -1148,22 +1148,22 @@ test('doctrine tree node purchase via detail prompt works and updates state and 
 	});
 	await expect(page.locator('#doctrineFullView')).toHaveCount(1);
 
-	// Give test player 5 EE and clear doctrine state
+	// Give test player 10 EE and clear doctrine state
 	await page.evaluate(() => {
 		const T = window.__cc3Transcendence;
-		T.state.ee = 5;
+		T.state.ee = 10;
 		T.state.doctrine = [];
 		T.showDoctrineTree();
 	});
 
-	// Verify node 11 (Frugal Start, cost 1 EE) is unowned
+	// Verify node 11 (Frugal Start, cost 5 EE) is unowned
 	const isOwnedBefore = await page.evaluate(() => window.__cc3Transcendence.doctrineHas(11));
 	expect(isOwnedBefore).toBe(false);
 
 	// Open node 11 detail prompt
 	await page.evaluate(() => window.__cc3Transcendence.showNodeDetail(11));
 	await expect(page.locator('#prompt')).toBeVisible();
-	await expect(page.locator('#promptOption0')).toHaveText('Purchase (1 EE)');
+	await expect(page.locator('#promptOption0')).toHaveText('Purchase (5 EE)');
 
 	// Click Purchase
 	await page.click('#promptOption0');
@@ -1175,7 +1175,7 @@ test('doctrine tree node purchase via detail prompt works and updates state and 
 		ee: window.__cc3Transcendence.state.ee,
 	}));
 	expect(result.owned).toBe(true);
-	expect(result.ee).toBe(4);
+	expect(result.ee).toBe(5);
 
 	// Inspecting node 11 again should show already owned and Close button
 	await page.evaluate(() => window.__cc3Transcendence.showNodeDetail(11));

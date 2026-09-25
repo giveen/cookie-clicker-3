@@ -41,73 +41,73 @@
 		{
 			id: 1, name: 'Persistent Hand', branch: 'glutton',
 			desc: 'Clicking the cookie gains +0.5% of your CpS per 100 Cursors owned.',
-			icon: [0, 13], cost: 1, parents: [],
+			icon: [0, 13], cost: 5, parents: [],
 		},
 		{
 			id: 2, name: 'Echoing Click', branch: 'glutton',
 			desc: 'Each click triggers 0.5 seconds of passive CpS.',
-			icon: [0, 0], cost: 3, parents: [1],
+			icon: [0, 0], cost: 15, parents: [1],
 		},
 		{
 			id: 3, name: 'Cascade', branch: 'glutton',
 			desc: 'Golden cookie clicks have a 10% chance to spawn another golden cookie.',
-			icon: [22, 6], cost: 8, parents: [2],
+			icon: [22, 6], cost: 40, parents: [2],
 		},
 
 		// ── Idler's Path (production-focused) ──
 		{
 			id: 4, name: 'Lazy Oven', branch: 'idler',
 			desc: '+5% offline CpS per Idler node owned (including this one).',
-			icon: [17, 0], cost: 1, parents: [],
+			icon: [17, 0], cost: 5, parents: [],
 		},
 		{
 			id: 5, name: 'Warm Embers', branch: 'idler',
 			desc: 'The shimmering veil starts on by default and costs 50% less to reactivate.',
-			icon: [21, 14], cost: 3, parents: [4],
+			icon: [21, 14], cost: 15, parents: [4],
 		},
 		{
 			id: 6, name: 'Ambient Baking', branch: 'idler',
 			desc: 'Wrinklers spawn 20% faster and hold 10% more cookies.',
-			icon: [15, 12], cost: 8, parents: [5],
+			icon: [15, 12], cost: 40, parents: [5],
 		},
 
 		// ── Fatebinder's Path (golden-cookie / wrath-focused) ──
 		{
 			id: 7, name: "Fortune's Favor", branch: 'fatebinder',
 			desc: 'Golden cookies appear 10% more often and last 10% longer.',
-			icon: [23, 6], cost: 1, parents: [],
+			icon: [23, 6], cost: 5, parents: [],
 		},
 		{
 			id: 8, name: "Elder's Whisper", branch: 'fatebinder',
 			desc: 'Wrath cookies can still spawn in Ascetic runs.',
-			icon: [29, 8], cost: 3, parents: [7],
+			icon: [29, 8], cost: 15, parents: [7],
 		},
 		{
 			id: 9, name: 'Strange Attractor', branch: 'fatebinder',
 			desc: 'Natural golden cookies have a 5% chance to be a cluster (spawns n more).',
-			icon: [27, 6], cost: 8, parents: [8],
+			icon: [27, 6], cost: 40, parents: [8],
 		},
 		{
 			id: 10, name: 'Double Dip', branch: 'fatebinder',
 			desc: 'Golden cookie effects have a 15% chance to double on expiry (trigger again).',
-			icon: [24, 7], cost: 15, parents: [9],
+			icon: [24, 7], cost: 75, parents: [9],
 		},
 
 		// ── Rebuilder's Path (economy-shaping) ──
 		{
 			id: 11, name: 'Frugal Start', branch: 'rebuilder',
 			desc: 'Buildings are 2% cheaper per Transcendence performed (max -20%).',
-			icon: [21, 7], cost: 1, parents: [],
+			icon: [21, 7], cost: 5, parents: [],
 		},
 		{
 			id: 12, name: 'Measured Growth', branch: 'rebuilder',
 			desc: 'Upgrades are 2% cheaper per Transcendence performed (max -20%).',
-			icon: [18, 7], cost: 3, parents: [11],
+			icon: [18, 7], cost: 15, parents: [11],
 		},
 		{
 			id: 13, name: 'Legacy Echo', branch: 'rebuilder',
 			desc: 'Start each run with 1 free building of the type you owned the most of last run.',
-			icon: [17, 7], cost: 8, parents: [12],
+			icon: [17, 7], cost: 40, parents: [12],
 		},
 	];
 
