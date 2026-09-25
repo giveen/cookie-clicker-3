@@ -4,7 +4,7 @@
  * The ten wrinkler functions leave the engine's Game.Init body as typed
  * exports; the engine keeps the same Game.X slots at the exact original
  * Init positions. The wrinkler STATE initialization (Game.wrinklerHP,
- * the 12-element Game.wrinklers array seed, Game.wrinklerSquishSound)
+ * the 14-element Game.wrinklers array seed, Game.wrinklerSquishSound)
  * stays in the engine in place — only the functions moved.
  *
  * Bodies are verbatim (original indentation kept); only parameter
@@ -440,8 +440,8 @@ function inRect(x: any,y: any,rect: any)
 		{
 			if (number>0 && (amount>0 || amountShinies>0))
 			{
-				var fullNumber=number-shinies;
-				var fullNumberShinies=shinies;
+				var fullNumber=(number-shinies)||1;
+				var fullNumberShinies=shinies||1;
 				for (var i in Game.wrinklers)
 				{
 					if (number>0)

@@ -2838,7 +2838,7 @@ window.loadMinigameModule!(me.minigameUrl).then(function(){
 		
 		Game.wrinklerHP=2.1;
 		Game.wrinklers=[];
-		for (var i=0;i<12;i++)
+		for (var i=0;i<14;i++)
 		{
 			Game.wrinklers.push({id:parseInt(i, 10),close:0,sucked:0,phase:0,x:0,y:0,r:0,hurt:0,hp:Game.wrinklerHP,selected:0,type:0});
 		}
