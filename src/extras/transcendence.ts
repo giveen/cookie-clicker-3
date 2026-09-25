@@ -1263,7 +1263,7 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
   width:100%; height:48px; display:flex; align-items:center;
   background:rgba(0,0,0,0.65); flex-shrink:0;
   border-bottom:1px solid rgba(255,255,255,0.08);
-  z-index:10; padding:0 16px;
+  z-index:10; padding:0 36px 0 20px; box-sizing:border-box;
 }
 #doctrineBackBtn {
   font-size:14px; cursor:pointer; color:#999;
@@ -1281,20 +1281,21 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 #doctrineInfo {
   flex:1; text-align:center; font-size:13px;
   white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  padding:0 16px;
 }
 #doctrineInfo b { color:#ffd700; }
 #doctrineResetBtn {
   font-size:12px; cursor:pointer; color:#888;
   transition:color 0.15s, border-color 0.15s;
   padding:5px 12px; border:1px solid rgba(255,255,255,0.12);
-  border-radius:4px; white-space:nowrap; margin-right:8px;
+  border-radius:4px; white-space:nowrap; margin-right:10px;
 }
 #doctrineResetBtn:hover { color:#fff; border-color:rgba(255,255,255,0.35); }
 #doctrineRespecBtn {
   font-size:12px; cursor:pointer; color:#888;
   transition:color 0.15s, border-color 0.15s;
   padding:5px 14px; border:1px solid rgba(255,255,255,0.12);
-  border-radius:4px; white-space:nowrap;
+  border-radius:4px; white-space:nowrap; margin-right:6px;
 }
 #doctrineRespecBtn:hover { color:#f84; border-color:rgba(255,136,68,0.4); }
 #doctrineCanvas {
@@ -1412,22 +1413,22 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
   position:absolute; top:calc(100% + 5px); left:50%;
   transform:translateX(-50%);
   display:flex; flex-direction:column; align-items:center;
-  background:rgba(8, 8, 18, 0.85);
-  border:1px solid rgba(255,255,255,0.12);
-  border-radius:8px; padding:2px 8px;
+  background:none;
+  border:none;
+  padding:2px 4px;
   pointer-events:none; white-space:nowrap;
-  box-shadow:0 2px 8px rgba(0,0,0,0.65);
-  transition:border-color 0.2s ease, background 0.2s ease;
-  max-width:120px;
+  max-width:130px;
 }
 .doctrine-planet .planet-name {
-  font-size:10px; color:#ddd; text-align:center;
-  line-height:1.15; font-weight:500;
+  font-size:11px; color:#e0e0e0; text-align:center;
+  line-height:1.15; font-weight:600;
+  text-shadow:0 1px 3px rgba(0,0,0,0.9), 0 0 8px rgba(0,0,0,0.8);
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
-  max-width:110px;
+  max-width:120px;
 }
 .doctrine-planet .planet-cost {
   font-size:10px; font-weight:bold; margin-top:1px; color:#ffd700;
+  text-shadow:0 1px 3px rgba(0,0,0,0.9), 0 0 6px rgba(0,0,0,0.8);
 }
 /* Interactive states */
 .doctrine-planet.buyable {
@@ -1436,23 +1437,17 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 .doctrine-planet.buyable .planet-sphere {
   box-shadow:inset -5px -5px 12px rgba(0,0,0,0.85), inset 2px 2px 5px rgba(255,255,255,0.5), 0 0 18px rgba(100,190,255,0.65);
 }
-.doctrine-planet.buyable .planet-badge {
-  border-color:rgba(100, 180, 255, 0.45);
-}
 .doctrine-planet.buyable:hover .planet-sphere {
   transform:scale(1.22);
   box-shadow:inset -5px -5px 12px rgba(0,0,0,0.85), inset 2px 2px 5px rgba(255,255,255,0.65), 0 0 28px rgba(100,210,255,0.9), 0 0 10px #fff;
 }
-.doctrine-planet.buyable:hover .planet-badge {
-  border-color:rgba(100, 220, 255, 0.85);
-  background:rgba(12, 20, 36, 0.95);
+.doctrine-planet.buyable:hover .planet-name {
+  color:#fff;
+  text-shadow:0 0 8px rgba(100,220,255,0.8), 0 1px 4px rgba(0,0,0,0.9);
 }
 /* Owned state */
 .doctrine-planet.owned .planet-sphere {
   box-shadow:inset -5px -5px 12px rgba(0,0,0,0.85), inset 2px 2px 5px rgba(255,255,255,0.4), 0 0 18px rgba(70,240,110,0.6);
-}
-.doctrine-planet.owned .planet-badge {
-  border-color:rgba(70, 240, 110, 0.4);
 }
 .doctrine-planet.owned .planet-cost {
   color:#4ef; font-weight:bold;
@@ -1833,10 +1828,10 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 
 		// Draw 4 celestial tier orbit rings (golden baseline requirement for QA)
 		const ringColors = [
-			'rgba(255,215,80,0.20)',
-			'rgba(100,200,255,0.20)',
-			'rgba(210,120,255,0.20)',
-			'rgba(100,255,200,0.20)'
+			'rgba(255,215,80,0.16)',
+			'rgba(100,200,255,0.16)',
+			'rgba(210,120,255,0.16)',
+			'rgba(100,255,200,0.16)'
 		];
 		for (const orbitIndex of [0, 1, 2, 3]) {
 			const r = radii[orbitIndex];
@@ -1845,8 +1840,8 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 			ring.style.cssText =
 				'position:absolute;top:50%;left:50%;width:' + (r * 2) + 'px;height:' + (r * 2) + 'px;' +
 				'margin:' + (-r) + 'px;border-radius:50%;' +
-				'border:1px dashed ' + ringColors[orbitIndex] + ';' +
-				'box-shadow:0 0 14px ' + ringColors[orbitIndex].replace('0.20', '0.05') + ',inset 0 0 14px ' + ringColors[orbitIndex].replace('0.20', '0.05') + ';' +
+				'border:1px solid ' + ringColors[orbitIndex] + ';' +
+				'box-shadow:0 0 8px ' + ringColors[orbitIndex].replace('0.16', '0.08') + ',inset 0 0 8px ' + ringColors[orbitIndex].replace('0.16', '0.08') + ';' +
 				'pointer-events:none;';
 			container.appendChild(ring);
 		}
