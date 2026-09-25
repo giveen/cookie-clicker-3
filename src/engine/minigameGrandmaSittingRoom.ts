@@ -732,7 +732,7 @@ M.launch = function (this: SittingRoomMinigame) {
 	M.save = function () {
 		var seatsStr = M.seats.join(':');
 		var stacksStr = M.upgradeStacks.join(':');
-		return parseFloat(M.yarn) + ' ' + parseFloat(M.yarnEarned) + ' ' + seatsStr + ' ' + stacksStr;
+		return parseFloat(M.yarn) + ' ' + parseFloat(M.yarnEarned) + ' ' + seatsStr + ' ' + stacksStr + ' ' + Date.now();
 	};
 
 	M.load = function (str: string) {
@@ -757,6 +757,17 @@ M.launch = function (this: SittingRoomMinigame) {
 		for (var v = 0; v < M.upgradeNames.length; v++) {
 			var mUp = Game.Upgrades[M.upgradeNames[v]];
 			if (mUp && mUp.bought && M.upgradeStacks[v] < 1) M.upgradeStacks[v] = 1;
+		}
+		var lastTime = parseFloat(spl[i++] || 0);
+		if (lastTime > 0) {
+			var elapsedSec = Math.min(24 * 3600, Math.max(0, (Date.now() - lastTime) / 1000));
+			var rate = M.yarnPerSecond();
+			if (elapsedSec >= 1 && rate > 0) {
+				var offlineYarn = Math.floor(elapsedSec * rate);
+				M.yarn += offlineYarn;
+				M.yarnEarned += offlineYarn;
+				M.checkAchievements();
+			}
 		}
 		M.computeEffs();
 		M.refresh();

@@ -2146,13 +2146,21 @@ M.launch=function(this: GardenMinigame)
 										{
 											if (Math.random()<muts[ii][1] && (!M.plants[muts[ii][0]].weed || Math.random()<weedMult) && ((!M.plants[muts[ii][0]].weed && !M.plants[muts[ii][0]].fungus) || Math.random()<M.plotBoost[y][x][2])) list.push(muts[ii][0]);
 										}
-										if (list.length>0) M.plot[y][x]=[M.plants[choose(list)].id!+1,0];
+										if (list.length>0)
+										{
+											M.plot[y][x]=[M.plants[choose(list)].id!+1,0];
+											break;
+										}
 									}
 									else if (loop==0)
 									{
 										//weeds in empty tiles (no other plants must be nearby)
 										var chance=0.002*weedMult*M.plotBoost[y][x][2];
-										if (Math.random()<chance) M.plot[y][x]=[M.plants['meddleweed'].id!+1,0];
+										if (Math.random()<chance)
+										{
+											M.plot[y][x]=[M.plants['meddleweed'].id!+1,0];
+											break;
+										}
 									}
 								}
 							}

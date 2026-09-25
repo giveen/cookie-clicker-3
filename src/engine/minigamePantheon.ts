@@ -478,6 +478,14 @@ M.launch=function(this: PantheonMinigame)
 			var me=M.gods[i];
 			AddEvent(l('templeGodDrag'+me.id)!,'mousedown',function(what){return function(e){if (e.button==0){M.dragGod(what);}}}(me));
 			AddEvent(l('templeGodDrag'+me.id)!,'mouseup',function(_what){return function(e){if (e.button==0){M.dropGod();}}}(me));
+			AddEvent(l('templeGodDrag'+me.id)!,'touchstart',function(what){return function(e: any){
+				if (e.touches && e.touches.length==1)
+				{
+					Game.mouseX=e.touches[0].clientX;
+					Game.mouseY=e.touches[0].clientY;
+					M.dragGod(what);
+				}
+			};}(me));
 		}
 		for (var i in M.slot)
 		{
@@ -486,6 +494,27 @@ M.launch=function(this: PantheonMinigame)
 		}
 		
 		AddEvent(document,'mouseup',M.dropGod);
+		AddEvent(document,'touchmove',function(e: any){
+			if (M.dragging && e.touches && e.touches.length==1)
+			{
+				Game.mouseX=e.touches[0].clientX;
+				Game.mouseY=e.touches[0].clientY;
+				var el=document.elementFromPoint(Game.mouseX,Game.mouseY);
+				var hovered=-1;
+				if (el)
+				{
+					var slotEl=el.closest('.templeSlot');
+					if (slotEl)
+					{
+						for (var s=0;s<3;s++) { if (l('templeSlot'+s)==slotEl) { hovered=s; break; } }
+					}
+				}
+				M.hoverSlot(hovered);
+			}
+		});
+		AddEvent(document,'touchend',function(){
+			if (M.dragging) M.dropGod();
+		});
 		
 		
 		M.refillTooltip=function(){
@@ -554,11 +583,16 @@ M.launch=function(this: PantheonMinigame)
 	M.logic=function()
 	{
 		//run each frame
-		var t=1000*60*60;
-		if (M.swaps==0) t=1000*60*60*16;
-		else if (M.swaps==1) t=1000*60*60*4;
-		var t2=M.swapT+t-Date.now();
-		if (t2<=0 && M.swaps<3) {M.swaps++;M.swapT=Date.now();}
+		while (M.swaps<3)
+		{
+			var t=1000*60*60;
+			if (M.swaps==0) t=1000*60*60*16;
+			else if (M.swaps==1) t=1000*60*60*4;
+			var t2=M.swapT+t-Date.now();
+			if (t2<=0) {M.swaps++;M.swapT+=t;}
+			else break;
+		}
+		if (M.swaps>=3) M.swapT=Date.now();
 		M.lastSwapT++;
 	}
 	M.draw=function()

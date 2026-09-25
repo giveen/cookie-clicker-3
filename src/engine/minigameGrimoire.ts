@@ -309,7 +309,7 @@ M.launch=function(this: GrimoireMinigame)
 			},
 			'resurrect abomination':{
 				name:'Resurrect Abomination',
-				desc:'Instantly summon a wrinkler if conditions are fulfilled.',
+				desc:'Instantly summon a wrinkler if conditions are fulfilled (requires active Grandmapocalypse and wrinkler capacity).',
 				failDesc:'Pop one of your wrinklers.',
 				icon:[28,11],
 				costMin:20,
