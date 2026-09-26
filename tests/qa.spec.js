@@ -1318,6 +1318,74 @@ test('doctrine solar system deep zoom and planetary moons minor purchase nodes',
 	await assertNoUncaughtErrors(page);
 });
 
+test('doctrine planet orbital view with spinning planet, orbiting moons, and interactive HUD', async ({ page }) => {
+	await boot(page, '&qa=transcend');
+	await qaReport(page, /PASS: transcendence/, 60_000);
+
+	// Close prompt and open doctrine tree with 20 EE
+	await page.evaluate(() => {
+		if (window.Game.ClosePrompt) window.Game.ClosePrompt();
+		const T = window.__cc3Transcendence;
+		T.state.ee = 20;
+		T.state.doctrine = [];
+		T.state.moons = [];
+		T.showDoctrineTree();
+	});
+	await expect(page.locator('#doctrineFullView.in')).toBeVisible();
+
+	// 1. Click planet 1 to transition smoothly into Orbital View
+	await page.click('.doctrine-planet[data-node-id="1"]');
+	await expect(page.locator('#doctrineFullView')).toHaveClass(/\borbital-mode\b/);
+	await expect(page.locator('.doctrine-planet[data-node-id="1"]')).toHaveClass(/\bactive-orbit-target\b/);
+	await page.waitForTimeout(450); // allow zoom-in glide animation to settle
+
+	// 2. Verify Orbital HUD is visible with planet info and moons
+	const hud = page.locator('#doctrineOrbitalHUD');
+	await expect(hud).toBeVisible();
+	await expect(hud).toContainText('Persistent Hand');
+	await expect(hud).toContainText('Orbiting Moons');
+	await expect(hud).toContainText('Phobos-C');
+	await expect(hud).toContainText('Deimos-C');
+
+	// Verify top bar back button updated to solar system return
+	await expect(page.locator('#doctrineBackBtn')).toHaveText('← Back to Solar System');
+
+	// Capture screenshot of unowned orbital view
+	await page.screenshot({ path: '/home/jabbatheduck/.gemini/antigravity/brain/9f3e0bba-bec4-4efa-aec6-1c6e5b5ddc8b/doctrine_orbital_view_unowned.png' });
+
+	// 3. Purchase parent planet 1 directly via HUD
+	await page.click('#doctrineHudBuyPlanetBtn');
+	const p1Owned = await page.evaluate(() => window.__cc3Transcendence.doctrineHas(1));
+	expect(p1Owned).toBe(true);
+
+	// 4. Verify moon '1-1' is now available and buy it via HUD
+	const buyMoonBtn = page.locator('.doctrine-hud-buy-moon[data-moon-id="1-1"]');
+	await expect(buyMoonBtn).toBeVisible();
+	await buyMoonBtn.click();
+
+	const moon1Owned = await page.evaluate(() => window.__cc3Transcendence.moonHas('1-1'));
+	expect(moon1Owned).toBe(true);
+
+	// Capture screenshot of active orbital view with owned moon
+	await page.screenshot({ path: '/home/jabbatheduck/.gemini/antigravity/brain/9f3e0bba-bec4-4efa-aec6-1c6e5b5ddc8b/doctrine_orbital_view_owned_moon.png' });
+
+	// 5. Click "← Return to Solar System" in the HUD to glide back to galaxy overview
+	await page.click('#doctrineHudBackBtn');
+	await page.waitForTimeout(450); // allow zoom-out glide animation to settle
+	await expect(page.locator('#doctrineFullView')).not.toHaveClass(/\borbital-mode\b/);
+	await expect(page.locator('#doctrineOrbitalHUD')).toHaveCount(0);
+	const activePlanet = await page.evaluate(() => window.__cc3Transcendence.getActiveOrbitalPlanet());
+	expect(activePlanet).toBeNull();
+	await expect(page.locator('#doctrineBackBtn')).toHaveText('← Back');
+
+	// Capture screenshot of returned galaxy view
+	await page.screenshot({ path: '/home/jabbatheduck/.gemini/antigravity/brain/9f3e0bba-bec4-4efa-aec6-1c6e5b5ddc8b/doctrine_orbital_return_galaxy.png' });
+
+	await page.evaluate(() => window.__cc3Transcendence.closeDoctrineTree(true));
+	await expect(page.locator('#doctrineFullView')).toHaveCount(0);
+	await assertNoUncaughtErrors(page);
+});
+
 test('transcendence access points: top bar widget, stats menu, and Layer 1 full reset', async ({ page }) => {
 	await boot(page, '&qa=transcend');
 	await qaReport(page, /PASS: transcendence/, 60_000);
