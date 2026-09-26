@@ -49,6 +49,7 @@ test.describe('Backup & Legacy Save Manager', () => {
 				initialCookies,
 				currentCookies: G.cookies,
 				saveCodeValid: !!saveCode,
+				metaValid: !G.ExtractSaveSummary || !!meta,
 			};
 		});
 

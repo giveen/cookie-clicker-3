@@ -17,8 +17,8 @@
 //       Feast ladder + the +1% keystone perk
 //   3 — save round-trip: pantry purchases survive export/import
 
+import { existsSync, readFileSync } from 'node:fs';
 import { expect, test } from '@playwright/test';
-import { readFileSync, existsSync } from 'node:fs';
 
 const BOOT = { timeout: 30_000 };
 const PANTRY = [

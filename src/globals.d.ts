@@ -319,6 +319,9 @@ declare global {
 			openOrbitalView: (planetId: number) => void;
 			closeOrbitalView: (instant?: boolean) => void;
 			getActiveOrbitalPlanet: () => number | null;
+			isOrbitalViewEnabled: () => boolean;
+			setOrbitalViewEnabled: (enabled: boolean) => void;
+			toggleOrbitalView: () => boolean;
 			resetView: () => void;
 			getView3D: () => { rotX: number; rotZ: number; zoom: number; offX: number; offY: number };
 			_addTranscendUI: () => void;

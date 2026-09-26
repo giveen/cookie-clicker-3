@@ -16,8 +16,8 @@
  *   - window.__cc3Transcendence test/inspection surface for QA
  */
 
+import type { DoctrineBody, DoctrineWebGLRenderer } from './doctrineWebGL';
 import { initDoctrineWebGL } from './doctrineWebGL';
-import type { DoctrineWebGLRenderer, DoctrineBody } from './doctrineWebGL';
 
 (function () {
 	if (window.__cc3Transcendence) return;
@@ -696,7 +696,7 @@ import type { DoctrineWebGLRenderer, DoctrineBody } from './doctrineWebGL';
 	 * GAME HOOKS
 	 * ================================================================ */
 
-	let _slumberUntil = Date.now() + 10 * 60 * 1000;
+	const _slumberUntil = Date.now() + 10 * 60 * 1000;
 	let _harmonicClicks = 0;
 	let _deimosTimer = 0;
 
@@ -1579,6 +1579,14 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
   padding:0 16px;
 }
 #doctrineInfo b { color:#ffd700; }
+#doctrineOrbitalToggleBtn {
+  font-size:12px; cursor:pointer; color:#888;
+  transition:color 0.15s, border-color 0.15s;
+  padding:5px 12px; border:1px solid rgba(255,255,255,0.12);
+  border-radius:4px; white-space:nowrap; margin-right:10px;
+}
+#doctrineOrbitalToggleBtn:hover { color:#fff; border-color:rgba(255,255,255,0.35); }
+#doctrineOrbitalToggleBtn.enabled { color:#60a5fa; border-color:rgba(96,165,250,0.4); }
 #doctrineResetBtn {
   font-size:12px; cursor:pointer; color:#888;
   transition:color 0.15s, border-color 0.15s;
@@ -1745,13 +1753,19 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 /* Floating label underneath */
 .planet-badge {
   position:absolute; top:calc(100% + 5px); left:50%;
-  transform:translateX(-50%);
+  transform:translateX(-50%) rotateZ(var(--invRotZ,0deg)) rotateX(var(--invRotX,-58deg));
   display:flex; flex-direction:column; align-items:center;
   background:none;
   border:none;
   padding:2px 4px;
   pointer-events:none; white-space:nowrap;
   max-width:130px;
+}
+#doctrineCanvas:not(.webgl-active) .planet-sphere {
+  transform: rotateZ(var(--invRotZ,0deg)) rotateX(var(--invRotX,-58deg));
+}
+#doctrineCanvas:not(.webgl-active) .planet-aura {
+  transform: translate(-50%, -50%) rotateZ(var(--invRotZ,0deg)) rotateX(var(--invRotX,-58deg));
 }
 .doctrine-planet .planet-name {
   font-size:11px; color:#e0e0e0; text-align:center;
@@ -1942,10 +1956,18 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 #doctrineFullView.orbital-mode .doctrine-planet.active-orbit-target {
   opacity:1 !important;
   z-index:20;
-  transform-style:flat !important;
 }
 /* In orbital mode, hide the huge billboarded planet label since the HUD displays it clearly */
 .orbital-mode .active-orbit-target .planet-badge {
+  display:none !important;
+}
+/* When WebGL is active in orbital mode, hide 2D CSS icon, aura and rings so the clean 3D planet sphere shines */
+#doctrineCanvas.webgl-active #doctrineFullView.orbital-mode .active-orbit-target .planet-icon,
+#doctrineFullView.orbital-mode #doctrineCanvas.webgl-active .active-orbit-target .planet-icon,
+#doctrineCanvas.webgl-active #doctrineFullView.orbital-mode .active-orbit-target .planet-ring,
+#doctrineFullView.orbital-mode #doctrineCanvas.webgl-active .active-orbit-target .planet-ring,
+#doctrineCanvas.webgl-active #doctrineFullView.orbital-mode .active-orbit-target .planet-aura,
+#doctrineFullView.orbital-mode #doctrineCanvas.webgl-active .active-orbit-target .planet-aura {
   display:none !important;
 }
 .orbital-mode .active-orbit-target .planet-aura {
@@ -2051,7 +2073,7 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 		return Math.min(window.innerHeight * 0.88, window.innerWidth * 0.92, 1200);
 	}
 
-	let _lastPlanetCoords: Record<number, { x: number; y: number; z: number }> = {};
+	const _lastPlanetCoords: Record<number, { x: number; y: number; z: number }> = {};
 	let _focusAnimTimer: number | null = null;
 
 	function _updateMoonsLOD(): void {
@@ -2061,6 +2083,68 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 			fullView.classList.add('zoomed-in');
 		} else {
 			fullView.classList.remove('zoomed-in');
+		}
+	}
+
+	/** Compute the screen offset (offX, offY) needed to center a planet with an optional horizontal shift. */
+	function _getPlanetScreenOffset(planetId: number, screenShiftX: number = 0, zoom: number): { offX: number; offY: number } {
+		const pos = _lastPlanetCoords[planetId];
+		if (!pos) return { offX: 0, offY: 0 };
+		const radZ = (_rotZ * Math.PI) / 180;
+		const radX = (_rotX * Math.PI) / 180;
+		// rotateZ
+		const rzX = pos.x * Math.cos(radZ) - pos.y * Math.sin(radZ);
+		const rzY = pos.x * Math.sin(radZ) + pos.y * Math.cos(radZ);
+		// rotateX (Z tilts Y into screen depth)
+		const projX = rzX;
+		const projY = rzY * Math.cos(radX) - (pos.z || 0) * Math.sin(radX);
+		return {
+			offX: -projX * zoom + screenShiftX,
+			offY: -projY * zoom,
+		};
+	}
+
+	const ORBITAL_VIEW_KEY = 'cc3_doctrine_orbital_view';
+	let _orbitalViewEnabled = (function () {
+		try {
+			const v = localStorage.getItem(ORBITAL_VIEW_KEY);
+			return v === null ? true : v === '1';
+		} catch {
+			return true;
+		}
+	})();
+
+	function isOrbitalViewEnabled(): boolean {
+		return _orbitalViewEnabled;
+	}
+
+	function setOrbitalViewEnabled(enabled: boolean): void {
+		_orbitalViewEnabled = enabled;
+		try {
+			localStorage.setItem(ORBITAL_VIEW_KEY, enabled ? '1' : '0');
+		} catch {}
+		_updateOrbitalToggleBtn();
+		if (!enabled && _activeOrbitalPlanet !== null) {
+			closeOrbitalView(true);
+		}
+	}
+
+	function toggleOrbitalView(): boolean {
+		setOrbitalViewEnabled(!_orbitalViewEnabled);
+		return _orbitalViewEnabled;
+	}
+
+	function _updateOrbitalToggleBtn(): void {
+		const btn = document.getElementById('doctrineOrbitalToggleBtn');
+		if (!btn) return;
+		btn.textContent = 'Orbital View: ' + (_orbitalViewEnabled ? 'ON' : 'OFF');
+		btn.title = _orbitalViewEnabled
+			? 'Orbital View is ON: Clicking a planet enters cinematic 3D orbital view. Click to turn OFF.'
+			: 'Orbital View is OFF: Clicking a planet opens the direct purchase window. Click to turn ON.';
+		if (_orbitalViewEnabled) {
+			btn.classList.add('enabled');
+		} else {
+			btn.classList.remove('enabled');
 		}
 	}
 
@@ -2082,22 +2166,10 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 		const startY = _viewOffY;
 		const startZoom = _viewZoom;
 
-		// Project 3D coordinate (pos.x, pos.y, pos.z) into screen 2D space according to #doctrineSystem's pitch and yaw
-		const radZ = (_rotZ * Math.PI) / 180;
-		const radX = (_rotX * Math.PI) / 180;
-		// rotateZ
-		const rzX = pos.x * Math.cos(radZ) - pos.y * Math.sin(radZ);
-		const rzY = pos.x * Math.sin(radZ) + pos.y * Math.cos(radZ);
-		// rotateX (Z tilts Y into screen depth)
-		const projX = rzX;
-		const projY = rzY * Math.cos(radX) - (pos.z || 0) * Math.sin(radX);
-
 		const targetZoom = explicitZoom !== undefined ? explicitZoom : Math.max(3.8, Math.min(5.5, _viewZoom < 2 ? 4.2 : _viewZoom));
-		// Because #doctrineViewport has `translate(var(--ox), var(--oy)) scale(var(--zoom))`,
-		// any point at (px, py) in the viewport renders on screen at (px * zoom + ox, py * zoom + oy).
-		// For the planet to be at screen center (0, 0), ox must equal -projX * zoom.
-		const targetX = -projX * targetZoom + screenShiftX;
-		const targetY = -projY * targetZoom;
+		const target = _getPlanetScreenOffset(planetId, screenShiftX, targetZoom);
+		const targetX = target.offX;
+		const targetY = target.offY;
 		const startTime = performance.now();
 		const duration = 400;
 
@@ -2423,9 +2495,21 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 		respec.id = 'doctrineRespecBtn';
 		respec.textContent = 'Respec';
 		respec.onclick = function () { PlaySound('snd/tick.mp3'); respecAndRedraw(); };
+		const orbitalToggleBtn = document.createElement('div');
+		orbitalToggleBtn.id = 'doctrineOrbitalToggleBtn';
+		orbitalToggleBtn.textContent = 'Orbital View: ' + (_orbitalViewEnabled ? 'ON' : 'OFF');
+		orbitalToggleBtn.title = _orbitalViewEnabled
+			? 'Orbital View is ON: Clicking a planet enters cinematic 3D orbital view. Click to turn OFF.'
+			: 'Orbital View is OFF: Clicking a planet opens the direct purchase window. Click to turn ON.';
+		if (_orbitalViewEnabled) orbitalToggleBtn.classList.add('enabled');
+		orbitalToggleBtn.onclick = function () {
+			PlaySound('snd/tick.mp3');
+			toggleOrbitalView();
+		};
 		top.appendChild(back);
 		top.appendChild(hint);
 		top.appendChild(info);
+		top.appendChild(orbitalToggleBtn);
 		top.appendChild(resetBtn);
 		top.appendChild(respec);
 
@@ -2568,6 +2652,12 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 					// 3D orbit rotation: horizontal drag rotates azimuth/yaw, vertical tilts pitch
 					_rotZ = (_viewDragRotZ + dx * 0.45) % 360;
 					_rotX = Math.max(25, Math.min(68, _viewDragRotX + dy * 0.35));
+					if (_activeOrbitalPlanet !== null) {
+						const shift = Math.min(150, Math.max(80, window.innerWidth * 0.12));
+						const target = _getPlanetScreenOffset(_activeOrbitalPlanet, shift, _viewZoom);
+						_viewOffX = target.offX;
+						_viewOffY = target.offY;
+					}
 				}
 				_applyViewTransform(viewport);
 			}
@@ -2602,9 +2692,17 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 			const mx = e.clientX - cx;
 			const my = e.clientY - cy;
 
-			_viewOffX += (mx - _viewOffX) * (1 - newZoom / oldZoom);
-			_viewOffY += (my - _viewOffY) * (1 - newZoom / oldZoom);
-			_viewZoom = newZoom;
+			if (_activeOrbitalPlanet !== null) {
+				_viewZoom = newZoom;
+				const shift = Math.min(150, Math.max(80, window.innerWidth * 0.12));
+				const target = _getPlanetScreenOffset(_activeOrbitalPlanet, shift, newZoom);
+				_viewOffX = target.offX;
+				_viewOffY = target.offY;
+			} else {
+				_viewOffX += (mx - _viewOffX) * (1 - newZoom / oldZoom);
+				_viewOffY += (my - _viewOffY) * (1 - newZoom / oldZoom);
+				_viewZoom = newZoom;
+			}
 
 			_applyViewTransform(viewport);
 			_updateMoonsLOD();
@@ -2649,6 +2747,12 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 				if (_viewDragging) {
 					_rotZ = (_viewDragRotZ + dx * 0.45) % 360;
 					_rotX = Math.max(25, Math.min(68, _viewDragRotX + dy * 0.35));
+					if (_activeOrbitalPlanet !== null) {
+						const shift = Math.min(150, Math.max(80, window.innerWidth * 0.12));
+						const target = _getPlanetScreenOffset(_activeOrbitalPlanet, shift, _viewZoom);
+						_viewOffX = target.offX;
+						_viewOffY = target.offY;
+					}
 					_applyViewTransform(viewport);
 				}
 			} else if (touchMode === 'pinch' && e.touches.length === 2) {
@@ -2881,7 +2985,7 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 			planet.style.width = sphereSize + 'px';
 			planet.style.height = sphereSize + 'px';
 			planet.style.margin = (-sphereSize / 2) + 'px';
-			planet.style.transform = 'translateZ(' + pos.z + 'px) rotateZ(var(--invRotZ,0deg)) rotateX(var(--invRotX,-58deg))';
+			planet.style.transform = 'translate3d(0, 0, ' + pos.z + 'px)';
 
 			// Optional celestial ring for apex & high-tier planets (cost >= 40)
 			if (node.cost >= 40) {
@@ -2937,15 +3041,22 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 				e.stopPropagation();
 				if (_activeOrbitalPlanet === node.id) {
 					showNodeDetail(node.id);
-				} else {
+				} else if (_orbitalViewEnabled) {
 					PlaySound('snd/tick.mp3');
 					openOrbitalView(node.id);
+				} else {
+					PlaySound('snd/tick.mp3');
+					showNodeDetail(node.id);
 				}
 			};
 
 			planet.ondblclick = function (e: MouseEvent) {
 				e.stopPropagation();
-				openOrbitalView(node.id);
+				if (_orbitalViewEnabled) {
+					openOrbitalView(node.id);
+				} else {
+					showNodeDetail(node.id);
+				}
 			};
 
 			// Moons orbiting this planet
@@ -3002,7 +3113,7 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 				moonEl.onclick = function (e: MouseEvent) {
 					e.stopPropagation();
 					if (_didDrag) return;
-					if (_activeOrbitalPlanet === null) {
+					if (_orbitalViewEnabled && _activeOrbitalPlanet === null) {
 						openOrbitalView(node.id);
 					} else {
 						showMoonDetail(moon.id);
@@ -3522,6 +3633,9 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 		openOrbitalView,
 		closeOrbitalView,
 		getActiveOrbitalPlanet,
+		isOrbitalViewEnabled,
+		setOrbitalViewEnabled,
+		toggleOrbitalView,
 		resetView,
 		getView3D: function () {
 			return { rotX: _rotX, rotZ: _rotZ, zoom: _viewZoom, offX: _viewOffX, offY: _viewOffY };
@@ -3554,6 +3668,7 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 			_uiAdded = false;
 		},
 	};
+	(window as any).CC3Transcendence = window.__cc3Transcendence;
 
 	/* ================================================================
 	 * Phase 2 complete. All 13 Doctrine nodes are implemented:

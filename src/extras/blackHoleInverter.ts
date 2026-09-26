@@ -26,8 +26,9 @@
  * sheet (customIcons.png) and store-icon sheet (customBuildings.png) are NOT used:
  * the vanilla icons render correctly for the pilot and keep this self-contained.
  */
-import type { Building, Game as EngineGame } from '../engine/types';
+
 import { STACK_TARGET_H, stackDims, stackPosition } from '../engine/content/buildings/stackDraw';
+import type { Building, Game as EngineGame } from '../engine/types';
 
 (function () {
 	if (window.__cc3Binverter) return;
