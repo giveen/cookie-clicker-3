@@ -20,6 +20,8 @@ export interface DoctrineBody {
 	orbitRadius?: number | undefined;
 	orbitPeriod?: number | undefined;
 	baseAngle?: number | undefined;
+	inclination?: number | undefined;
+	parentPlanetId?: number | undefined;
 }
 
 export interface DoctrineCameraState {
@@ -35,6 +37,7 @@ export interface DoctrineWebGLRenderer {
 	canvas: HTMLCanvasElement;
 	setCamera(camera: DoctrineCameraState): void;
 	setBodies(bodies: DoctrineBody[]): void;
+	setOrbitRadii(radii: number[]): void;
 	resize(): void;
 	start(): void;
 	stop(): void;
@@ -139,6 +142,75 @@ function createSphereGeometry(gl: WebGLRenderingContext, rings: number = 32, seg
 		indexCount,
 	};
 }
+
+interface RingGeometry {
+	vertexBuffer: WebGLBuffer;
+	vertexCount: number;
+}
+
+function createCircleGeometry(gl: WebGLRenderingContext, segments: number = 96): RingGeometry | null {
+	const positions = new Float32Array(segments * 3);
+	for (let i = 0; i < segments; i++) {
+		const theta = (i / segments) * 2 * Math.PI;
+		positions[i * 3] = Math.cos(theta);
+		positions[i * 3 + 1] = Math.sin(theta);
+		positions[i * 3 + 2] = 0;
+	}
+	const vertexBuffer = gl.createBuffer();
+	if (!vertexBuffer) return null;
+	gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
+	gl.bufferData(gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW);
+	return { vertexBuffer, vertexCount: segments };
+}
+
+const LINE_VERTEX_SHADER_SRC = `
+attribute vec3 a_position;
+uniform vec3 u_center;
+uniform float u_radius;
+uniform float u_rotZ;
+uniform float u_rotX;
+uniform float u_zoom;
+uniform vec2 u_pan;
+uniform vec2 u_canvasSize;
+uniform float u_perspective;
+
+void main() {
+    vec3 worldPos = u_center + a_position * u_radius;
+
+    float cosZ = cos(u_rotZ);
+    float sinZ = sin(u_rotZ);
+    float x1 = worldPos.x * cosZ - worldPos.y * sinZ;
+    float y1 = worldPos.x * sinZ + worldPos.y * cosZ;
+    float z1 = worldPos.z;
+
+    float cosX = cos(u_rotX);
+    float sinX = sin(u_rotX);
+    float x2 = x1;
+    float y2 = y1 * cosX - z1 * sinX;
+    float z2 = y1 * sinX + z1 * cosX;
+
+    float x3 = x2 * u_zoom + u_pan.x;
+    float y3 = y2 * u_zoom + u_pan.y;
+    float z3 = z2 * u_zoom;
+
+    float w = 1.0 - z3 / u_perspective;
+    if (w < 0.001) w = 0.001;
+
+    float ndcX = (x3 / (u_canvasSize.x * 0.5)) / w;
+    float ndcY = (-y3 / (u_canvasSize.y * 0.5)) / w;
+    float ndcZ = clamp(z3 / 3000.0, -0.99, 0.99);
+
+    gl_Position = vec4(ndcX * w, ndcY * w, -ndcZ * w, w);
+}
+`;
+
+const LINE_FRAGMENT_SHADER_SRC = `
+precision mediump float;
+uniform vec4 u_lineColor;
+void main() {
+    gl_FragColor = u_lineColor;
+}
+`;
 
 const VERTEX_SHADER_SRC = `
 attribute vec3 a_position;
@@ -367,6 +439,23 @@ export function initDoctrineWebGL(container: HTMLElement): DoctrineWebGLRenderer
 		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
 	};
 
+	// Compile line program and geometry for 3D celestial orbit tracks
+	const lineProgram = createProgram(gl, LINE_VERTEX_SHADER_SRC, LINE_FRAGMENT_SHADER_SRC);
+	const circleRing = lineProgram ? createCircleGeometry(gl, 96) : null;
+
+	const lineAttrPosition = lineProgram ? gl.getAttribLocation(lineProgram, 'a_position') : -1;
+	const lineUCenter = lineProgram ? gl.getUniformLocation(lineProgram, 'u_center') : null;
+	const lineURadius = lineProgram ? gl.getUniformLocation(lineProgram, 'u_radius') : null;
+	const lineURotZ = lineProgram ? gl.getUniformLocation(lineProgram, 'u_rotZ') : null;
+	const lineURotX = lineProgram ? gl.getUniformLocation(lineProgram, 'u_rotX') : null;
+	const lineUZoom = lineProgram ? gl.getUniformLocation(lineProgram, 'u_zoom') : null;
+	const lineUPan = lineProgram ? gl.getUniformLocation(lineProgram, 'u_pan') : null;
+	const lineUCanvasSize = lineProgram ? gl.getUniformLocation(lineProgram, 'u_canvasSize') : null;
+	const lineUPerspective = lineProgram ? gl.getUniformLocation(lineProgram, 'u_perspective') : null;
+	const lineULineColor = lineProgram ? gl.getUniformLocation(lineProgram, 'u_lineColor') : null;
+
+	let orbitRadii: number[] = [];
+
 	let camera: DoctrineCameraState = {
 		rotX: 58,
 		rotZ: 0,
@@ -409,6 +498,87 @@ export function initDoctrineWebGL(container: HTMLElement): DoctrineWebGLRenderer
 		gl.clearColor(0, 0, 0, 0);
 		gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
+		// Shared camera rotation angles in radians
+		const radX = (camera.rotX * Math.PI) / 180;
+		const radZ = (camera.rotZ * Math.PI) / 180;
+		const inOrbital = camera.activePlanetId !== null && camera.activePlanetId !== undefined;
+
+		// 1. Calculate live positions for all celestial bodies (planets around Sun, moons around planets)
+		const positions = new Map<string | number, { x: number; y: number; z: number }>();
+		for (let i = 0; i < bodies.length; i++) {
+			const b = bodies[i]!;
+			let posX = b.x;
+			let posY = b.y;
+			let posZ = b.z;
+
+			if (b.orbitRadius && b.orbitPeriod) {
+				let center = b.orbitCenter || { x: 0, y: 0, z: 0 };
+				if (b.parentPlanetId !== undefined && positions.has(b.parentPlanetId)) {
+					center = positions.get(b.parentPlanetId)!;
+				}
+				const angle = (b.baseAngle || 0) + (2 * Math.PI * (timeSec % b.orbitPeriod)) / b.orbitPeriod;
+				const inc = b.inclination || 0;
+				posX = center.x + b.orbitRadius * Math.cos(angle);
+				posY = center.y + b.orbitRadius * Math.sin(angle) * Math.cos(inc);
+				posZ = center.z + b.orbitRadius * Math.sin(angle) * Math.sin(inc);
+			}
+
+			positions.set(b.id, { x: posX, y: posY, z: posZ });
+		}
+
+		// 2. Render 3D orbit rings cleanly in WebGL (avoids CSS 3D perspective Skia clipping artifacts)
+		if (lineProgram && circleRing) {
+			gl.useProgram(lineProgram);
+			gl.bindBuffer(gl.ARRAY_BUFFER, circleRing.vertexBuffer);
+			gl.enableVertexAttribArray(lineAttrPosition);
+			gl.vertexAttribPointer(lineAttrPosition, 3, gl.FLOAT, false, 0, 0);
+
+			gl.uniform1f(lineURotX, radX);
+			gl.uniform1f(lineURotZ, radZ);
+			gl.uniform1f(lineUZoom, camera.zoom);
+			gl.uniform2f(lineUPan, camera.panX, camera.panY);
+			gl.uniform2f(lineUCanvasSize, w, h);
+			gl.uniform1f(lineUPerspective, 1000.0);
+
+			// Draw the 4 celestial tier orbit rings around Sun (0, 0, 0)
+			const ringColors: [number, number, number, number][] = [
+				[1.0, 0.85, 0.35, 0.22],
+				[0.35, 0.75, 1.0, 0.22],
+				[0.85, 0.5, 1.0, 0.22],
+				[0.4, 1.0, 0.7, 0.22],
+			];
+			gl.uniform3f(lineUCenter, 0, 0, 0);
+			for (let rIdx = 0; rIdx < orbitRadii.length; rIdx++) {
+				const r = orbitRadii[rIdx]!;
+				const c = ringColors[rIdx] || [1.0, 1.0, 1.0, 0.15];
+				gl.uniform1f(lineURadius, r);
+				gl.uniform4f(lineULineColor, c[0], c[1], c[2], inOrbital ? c[3] * 0.2 : c[3]);
+				gl.drawArrays(gl.LINE_LOOP, 0, circleRing.vertexCount);
+			}
+
+			// Draw moon orbit rings around each parent planet
+			const drawnMoonRings = new Set<string>();
+			for (let i = 0; i < bodies.length; i++) {
+				const b = bodies[i]!;
+				if (b.orbitRadius && b.parentPlanetId !== undefined) {
+					const ringKey = b.parentPlanetId + '-' + b.orbitRadius;
+					if (drawnMoonRings.has(ringKey)) continue;
+					drawnMoonRings.add(ringKey);
+
+					const parentPos = positions.get(b.parentPlanetId);
+					if (parentPos) {
+						gl.uniform3f(lineUCenter, parentPos.x, parentPos.y, parentPos.z);
+						gl.uniform1f(lineURadius, b.orbitRadius);
+						const isTargetParent = camera.activePlanetId === b.parentPlanetId;
+						const alpha = inOrbital ? (isTargetParent ? 0.45 : 0.03) : 0.15;
+						gl.uniform4f(lineULineColor, 1.0, 1.0, 1.0, alpha);
+						gl.drawArrays(gl.LINE_LOOP, 0, circleRing.vertexCount);
+					}
+				}
+			}
+		}
+
+		// 3. Render each textured celestial body
 		gl.useProgram(program);
 
 		// Bind vertex geometry buffers
@@ -425,10 +595,6 @@ export function initDoctrineWebGL(container: HTMLElement): DoctrineWebGLRenderer
 		gl.vertexAttribPointer(aUv, 2, gl.FLOAT, false, 0, 0);
 
 		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, sphere.indexBuffer);
-
-		// Shared camera uniforms
-		const radX = (camera.rotX * Math.PI) / 180;
-		const radZ = (camera.rotZ * Math.PI) / 180;
 
 		gl.uniform1f(uRotX, radX);
 		gl.uniform1f(uRotZ, radZ);
@@ -447,9 +613,6 @@ export function initDoctrineWebGL(container: HTMLElement): DoctrineWebGLRenderer
 		const cellH = 1.0 / 6.0;
 		gl.uniform2f(uCellSize, cellW, cellH);
 
-		const inOrbital = camera.activePlanetId !== null && camera.activePlanetId !== undefined;
-
-		// Render each celestial body
 		for (let i = 0; i < bodies.length; i++) {
 			const b = bodies[i]!;
 
@@ -465,18 +628,9 @@ export function initDoctrineWebGL(container: HTMLElement): DoctrineWebGLRenderer
 
 			if (bodyOpacity < 0.01) continue;
 
-			let posX = b.x;
-			let posY = b.y;
-			let posZ = b.z;
+			const pos = positions.get(b.id) || { x: b.x, y: b.y, z: b.z };
 
-			if (b.orbitCenter && b.orbitRadius && b.orbitPeriod) {
-				const angle = (b.baseAngle || 0) + (2 * Math.PI * (timeSec % b.orbitPeriod)) / b.orbitPeriod;
-				posX = b.orbitCenter.x + b.orbitRadius * Math.cos(angle);
-				posY = b.orbitCenter.y + b.orbitRadius * Math.sin(angle);
-				posZ = b.orbitCenter.z;
-			}
-
-			gl.uniform3f(uCenter, posX, posY, posZ);
+			gl.uniform3f(uCenter, pos.x, pos.y, pos.z);
 			gl.uniform1f(uRadius, b.radius);
 
 			// Cell UV offset in 4x6 grid
@@ -526,11 +680,17 @@ export function initDoctrineWebGL(container: HTMLElement): DoctrineWebGLRenderer
 			ctx.deleteBuffer(sphere.uvBuffer);
 			ctx.deleteBuffer(sphere.indexBuffer);
 		}
+		if (circleRing) {
+			ctx.deleteBuffer(circleRing.vertexBuffer);
+		}
 		if (texture) {
 			ctx.deleteTexture(texture);
 		}
 		if (program) {
 			ctx.deleteProgram(program);
+		}
+		if (lineProgram) {
+			ctx.deleteProgram(lineProgram);
 		}
 		canvas.remove();
 	}
@@ -544,6 +704,9 @@ export function initDoctrineWebGL(container: HTMLElement): DoctrineWebGLRenderer
 		},
 		setBodies(nextBodies: DoctrineBody[]): void {
 			bodies = [...nextBodies];
+		},
+		setOrbitRadii(radii: number[]): void {
+			orbitRadii = [...radii];
 		},
 		resize,
 		start,

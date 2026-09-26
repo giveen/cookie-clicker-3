@@ -1726,7 +1726,13 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
   box-shadow: none !important;
   border-color: rgba(255, 255, 255, 0.3) !important;
 }
-/* Saturn-like planetary rings for apex tier 3/4 planets */
+#doctrineCanvas.webgl-active .planet-aura,
+#doctrineCanvas.webgl-active .planet-ring,
+#doctrineCanvas.webgl-active .moon-orbit-ring,
+#doctrineCanvas.webgl-active .doctrine-orbit-ring {
+  display: none !important;
+}
+/* Saturn-like planetary rings for apex tier 3/4 planets (CSS fallback) */
 .planet-ring {
   position:absolute; top:50%; left:50%;
   width:145%; height:40%; border-radius:50%;
@@ -1734,6 +1740,7 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
   border:2px solid rgba(220, 160, 255, 0.5);
   box-shadow:0 0 8px rgba(220, 160, 255, 0.35), inset 0 0 6px rgba(220, 160, 255, 0.2);
   pointer-events:none; z-index:0; flex-shrink:0;
+  backface-visibility:hidden;
 }
 /* 3D Luminous constellation filaments */
 .doctrine-filament {
@@ -1830,9 +1837,10 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 .moon-orbit-ring {
   position:absolute; top:50%; left:50%;
   border-radius:50%;
-  border:1px dashed rgba(255,255,255,0.18);
+  border:1px solid rgba(255,255,255,0.18);
   transform:translate(-50%, -50%);
   pointer-events:none; z-index:0;
+  backface-visibility:hidden;
 }
 @keyframes doctrineOrbitMoon {
   from { transform: rotate(0deg) translateX(var(--m-dist)) rotate(0deg); }
@@ -2068,8 +2076,79 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 		return Math.min(window.innerHeight * 0.88, window.innerWidth * 0.92, 1200);
 	}
 
+	// Orbital periods (in seconds) following Kepler's Third Law (outer planets rotate slower and longer around the Sun)
+	const ORBIT_TIER_PERIODS = [45, 80, 130, 200];
+
+	/** Calculate a planet's live 3D coordinates based on continuous Keplerian revolution around the Sun. */
+	function _getPlanetLiveCoords(nodeId: number, timeSec: number, sysSize?: number): { x: number; y: number; z: number } {
+		const node = DOCTRINE.find((d) => d.id === nodeId);
+		if (!node) return { x: 0, y: 0, z: 0 };
+		const orbitIndex = ORBIT_BY_COST[node.cost] ?? 0;
+		const size = sysSize || (document.getElementById('doctrineSystem')?.clientWidth || _getSystemSize());
+		const cx = size / 2;
+		const radius = Math.round(cx * ORBIT_FRACTIONS[orbitIndex]);
+		const period = ORBIT_TIER_PERIODS[orbitIndex] || 60;
+		const b = (node.branch && BRANCH_3D[node.branch]) || BRANCH_3D.glutton;
+		const fanOffset = b.fan[orbitIndex] || 0;
+		const baseAngle = b.baseAngle + fanOffset;
+		const angle = baseAngle + (2 * Math.PI * (timeSec % period)) / period;
+		const phi = (b.phi || 0) * 0.35;
+		const x = Math.round(radius * Math.cos(angle));
+		const y = Math.round(radius * Math.sin(angle) * Math.cos(phi));
+		const z = Math.round(radius * Math.sin(angle) * Math.sin(phi));
+		return { x, y, z };
+	}
+
 	const _lastPlanetCoords: Record<number, { x: number; y: number; z: number }> = {};
 	let _focusAnimTimer: number | null = null;
+	let _orbitAnimRaf: number | null = null;
+
+	function _startOrbitAnimation(): void {
+		if (_orbitAnimRaf !== null) return;
+		function tick() {
+			const fullView = document.getElementById('doctrineFullView');
+			if (!fullView || fullView.classList.contains('out')) {
+				_orbitAnimRaf = null;
+				return;
+			}
+			const system = document.getElementById('doctrineSystem');
+			if (system) {
+				const size = system.clientWidth || _getSystemSize();
+				const cx = size / 2, cy = size / 2;
+				const timeSec = performance.now() / 1000;
+
+				for (const node of DOCTRINE) {
+					const coords = _getPlanetLiveCoords(node.id, timeSec, size);
+					_lastPlanetCoords[node.id] = coords;
+					const planetEl = system.querySelector('.doctrine-planet[data-node-id="' + node.id + '"]') as HTMLElement | null;
+					if (planetEl) {
+						planetEl.style.left = (cx + coords.x) + 'px';
+						planetEl.style.top = (cy + coords.y) + 'px';
+						planetEl.style.transform = 'translate3d(0, 0, ' + coords.z + 'px)';
+					}
+				}
+
+				if (_activeOrbitalPlanet !== null && !_viewDragging) {
+					const shift = Math.min(150, Math.max(80, window.innerWidth * 0.12));
+					const target = _getPlanetScreenOffset(_activeOrbitalPlanet, shift, _viewZoom);
+					_viewOffX = target.offX;
+					_viewOffY = target.offY;
+					const viewport = document.getElementById('doctrineViewport');
+					if (viewport) _applyViewTransform(viewport);
+				}
+			}
+
+			_orbitAnimRaf = requestAnimationFrame(tick);
+		}
+		_orbitAnimRaf = requestAnimationFrame(tick);
+	}
+
+	function _stopOrbitAnimation(): void {
+		if (_orbitAnimRaf !== null) {
+			cancelAnimationFrame(_orbitAnimRaf);
+			_orbitAnimRaf = null;
+		}
+	}
 
 	function _updateMoonsLOD(): void {
 		const fullView = document.getElementById('doctrineFullView');
@@ -2575,6 +2654,7 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 	 *  the function is re-entrant safe: a re-show while closing cancels the
 	 *  pending removal. */
 	function closeDoctrineTree(instant?: boolean): void {
+		_stopOrbitAnimation();
 		if (_doctrineWebGL) {
 			_doctrineWebGL.destroy();
 			_doctrineWebGL = null;
@@ -2895,62 +2975,18 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 			container.appendChild(ring);
 		}
 
-		// Calculate 3D spherical coordinates for all nodes in the galaxy
+		// Calculate initial 3D spherical coordinates for all nodes in the galaxy
+		const timeSec = performance.now() / 1000;
 		const coords: Record<number, { x: number; y: number; z: number; branch: string; owned: boolean; canBuy: boolean }> = {};
 		for (const node of DOCTRINE) {
-			const orbitIndex = ORBIT_BY_COST[node.cost] ?? 0;
-			const radius = radii[orbitIndex];
-			const b = (node.branch && BRANCH_3D[node.branch]) || BRANCH_3D.glutton;
-			const fanOffset = b.fan[orbitIndex] || 0;
-			const angle = b.baseAngle + fanOffset;
-
-			// Spherical coordinate projection into 3D Cartesian space
-			const x = Math.round(radius * Math.cos(angle) * Math.cos(b.phi));
-			const y = Math.round(radius * Math.sin(angle) * Math.cos(b.phi));
-			const z = Math.round(radius * Math.sin(b.phi));
-
+			const pos = _getPlanetLiveCoords(node.id, timeSec, size);
 			const owned = doctrineHas(node.id);
 			const canAfford = state.ee >= node.cost;
 			const parentsMet = node.parents.every((pid) => doctrineHas(pid));
 			const canBuy = !owned && canAfford && parentsMet;
 
-			coords[node.id] = { x, y, z, branch: node.branch, owned, canBuy };
-		}
-
-		// Draw 3D luminous constellation filaments connecting parent and child nodes
-		for (const node of DOCTRINE) {
-			if (!node.parents || node.parents.length === 0) continue;
-			const c2 = coords[node.id];
-			if (!c2) continue;
-			for (const pid of node.parents) {
-				const c1 = coords[pid];
-				if (!c1) continue;
-
-				const dx = c2.x - c1.x;
-				const dy = c2.y - c1.y;
-				const dz = c2.z - c1.z;
-				const length = Math.hypot(dx, dy, dz);
-				const distXY = Math.hypot(dx, dy);
-				const rotZ = (Math.atan2(dy, dx) * 180) / Math.PI;
-				const pitch = (Math.atan2(dz, distXY) * 180) / Math.PI;
-
-				const b = (node.branch && BRANCH_3D[node.branch]) || BRANCH_3D.glutton;
-				const filament = document.createElement('div');
-				filament.className = 'doctrine-filament';
-				const isOwnedLink = c1.owned && c2.owned;
-				const isAvailableLink = c1.owned && c2.canBuy;
-				const opacity = isOwnedLink ? '0.70' : isAvailableLink ? '0.45' : '0.15';
-
-				filament.style.cssText =
-					'position:absolute;left:' + (cx + c1.x) + 'px;top:' + (cy + c1.y) + 'px;' +
-					'width:' + length + 'px;height:1px;' +
-					'transform-origin:0% 50%;' +
-					'transform:translateZ(' + c1.z + 'px) rotateZ(' + rotZ + 'deg) rotateY(' + (-pitch) + 'deg);' +
-					'background:' + b.glow + ';' +
-					'opacity:' + opacity + ';' +
-					'pointer-events:none;';
-				container.appendChild(filament);
-			}
+			coords[node.id] = { x: pos.x, y: pos.y, z: pos.z, branch: node.branch, owned, canBuy };
+			_lastPlanetCoords[node.id] = { x: pos.x, y: pos.y, z: pos.z };
 		}
 
 		// Place each 3D spherical planet node
@@ -3133,6 +3169,7 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 
 		// Synchronize WebGL celestial bodies (Sun, 13 planets, 26 moons)
 		if (_doctrineWebGL) {
+			_doctrineWebGL.setOrbitRadii(radii);
 			const sunSize = Math.max(60, Math.round(size * 0.09));
 			const bodies: DoctrineBody[] = [
 				{
@@ -3148,20 +3185,30 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 			];
 
 			for (const node of DOCTRINE) {
-				const pos = coords[node.id];
-				if (!pos) continue;
+				const orbitIndex = ORBIT_BY_COST[node.cost] ?? 0;
+				const radius = radii[orbitIndex] || 200;
+				const period = ORBIT_TIER_PERIODS[orbitIndex] || 60;
+				const b = (node.branch && BRANCH_3D[node.branch]) || BRANCH_3D.glutton;
+				const fanOffset = b.fan[orbitIndex] || 0;
+				const baseAngle = b.baseAngle + fanOffset;
+				const phi = (b.phi || 0) * 0.35;
 				const sphereSize = node.cost >= 75 ? 66 : node.cost >= 40 ? 58 : node.cost >= 15 ? 52 : 46;
 				const cellIdx = PLANET_CELL_INDEX[node.id] ?? 0;
 				const bColor = (node.branch && BRANCH_GLOW_RGB[node.branch]) || [0.8, 0.8, 0.9];
 
 				bodies.push({
 					id: node.id,
-					x: pos.x,
-					y: pos.y,
-					z: pos.z,
+					x: 0,
+					y: 0,
+					z: 0,
 					radius: sphereSize / 2,
 					cellIndex: cellIdx,
 					branchColor: bColor,
+					orbitCenter: { x: 0, y: 0, z: 0 },
+					orbitRadius: radius,
+					orbitPeriod: period,
+					baseAngle: baseAngle,
+					inclination: phi,
 				});
 
 				const planetMoons = DOCTRINE_MOONS.filter((m) => m.planetId === node.id);
@@ -3170,13 +3217,13 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 					const moonCell = 16 + (mIdx % 4);
 					bodies.push({
 						id: moon.id,
-						x: pos.x,
-						y: pos.y,
-						z: pos.z,
+						x: 0,
+						y: 0,
+						z: 0,
 						radius: 9,
 						cellIndex: moonCell,
 						branchColor: bColor,
-						orbitCenter: { x: pos.x, y: pos.y, z: pos.z },
+						parentPlanetId: node.id,
 						orbitRadius: moon.orbitRadius,
 						orbitPeriod: moon.orbitPeriod,
 						baseAngle: moon.baseAngle,
@@ -3186,6 +3233,8 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 
 			_doctrineWebGL.setBodies(bodies);
 		}
+
+		_startOrbitAnimation();
 	}
 
 	/** Show confirmation / detail modal for a doctrine node before purchasing. */
