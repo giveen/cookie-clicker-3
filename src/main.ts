@@ -714,7 +714,7 @@ if (debugSurface && params.get('qa') === 'binverter') {
 			if (up) { up.unlocked = 1; up.bought = 1; }
 			G.recalculateGains = 1; G.CalculateGains();
 			const modObj = G.mods && G.mods['Black Hole Inverter'];
-			const directSave = (modObj && typeof modObj.save === 'function') ? modObj.save() : '(no mod.save)';
+			const directSave = ((modObj && typeof modObj.save === 'function') ? modObj.save() : '(no mod.save)') ?? '';
 			chk('mod.save() captures "Blacker holes"', directSave.indexOf('Blacker holes') !== -1);
 			const saveStr = G.WriteSave(1)!;
 			me.amount = 0; me.highest = 0; me.level = 0;
@@ -759,7 +759,7 @@ if (debugSurface && params.get('qa') === 'destiny') {
 			const lines: string[] = [];
 			let pass = true;
 			const chk = (label: string, cond: boolean) => { lines.push((cond ? 'PASS: ' : 'FAIL: ') + label); if (!cond) pass = false; };
-			const modSave = (): string => { const m = G.mods[NAME]; return (m && typeof m.save === 'function') ? m.save() : '(missing mod save)'; };
+			const modSave = (): string => { const m = G.mods[NAME]; return ((m && typeof m.save === 'function') ? m.save() : '(missing mod save)') ?? ''; };
 			const modLoad = (s: string): boolean => { const m = G.mods[NAME]; if (m && typeof m.load === 'function') { m.load(s); return true; } return false; };
 
 			// 1. content declarations
@@ -2357,8 +2357,9 @@ if (debugSurface && params.get('qa') === 'icon') {
 				if (!storeIcon) continue;
 				const el = document.getElementById('productIcon' + b.id);
 				const off = document.getElementById('productIconOff' + b.id);
+				const storeIconOff: string = (b.art && b.art.storeIconOff) || storeIcon;
 				const layersOk = !!el && (el.getAttribute('style') || '').indexOf(storeIcon) !== -1
-					&& !!off && (off.getAttribute('style') || '').indexOf(storeIcon) !== -1;
+					&& !!off && (off.getAttribute('style') || '').indexOf(storeIconOff) !== -1;
 				const size = String(b.art.storeIconSize || '64px 64px').split(' ');
 				const pos = String(b.art.storeIconPosition || '0px 0px').split(' ');
 				const inkCount = await scanFrame(storeIcon, parseInt(pos[0], 10) || 0, parseInt(pos[1] || '0', 10) || 0, parseInt(size[0], 10) || 64, parseInt(size[1] || size[0] || '64', 10) || 64);

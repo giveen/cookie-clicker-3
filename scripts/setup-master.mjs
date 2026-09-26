@@ -59,7 +59,7 @@ run(`git worktree add --detach ${DIR} ${commit}`);
 fs.writeFileSync(marker, commit);
 
 console.log('[setup-master] installing baseline dependencies...');
-run('npm ci --no-audit --no-fund', { cwd: DIR });
+run('npm ci --no-audit --no-fund --ignore-scripts', { cwd: DIR });
 
 console.log('[setup-master] building baseline...');
 run('npm run build', { cwd: DIR });

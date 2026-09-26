@@ -242,6 +242,8 @@ declare global {
 		__cc3Anim?: Cc3AnimStats;
 		/* Set by extras/blackHoleInverter.ts once it has registered. */
 		__cc3Binverter?: number;
+		/* Set by extras/dysonSwarm.ts once it has registered. */
+		__cc3DysonSwarm?: number;
 		/* Set by extras/decideDestiny.ts once it has registered. */
 		__cc3DecideDestiny?: number;
 		/* Set by extras/americanSeason.ts once it has registered. */

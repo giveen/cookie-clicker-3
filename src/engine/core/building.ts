@@ -818,23 +818,25 @@ export class Building {
 					//original wrote the default position first and immediately
 					//overwrote it) — so the guarded default writes below are skipped
 					//entirely for these buildings.
+					var customStoreOffIcon=(this.art as any).storeIconOff||customStoreIcon;
 					var customStoreSize=(this.art as any).storeIconSize||'48px 48px';
 					//storeIconPosition centers multi-frame sheets whose frames are
 					//wider than the 64px icon window (e.g. the Cats strips, 80px
 					//frames) the same way the muted .catSleepIcon does.
 					var customStorePosition=(this.art as any).storeIconPosition||'0px 0px';
 					var customStoreUrl="url('"+customStoreIcon.replace(/'/g,"\\'")+"')";
+					var customStoreOffUrl="url('"+customStoreOffIcon.replace(/'/g,"\\'")+"')";
 					//pixelated keeps 2x-upscaled pixel-art strips (Cats) crisp
 					//instead of bilinearly blurring them
 					var customStoreImageRendering=(this.art as any).storeIconRendering||'pixelated';
 					var customStoreFilter=(this.art as any).storeIconFilter||'none';
 					var customStoreOffFilter=(this.art as any).storeIconOffFilter||customStoreFilter;
-					var customKey=customStoreUrl+'|'+customStoreSize+'|'+customStorePosition+'|'+customStoreImageRendering+'|'+customStoreFilter+'|'+customStoreOffFilter;
+					var customKey=customStoreUrl+'|'+customStoreOffUrl+'|'+customStoreSize+'|'+customStorePosition+'|'+customStoreImageRendering+'|'+customStoreFilter+'|'+customStoreOffFilter;
 					if (cache.customIcon!==customKey)
 					{
 						cache.customIcon=customKey;
 						l('productIcon'+this.id).style.backgroundImage=customStoreUrl;
-						l('productIconOff'+this.id).style.backgroundImage=customStoreUrl;
+						l('productIconOff'+this.id).style.backgroundImage=customStoreOffUrl;
 						l('productIcon'+this.id).style.backgroundSize=customStoreSize;
 						l('productIconOff'+this.id).style.backgroundSize=customStoreSize;
 						l('productIcon'+this.id).style.backgroundPosition=customStorePosition;

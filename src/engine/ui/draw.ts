@@ -109,6 +109,17 @@ export function Draw()
 				{
  					var me:any=sortedObjects[si];
 					
+					// CC3: post-transcendence or custom gated buildings stay hidden until condition met
+					if (typeof me.lockedCondition === 'function' && !me.lockedCondition())
+					{
+						if (me.l) {
+							me.l.className = 'product toggledOff';
+							me.l.style.display = 'none';
+						}
+						continue;
+					}
+					if (me.l && me.l.style.display === 'none') me.l.style.display = '';
+
 					//make products full-opacity if we can buy them
 					var classes='product';
 					var price=me.bulkPrice;

@@ -11,3 +11,4 @@ import './tutorial';
 import './dailyCrumb';
 import './crackingCookie';
 import './transcendence';
+import './dysonSwarm';

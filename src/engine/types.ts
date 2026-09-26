@@ -351,7 +351,7 @@ export interface Mod {
 	create?: (game: Game) => void;
 	draw?: (game: Game) => void;
 	check?: (game: Game) => void;
-	save?: () => string;
+	save?: () => string | undefined;
 	load?: (str: string) => void;
 	[key: string]: any;
 }
