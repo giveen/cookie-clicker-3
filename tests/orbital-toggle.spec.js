@@ -19,6 +19,9 @@ test('orbital view toggle and alignment', async ({ page }) => {
   });
   await expect(page.locator('#doctrineFullView.in')).toBeVisible();
 
+  // Verify that old pixel icons on top of planets have been removed
+  await expect(page.locator('.doctrine-planet .planet-icon')).toHaveCount(0);
+
   // Verify Orbital View toggle button in top bar exists and is ON by default
   const toggleBtn = page.locator('#doctrineOrbitalToggleBtn');
   await expect(toggleBtn).toBeVisible();
@@ -29,6 +32,7 @@ test('orbital view toggle and alignment', async ({ page }) => {
   await expect(page.locator('#doctrineFullView')).toHaveClass(/\borbital-mode\b/);
   await expect(page.locator('#doctrineOrbitalHUD')).toBeVisible();
   await expect(page.locator('#doctrineOrbitalHUD')).toContainText('Cascade');
+  await page.waitForTimeout(500);
 
   // Verify drag in orbital view maintains planet centering (doesn't throw planet off screen)
   const beforeDrag = await page.evaluate(() => {

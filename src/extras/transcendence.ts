@@ -1744,11 +1744,8 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
   transform-origin:0% 50%;
   border-radius:1px;
 }
-/* The icon centered on the planet face */
 .doctrine-planet .planet-icon {
-  width:26px; height:26px; image-rendering:pixelated;
-  background-size:auto; flex-shrink:0; position:relative; z-index:4;
-  filter:drop-shadow(0 2px 4px rgba(0,0,0,0.85));
+  display:none !important;
 }
 /* Floating label underneath */
 .planet-badge {
@@ -1961,9 +1958,7 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 .orbital-mode .active-orbit-target .planet-badge {
   display:none !important;
 }
-/* When WebGL is active in orbital mode, hide 2D CSS icon, aura and rings so the clean 3D planet sphere shines */
-#doctrineCanvas.webgl-active #doctrineFullView.orbital-mode .active-orbit-target .planet-icon,
-#doctrineFullView.orbital-mode #doctrineCanvas.webgl-active .active-orbit-target .planet-icon,
+/* When WebGL is active in orbital mode, hide 2D CSS aura and rings so the clean 3D planet sphere shines */
 #doctrineCanvas.webgl-active #doctrineFullView.orbital-mode .active-orbit-target .planet-ring,
 #doctrineFullView.orbital-mode #doctrineCanvas.webgl-active .active-orbit-target .planet-ring,
 #doctrineCanvas.webgl-active #doctrineFullView.orbital-mode .active-orbit-target .planet-aura,
@@ -3005,16 +3000,10 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 			sphere.style.width = sphereSize + 'px';
 			sphere.style.height = sphereSize + 'px';
 
-			// Specular shine highlight
+			// Specular shine highlight (CSS fallback)
 			const shine = document.createElement('div');
 			shine.className = 'planet-shine';
 			sphere.appendChild(shine);
-
-			// Center icon
-			const icon = document.createElement('div');
-			icon.className = 'planet-icon';
-			icon.style.cssText = 'background:url(img/icons.webp) -' + (node.icon[0] * 48) + 'px -' + (node.icon[1] * 48) + 'px;';
-			sphere.appendChild(icon);
 
 			planet.appendChild(sphere);
 
