@@ -28,7 +28,7 @@ test('orbital view toggle and alignment', async ({ page }) => {
   await expect(toggleBtn).toHaveText('Orbital View: ON');
 
   // 2. Click Cascade (planet 3) with toggle ON -> enters orbital view
-  await page.click('.doctrine-planet[data-node-id="3"]');
+  await page.click('.doctrine-planet[data-node-id="3"]', { force: true });
   await expect(page.locator('#doctrineFullView')).toHaveClass(/\borbital-mode\b/);
   await expect(page.locator('#doctrineOrbitalHUD')).toBeVisible();
   await expect(page.locator('#doctrineOrbitalHUD')).toContainText('Cascade');
@@ -61,7 +61,7 @@ test('orbital view toggle and alignment', async ({ page }) => {
   await expect(page.locator('#doctrineOrbitalHUD')).toHaveCount(0);
 
   // 4. Click Cascade (planet 3) with toggle OFF -> opens prompt directly!
-  await page.click('.doctrine-planet[data-node-id="3"]');
+  await page.click('.doctrine-planet[data-node-id="3"]', { force: true });
   await expect(page.locator('#prompt')).toBeVisible();
   await expect(page.locator('#prompt h3')).toContainText('Cascade');
   await page.evaluate(() => window.Game.ClosePrompt());

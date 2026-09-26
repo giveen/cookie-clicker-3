@@ -2115,7 +2115,8 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 			if (system) {
 				const size = system.clientWidth || _getSystemSize();
 				const cx = size / 2, cy = size / 2;
-				const timeSec = performance.now() / 1000;
+				const noMotion = document.body && document.body.classList.contains('noMotion');
+				const timeSec = noMotion ? 0 : performance.now() / 1000;
 
 				for (const node of DOCTRINE) {
 					const coords = _getPlanetLiveCoords(node.id, timeSec, size);

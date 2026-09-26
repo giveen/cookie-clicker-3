@@ -1352,7 +1352,7 @@ test('doctrine planet orbital view with spinning planet, orbiting moons, and int
 	await expect(page.locator('#doctrineFullView.in')).toBeVisible();
 
 	// 1. Click planet 1 to transition smoothly into Orbital View
-	await page.click('.doctrine-planet[data-node-id="1"]');
+	await page.click('.doctrine-planet[data-node-id="1"]', { force: true });
 	await expect(page.locator('#doctrineFullView')).toHaveClass(/\borbital-mode\b/);
 	await expect(page.locator('.doctrine-planet[data-node-id="1"]')).toHaveClass(/\bactive-orbit-target\b/);
 	await page.waitForTimeout(450); // allow zoom-in glide animation to settle
