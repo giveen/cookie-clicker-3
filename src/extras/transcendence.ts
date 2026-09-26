@@ -16,6 +16,9 @@
  *   - window.__cc3Transcendence test/inspection surface for QA
  */
 
+import { initDoctrineWebGL } from './doctrineWebGL';
+import type { DoctrineWebGLRenderer, DoctrineBody } from './doctrineWebGL';
+
 (function () {
 	if (window.__cc3Transcendence) return;
 
@@ -1503,6 +1506,31 @@
 	let _viewDragOffX = 0, _viewDragOffY = 0;
 	let _isPanning = false;
 
+	let _doctrineWebGL: DoctrineWebGLRenderer | null = null;
+
+	const PLANET_CELL_INDEX: Record<number, number> = {
+		1: 0,   // Persistent Hand: Cookie Dough Magma
+		2: 1,   // Echoing Click: Caramel Sea & Wafers
+		3: 2,   // Cascade: Cacao Caldera & Molten Fudge
+		4: 4,   // Lazy Oven: Condensed Milk Glaciers
+		5: 5,   // Warm Embers: Mint Chip Polar
+		6: 6,   // Ambient Baking: Sapphire Gas Giant
+		7: 8,   // Fortune's Favor: Amethyst Arcane Nexus
+		8: 9,   // Elder's Whisper: Wrath Flesh Hivemind
+		9: 10,  // Strange Attractor: Cosmic Gravity Well
+		10: 11, // Double Dip: Bipolar Fate
+		11: 12, // Frugal Start: Terraformed Cookie Biome
+		12: 13, // Measured Growth: Emerald Cane Canopy
+		13: 14, // Legacy Echo: Golden Honeycomb Lattice
+	};
+
+	const BRANCH_GLOW_RGB: Record<string, [number, number, number]> = {
+		glutton: [1.0, 0.58, 0.16],
+		idler: [0.22, 0.74, 0.98],
+		fatebinder: [0.75, 0.42, 0.99],
+		rebuilder: [0.29, 0.87, 0.50],
+	};
+
 	/** Inject the full-screen Doctrine view CSS once. */
 	function _injectSolarCSS(): void {
 		if (document.getElementById('doctrineSolarCSS')) return;
@@ -1671,6 +1699,24 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 .doctrine-planet.branch-rebuilder .planet-sphere {
   background:radial-gradient(circle at 32% 30%, #8efcc0 0%, #22c06a 35%, #08602c 70%, #02260e 100%);
   border:1.5px solid rgba(80, 240, 140, 0.45);
+}
+/* WebGL Active styling: make CSS sphere transparent so textured 3D WebGL sphere shines through */
+#doctrineCanvas.webgl-active .planet-sphere {
+  background: transparent !important;
+  border-color: rgba(255, 255, 255, 0.25) !important;
+  box-shadow: none !important;
+}
+#doctrineCanvas.webgl-active .planet-shine {
+  display: none !important;
+}
+#doctrineCanvas.webgl-active .doctrine-sun {
+  background: transparent !important;
+  box-shadow: 0 0 35px rgba(255, 215, 0, 0.3) !important;
+}
+#doctrineCanvas.webgl-active .moon-sphere {
+  background: transparent !important;
+  box-shadow: none !important;
+  border-color: rgba(255, 255, 255, 0.3) !important;
 }
 /* Saturn-like planetary rings for apex tier 3/4 planets */
 .planet-ring {
@@ -2420,6 +2466,12 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 
 		document.body.appendChild(view);
 
+		_doctrineWebGL = initDoctrineWebGL(canvas);
+		if (_doctrineWebGL) {
+			canvas.classList.add('webgl-active');
+			_doctrineWebGL.start();
+		}
+
 		_applyViewTransform(viewport);
 
 		// Eased entrance: start hidden (CSS base state), then flip to the visible
@@ -2444,6 +2496,10 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 	 *  the function is re-entrant safe: a re-show while closing cancels the
 	 *  pending removal. */
 	function closeDoctrineTree(instant?: boolean): void {
+		if (_doctrineWebGL) {
+			_doctrineWebGL.destroy();
+			_doctrineWebGL = null;
+		}
 		_activeOrbitalPlanet = null;
 		const hud = document.getElementById('doctrineOrbitalHUD');
 		if (hud) hud.remove();
@@ -2646,6 +2702,10 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 				}
 			}
 		});
+
+		window.addEventListener('resize', function () {
+			if (_doctrineWebGL) _doctrineWebGL.resize();
+		});
 	}
 
 	function _applyViewTransform(viewport: HTMLElement): void {
@@ -2656,6 +2716,17 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 		viewport.style.setProperty('--invRotX', (-Math.round(_rotX)) + 'deg');
 		viewport.style.setProperty('--rotZ', Math.round(_rotZ) + 'deg');
 		viewport.style.setProperty('--invRotZ', (-Math.round(_rotZ)) + 'deg');
+
+		if (_doctrineWebGL) {
+			_doctrineWebGL.setCamera({
+				rotX: _rotX,
+				rotZ: _rotZ,
+				zoom: _viewZoom,
+				panX: _viewOffX,
+				panY: _viewOffY,
+				activePlanetId: _activeOrbitalPlanet,
+			});
+		}
 	}
 
 	/** Render the central sun (EE display). */
@@ -2958,6 +3029,62 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 			}
 
 			container.appendChild(planet);
+		}
+
+		// Synchronize WebGL celestial bodies (Sun, 13 planets, 26 moons)
+		if (_doctrineWebGL) {
+			const sunSize = Math.max(60, Math.round(size * 0.09));
+			const bodies: DoctrineBody[] = [
+				{
+					id: 0,
+					x: 0,
+					y: 0,
+					z: 0,
+					radius: sunSize / 2,
+					cellIndex: 20, // Golden Sun Core
+					isSun: true,
+					branchColor: [1.0, 0.85, 0.3],
+				},
+			];
+
+			for (const node of DOCTRINE) {
+				const pos = coords[node.id];
+				if (!pos) continue;
+				const sphereSize = node.cost >= 75 ? 66 : node.cost >= 40 ? 58 : node.cost >= 15 ? 52 : 46;
+				const cellIdx = PLANET_CELL_INDEX[node.id] ?? 0;
+				const bColor = (node.branch && BRANCH_GLOW_RGB[node.branch]) || [0.8, 0.8, 0.9];
+
+				bodies.push({
+					id: node.id,
+					x: pos.x,
+					y: pos.y,
+					z: pos.z,
+					radius: sphereSize / 2,
+					cellIndex: cellIdx,
+					branchColor: bColor,
+				});
+
+				const planetMoons = DOCTRINE_MOONS.filter((m) => m.planetId === node.id);
+				for (let mIdx = 0; mIdx < planetMoons.length; mIdx++) {
+					const moon = planetMoons[mIdx]!;
+					const moonCell = 16 + (mIdx % 4);
+					bodies.push({
+						id: moon.id,
+						x: pos.x,
+						y: pos.y,
+						z: pos.z,
+						radius: 9,
+						cellIndex: moonCell,
+						branchColor: bColor,
+						orbitCenter: { x: pos.x, y: pos.y, z: pos.z },
+						orbitRadius: moon.orbitRadius,
+						orbitPeriod: moon.orbitPeriod,
+						baseAngle: moon.baseAngle,
+					});
+				}
+			}
+
+			_doctrineWebGL.setBodies(bodies);
 		}
 	}
 

@@ -1,6 +1,16 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import { expect, test } from '@playwright/test';
 
 const BOOT = { timeout: 30_000 };
+
+async function tryScreenshot(target, p) {
+	try {
+		if (fs.existsSync(path.dirname(p))) {
+			await target.screenshot({ path: p });
+		}
+	} catch {}
+}
 
 async function boot(page) {
 	await page.goto('/?debug=1', { waitUntil: 'load', timeout: BOOT.timeout });
@@ -118,7 +128,7 @@ test.describe('Backup & Legacy Save Manager', () => {
 		if (promptBox) {
 			expect(promptBox.width).toBeGreaterThanOrEqual(600);
 		}
-		await page.locator('#prompt').screenshot({ path: '/home/jabbatheduck/.gemini/antigravity/brain/9f3e0bba-bec4-4efa-aec6-1c6e5b5ddc8b/backup_modal_fixed.png' });
+		await tryScreenshot(page.locator('#prompt'), '/home/jabbatheduck/.gemini/antigravity/brain/9f3e0bba-bec4-4efa-aec6-1c6e5b5ddc8b/backup_modal_fixed.png');
 
 		await page.evaluate(() => {
 			const G = window.Game;
@@ -126,7 +136,7 @@ test.describe('Backup & Legacy Save Manager', () => {
 			G.CreateManualSnapshot('Speedrun Milestone');
 			G.OpenBackupManager('backups');
 		});
-		await page.locator('#prompt').screenshot({ path: '/home/jabbatheduck/.gemini/antigravity/brain/9f3e0bba-bec4-4efa-aec6-1c6e5b5ddc8b/backup_modal_populated.png' });
+		await tryScreenshot(page.locator('#prompt'), '/home/jabbatheduck/.gemini/antigravity/brain/9f3e0bba-bec4-4efa-aec6-1c6e5b5ddc8b/backup_modal_populated.png');
 		await page.evaluate(() => window.Game.ClosePrompt());
 
 		expect(result.modalOpen).toBe(true);

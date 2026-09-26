@@ -15,10 +15,19 @@
 //      module-local.
 //
 // Each test re-boots fresh so state never leaks between them.
-// Run: npx playwright test tests/dungeon.spec.js
+import fs from 'node:fs';
+import path from 'node:path';
 import { expect, test } from '@playwright/test';
 
 const BOOT = { timeout: 30_000 };
+
+async function tryScreenshot(target, p) {
+	try {
+		if (fs.existsSync(path.dirname(p))) {
+			await target.screenshot({ path: p });
+		}
+	} catch {}
+}
 
 async function boot(page) {
 	await page.goto('/?debug=1', { waitUntil: 'load' });
@@ -439,7 +448,7 @@ test('dungeon fullscreen mode provides balanced layout with right sidebar, large
 		F.refresh();
 	});
 
-	await page.screenshot({ path: '/home/jabbatheduck/.gemini/antigravity/brain/9f24492c-e623-41b9-827b-4d2aa381386f/dungeon_normal.png' });
+	await tryScreenshot(page, '/home/jabbatheduck/.gemini/antigravity/brain/9f24492c-e623-41b9-827b-4d2aa381386f/dungeon_normal.png');
 
 	// Toggle fullscreen
 	await page.evaluate(() => {
@@ -490,7 +499,7 @@ test('dungeon fullscreen mode provides balanced layout with right sidebar, large
 	expect(fsGeo.winW - fsGeo.log.right, 'log is anchored to the right margin').toBeLessThanOrEqual(25);
 	expect(fsGeo.winH - fsGeo.log.bottom, 'log reaches near bottom edge of screen').toBeLessThanOrEqual(25);
 
-	await page.screenshot({ path: '/home/jabbatheduck/.gemini/antigravity/brain/9f24492c-e623-41b9-827b-4d2aa381386f/dungeon_fullscreen.png' });
+	await tryScreenshot(page, '/home/jabbatheduck/.gemini/antigravity/brain/9f24492c-e623-41b9-827b-4d2aa381386f/dungeon_fullscreen.png');
 });
 
 test('Factory Dungeon gear system: weapons and armor drop, equip, buff stats, and persist in save', async ({ page }) => {
@@ -984,14 +993,14 @@ test('Factory Dungeon biomes & floor themes: procedural rotation, unique atmosph
 		d.Generate();
 		d.Draw();
 	});
-	await page.screenshot({ path: '/home/jabbatheduck/.gemini/antigravity/brain/9f24492c-e623-41b9-827b-4d2aa381386f/dungeon_biomes.png' });
+	await tryScreenshot(page, '/home/jabbatheduck/.gemini/antigravity/brain/9f24492c-e623-41b9-827b-4d2aa381386f/dungeon_biomes.png');
 
 	// Toggle fullscreen and screenshot
 	await page.evaluate(() => {
 		const F = window.Game.Objects['Factory'];
 		F.minigame.toggleFullscreen();
 	});
-	await page.screenshot({ path: '/home/jabbatheduck/.gemini/antigravity/brain/9f24492c-e623-41b9-827b-4d2aa381386f/dungeon_biomes_fullscreen.png' });
+	await tryScreenshot(page, '/home/jabbatheduck/.gemini/antigravity/brain/9f24492c-e623-41b9-827b-4d2aa381386f/dungeon_biomes_fullscreen.png');
 });
 
 

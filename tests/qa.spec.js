@@ -4,9 +4,25 @@
 // every load starts from a fresh profile and must pass the language prompt
 // first (boot() handles it). Two probes (offline, a11y) reload the page
 // themselves; Playwright's retrying locators ride through the reload.
+import fs from 'node:fs';
+import path from 'node:path';
 import { expect, test } from '@playwright/test';
 
 const BOOT = { timeout: 30_000 };
+
+/**
+ * Safely capture a screenshot if the target folder exists (avoids ENOENT on CI runners).
+ */
+async function tryScreenshot(target, screenshotPath) {
+	try {
+		const dir = path.dirname(screenshotPath);
+		if (fs.existsSync(dir)) {
+			await target.screenshot({ path: screenshotPath });
+		}
+	} catch {
+		/* no-op in headless/CI environments */
+	}
+}
 
 /**
  * Load the game with `?debug=1` + `query`, dismiss the fresh-profile
@@ -1132,6 +1148,8 @@ test('doctrine solar system view supports 3D orbit controls and billboarding', a
 	await expect(page.locator('.doctrine-planet')).toHaveCount(13);
 	await expect(page.locator('.doctrine-orbit-ring')).toHaveCount(4);
 
+	await tryScreenshot(page, '/home/jabbatheduck/.gemini/antigravity/brain/9f24492c-e623-41b9-827b-4d2aa381386f/doctrine_webgl_solar_system.png');
+
 	await page.evaluate(() => window.__cc3Transcendence.closeDoctrineTree(true));
 	await expect(page.locator('#doctrineFullView')).toHaveCount(0);
 	await assertNoUncaughtErrors(page);
@@ -1203,7 +1221,7 @@ test('doctrine solar system deep zoom and planetary moons minor purchase nodes',
 	// 1. Verify 13 planets and 26 moons exist in the DOM
 	await expect(page.locator('.doctrine-planet')).toHaveCount(13);
 	await expect(page.locator('.doctrine-moon')).toHaveCount(26);
-	await page.screenshot({ path: '/home/jabbatheduck/.gemini/antigravity/brain/9f3e0bba-bec4-4efa-aec6-1c6e5b5ddc8b/doctrine_moons_overview.png' });
+	await tryScreenshot(page, '/home/jabbatheduck/.gemini/antigravity/brain/9f3e0bba-bec4-4efa-aec6-1c6e5b5ddc8b/doctrine_moons_overview.png');
 
 	// 2. Test deep zoom capability (up to 8.0x)
 	const initialZoom = await page.evaluate(() => window.__cc3Transcendence.getView3D().zoom);
@@ -1231,7 +1249,7 @@ test('doctrine solar system deep zoom and planetary moons minor purchase nodes',
 	await page.waitForTimeout(500); // allow ease animation to complete
 	const focused3D = await page.evaluate(() => window.__cc3Transcendence.getView3D());
 	expect(focused3D.zoom).toBeGreaterThanOrEqual(3.8);
-	await page.screenshot({ path: '/home/jabbatheduck/.gemini/antigravity/brain/9f3e0bba-bec4-4efa-aec6-1c6e5b5ddc8b/doctrine_moons_zoomed.png' });
+	await tryScreenshot(page, '/home/jabbatheduck/.gemini/antigravity/brain/9f3e0bba-bec4-4efa-aec6-1c6e5b5ddc8b/doctrine_moons_zoomed.png');
 
 	// Reset 3D view
 	await page.click('#doctrineResetBtn');
@@ -1269,7 +1287,7 @@ test('doctrine solar system deep zoom and planetary moons minor purchase nodes',
 	await page.evaluate(() => window.__cc3Transcendence.showMoonDetail('1-1'));
 	await expect(page.locator('#prompt')).toContainText('Available!');
 	await expect(page.locator('#promptOption0')).toContainText('Purchase (1 EE)');
-	await page.screenshot({ path: '/home/jabbatheduck/.gemini/antigravity/brain/9f3e0bba-bec4-4efa-aec6-1c6e5b5ddc8b/doctrine_moon_detail_prompt.png' });
+	await tryScreenshot(page, '/home/jabbatheduck/.gemini/antigravity/brain/9f3e0bba-bec4-4efa-aec6-1c6e5b5ddc8b/doctrine_moon_detail_prompt.png');
 	await page.click('#promptOption0'); // Purchase
 	await expect(page.locator('#promptAnchor')).toBeHidden();
 
@@ -1350,7 +1368,7 @@ test('doctrine planet orbital view with spinning planet, orbiting moons, and int
 	await expect(page.locator('#doctrineBackBtn')).toHaveText('← Back to Solar System');
 
 	// Capture screenshot of unowned orbital view
-	await page.screenshot({ path: '/home/jabbatheduck/.gemini/antigravity/brain/9f3e0bba-bec4-4efa-aec6-1c6e5b5ddc8b/doctrine_orbital_view_unowned.png' });
+	await tryScreenshot(page, '/home/jabbatheduck/.gemini/antigravity/brain/9f24492c-e623-41b9-827b-4d2aa381386f/doctrine_orbital_view_unowned.png');
 
 	// 3. Purchase parent planet 1 directly via HUD
 	await page.click('#doctrineHudBuyPlanetBtn');
@@ -1366,7 +1384,7 @@ test('doctrine planet orbital view with spinning planet, orbiting moons, and int
 	expect(moon1Owned).toBe(true);
 
 	// Capture screenshot of active orbital view with owned moon
-	await page.screenshot({ path: '/home/jabbatheduck/.gemini/antigravity/brain/9f3e0bba-bec4-4efa-aec6-1c6e5b5ddc8b/doctrine_orbital_view_owned_moon.png' });
+	await tryScreenshot(page, '/home/jabbatheduck/.gemini/antigravity/brain/9f24492c-e623-41b9-827b-4d2aa381386f/doctrine_orbital_view_owned_moon.png');
 
 	// 5. Click "← Return to Solar System" in the HUD to glide back to galaxy overview
 	await page.click('#doctrineHudBackBtn');
@@ -1378,7 +1396,7 @@ test('doctrine planet orbital view with spinning planet, orbiting moons, and int
 	await expect(page.locator('#doctrineBackBtn')).toHaveText('← Back');
 
 	// Capture screenshot of returned galaxy view
-	await page.screenshot({ path: '/home/jabbatheduck/.gemini/antigravity/brain/9f3e0bba-bec4-4efa-aec6-1c6e5b5ddc8b/doctrine_orbital_return_galaxy.png' });
+	await tryScreenshot(page, '/home/jabbatheduck/.gemini/antigravity/brain/9f3e0bba-bec4-4efa-aec6-1c6e5b5ddc8b/doctrine_orbital_return_galaxy.png');
 
 	await page.evaluate(() => window.__cc3Transcendence.closeDoctrineTree(true));
 	await expect(page.locator('#doctrineFullView')).toHaveCount(0);
