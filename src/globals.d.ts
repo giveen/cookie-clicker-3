@@ -315,7 +315,7 @@ declare global {
 			closeDoctrineTree: (instant?: boolean) => void;
 			showNodeDetail: (nodeId: number) => void;
 			showMoonDetail: (moonId: string) => void;
-			focusOnPlanet: (planetId: number) => void;
+			focusOnPlanet: (planetId: number, screenShiftX?: number) => void;
 			openOrbitalView: (planetId: number) => void;
 			closeOrbitalView: (instant?: boolean) => void;
 			getActiveOrbitalPlanet: () => number | null;

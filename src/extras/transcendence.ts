@@ -1622,9 +1622,31 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
   border-radius:50%;
   position:relative;
   display:flex; align-items:center; justify-content:center;
-  box-shadow:inset -5px -5px 12px rgba(0,0,0,0.85), inset 2px 2px 5px rgba(255,255,255,0.4), 0 4px 12px rgba(0,0,0,0.6);
+  box-shadow:inset -5px -5px 12px rgba(0,0,0,0.85), inset 2px 2px 5px rgba(255,255,255,0.4);
   transition:box-shadow 0.25s ease, transform 0.25s ease;
   z-index:1; flex-shrink:0;
+}
+/* Smooth circular aura for celestial atmosphere without 3D quad texture clipping */
+.planet-aura {
+  position:absolute; top:50%; left:50%;
+  width:160%; height:160%;
+  border-radius:50%;
+  transform:translate(-50%, -50%);
+  pointer-events:none; z-index:0;
+  opacity:0.6;
+  transition:opacity 0.25s ease, transform 0.25s ease;
+}
+.doctrine-planet.branch-glutton .planet-aura {
+  background:radial-gradient(circle at center, rgba(255,140,40,0.55) 0%, rgba(255,90,0,0.22) 35%, rgba(255,50,0,0) 70%);
+}
+.doctrine-planet.branch-idler .planet-aura {
+  background:radial-gradient(circle at center, rgba(80,210,255,0.55) 0%, rgba(20,140,255,0.22) 35%, rgba(0,80,255,0) 70%);
+}
+.doctrine-planet.branch-fatebinder .planet-aura {
+  background:radial-gradient(circle at center, rgba(210,100,255,0.55) 0%, rgba(160,40,255,0.22) 35%, rgba(100,0,255,0) 70%);
+}
+.doctrine-planet.branch-rebuilder .planet-aura {
+  background:radial-gradient(circle at center, rgba(80,240,140,0.55) 0%, rgba(20,200,80,0.22) 35%, rgba(0,140,50,0) 70%);
 }
 /* Specular highlight shine overlay */
 .planet-shine {
@@ -1632,33 +1654,6 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
   border-radius:50%;
   background:radial-gradient(ellipse at center, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0) 80%);
   pointer-events:none; z-index:3;
-}
-/* Axial rotating surface pattern */
-.planet-surface {
-  position:absolute; inset:0; border-radius:50%;
-  overflow:hidden; pointer-events:none; z-index:2;
-}
-.planet-surface::after {
-  content:'';
-  position:absolute; top:0; left:-100%; width:300%; height:100%;
-  background:repeating-linear-gradient(
-    90deg,
-    transparent 0px,
-    rgba(255,255,255,0.08) 22px,
-    transparent 44px,
-    rgba(0,0,0,0.12) 66px,
-    transparent 88px
-  );
-  opacity:0;
-  transition:opacity 0.4s ease;
-}
-.active-orbit-target .planet-surface::after {
-  opacity:1;
-  animation:planetAxialSpin 12s linear infinite;
-}
-@keyframes planetAxialSpin {
-  0% { transform:translateX(0); }
-  100% { transform:translateX(33.333%); }
 }
 /* Branch-specific celestial planet themes */
 .doctrine-planet.branch-glutton .planet-sphere {
@@ -1728,11 +1723,18 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
   cursor:pointer;
 }
 .doctrine-planet.buyable .planet-sphere {
-  box-shadow:inset -5px -5px 12px rgba(0,0,0,0.85), inset 2px 2px 5px rgba(255,255,255,0.5), 0 0 18px rgba(100,190,255,0.65);
+  box-shadow:inset -5px -5px 12px rgba(0,0,0,0.85), inset 2px 2px 5px rgba(255,255,255,0.55);
+}
+.doctrine-planet.buyable .planet-aura {
+  opacity:0.85;
 }
 .doctrine-planet.buyable:hover .planet-sphere {
   transform:scale(1.22);
-  box-shadow:inset -5px -5px 12px rgba(0,0,0,0.85), inset 2px 2px 5px rgba(255,255,255,0.65), 0 0 28px rgba(100,210,255,0.9), 0 0 10px #fff;
+  box-shadow:inset -5px -5px 12px rgba(0,0,0,0.85), inset 2px 2px 5px rgba(255,255,255,0.7);
+}
+.doctrine-planet.buyable:hover .planet-aura {
+  opacity:1;
+  transform:translate(-50%, -50%) scale(1.2);
 }
 .doctrine-planet.buyable:hover .planet-name {
   color:#fff;
@@ -1740,14 +1742,21 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 }
 /* Owned state */
 .doctrine-planet.owned .planet-sphere {
-  box-shadow:inset -5px -5px 12px rgba(0,0,0,0.85), inset 2px 2px 5px rgba(255,255,255,0.4), 0 0 18px rgba(70,240,110,0.6);
+  box-shadow:inset -5px -5px 12px rgba(0,0,0,0.85), inset 2px 2px 5px rgba(255,255,255,0.45);
+}
+.doctrine-planet.owned .planet-aura {
+  opacity:0.7;
 }
 .doctrine-planet.owned .planet-cost {
   color:#4ef; font-weight:bold;
 }
 .doctrine-planet.owned:hover .planet-sphere {
   transform:scale(1.15);
-  box-shadow:inset -5px -5px 12px rgba(0,0,0,0.85), inset 2px 2px 5px rgba(255,255,255,0.5), 0 0 24px rgba(70,255,120,0.8);
+  box-shadow:inset -5px -5px 12px rgba(0,0,0,0.85), inset 2px 2px 5px rgba(255,255,255,0.6);
+}
+.doctrine-planet.owned:hover .planet-aura {
+  opacity:0.95;
+  transform:translate(-50%, -50%) scale(1.12);
 }
 /* Locked state */
 .doctrine-planet.locked {
@@ -1755,7 +1764,10 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
   cursor:default;
 }
 .doctrine-planet.locked .planet-sphere {
-  box-shadow:inset -5px -5px 12px rgba(0,0,0,0.95), inset 2px 2px 5px rgba(255,255,255,0.15), 0 2px 6px rgba(0,0,0,0.8);
+  box-shadow:inset -5px -5px 12px rgba(0,0,0,0.95), inset 2px 2px 5px rgba(255,255,255,0.15);
+}
+.doctrine-planet.locked .planet-aura {
+  display:none;
 }
 /* Planetary Moons */
 .moon-orbit-ring {
@@ -1868,95 +1880,97 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
   transition:opacity 0.35s ease;
 }
 #doctrineFullView.orbital-mode .doctrine-orbit-ring {
-  opacity:0.04 !important;
+  opacity:0 !important;
   transition:opacity 0.35s ease;
 }
 #doctrineFullView.orbital-mode .doctrine-sun {
-  opacity:0.12 !important;
-  filter:blur(3px);
+  opacity:0 !important;
   pointer-events:none;
-  transition:opacity 0.35s ease, filter 0.35s ease;
+  transition:opacity 0.35s ease;
 }
 #doctrineFullView.orbital-mode .doctrine-planet:not(.active-orbit-target) {
-  opacity:0.08 !important;
-  filter:blur(3px);
+  opacity:0 !important;
   pointer-events:none;
-  transition:opacity 0.35s ease, filter 0.35s ease;
+  transition:opacity 0.35s ease;
 }
 #doctrineFullView.orbital-mode .doctrine-planet.active-orbit-target {
   opacity:1 !important;
   z-index:20;
+  transform-style:flat !important;
 }
-.active-orbit-target .planet-sphere {
-  animation:planetPulseGlow 3s ease-in-out infinite alternate;
-  box-shadow:inset -6px -6px 18px rgba(0,0,0,0.92), inset 2px 2px 8px rgba(255,255,255,0.65), 0 0 35px rgba(120,200,255,0.8), 0 0 70px rgba(120,200,255,0.3);
+/* In orbital mode, hide the huge billboarded planet label since the HUD displays it clearly */
+.orbital-mode .active-orbit-target .planet-badge {
+  display:none !important;
 }
-.active-orbit-target.branch-glutton .planet-sphere {
-  box-shadow:inset -6px -6px 18px rgba(0,0,0,0.92), inset 2px 2px 8px rgba(255,255,255,0.65), 0 0 35px rgba(255,140,40,0.85), 0 0 70px rgba(255,100,0,0.35);
+.orbital-mode .active-orbit-target .planet-aura {
+  width:240% !important;
+  height:240% !important;
+  opacity:0.95 !important;
 }
-.active-orbit-target.branch-idler .planet-sphere {
-  box-shadow:inset -6px -6px 18px rgba(0,0,0,0.92), inset 2px 2px 8px rgba(255,255,255,0.65), 0 0 35px rgba(60,200,255,0.85), 0 0 70px rgba(0,140,255,0.35);
-}
-.active-orbit-target.branch-fatebinder .planet-sphere {
-  box-shadow:inset -6px -6px 18px rgba(0,0,0,0.92), inset 2px 2px 8px rgba(255,255,255,0.65), 0 0 35px rgba(210,100,255,0.85), 0 0 70px rgba(160,40,255,0.35);
-}
-.active-orbit-target.branch-rebuilder .planet-sphere {
-  box-shadow:inset -6px -6px 18px rgba(0,0,0,0.92), inset 2px 2px 8px rgba(255,255,255,0.65), 0 0 35px rgba(80,240,140,0.85), 0 0 70px rgba(20,200,80,0.35);
-}
-@keyframes planetPulseGlow {
-  0% { transform:scale(1.12); }
-  100% { transform:scale(1.18); }
+.orbital-mode .active-orbit-target .planet-sphere,
+.orbital-mode .active-orbit-target.branch-glutton .planet-sphere,
+.orbital-mode .active-orbit-target.branch-idler .planet-sphere,
+.orbital-mode .active-orbit-target.branch-fatebinder .planet-sphere,
+.orbital-mode .active-orbit-target.branch-rebuilder .planet-sphere {
+  box-shadow:inset -6px -6px 18px rgba(0,0,0,0.92), inset 2px 2px 8px rgba(255,255,255,0.65) !important;
 }
 
-/* Sub-orbital rings and moons in orbital mode */
+/* Sub-orbital rings and moons in orbital mode — miniature satellite proportions */
 .orbital-mode .active-orbit-target .moon-orbit-ring {
-  border:1.5px dashed rgba(255,255,255,0.45);
-  box-shadow:0 0 10px rgba(140,210,255,0.25);
+  border-width:0.4px !important;
+  border-style:dashed !important;
+  border-color:rgba(255,255,255,0.35) !important;
+  box-shadow:none !important;
 }
 .orbital-mode .active-orbit-target.branch-glutton .moon-orbit-ring {
-  border-color:rgba(255,160,60,0.55);
-  box-shadow:0 0 12px rgba(255,140,30,0.3);
+  border-color:rgba(255,160,60,0.45) !important;
+  box-shadow:none !important;
 }
 .orbital-mode .active-orbit-target.branch-idler .moon-orbit-ring {
-  border-color:rgba(80,210,255,0.55);
-  box-shadow:0 0 12px rgba(40,180,255,0.3);
+  border-color:rgba(80,210,255,0.45) !important;
+  box-shadow:none !important;
 }
 .orbital-mode .active-orbit-target.branch-fatebinder .moon-orbit-ring {
-  border-color:rgba(220,120,255,0.55);
-  box-shadow:0 0 12px rgba(180,60,255,0.3);
+  border-color:rgba(220,120,255,0.45) !important;
+  box-shadow:none !important;
 }
 .orbital-mode .active-orbit-target.branch-rebuilder .moon-orbit-ring {
-  border-color:rgba(80,240,140,0.55);
-  box-shadow:0 0 12px rgba(40,220,100,0.3);
+  border-color:rgba(80,240,140,0.45) !important;
+  box-shadow:none !important;
 }
 .orbital-mode .active-orbit-target .doctrine-moon {
   z-index:15;
 }
 .orbital-mode .active-orbit-target .moon-sphere {
-  width:36px; height:36px;
-  margin:-18px 0 0 -18px;
-  box-shadow:inset -3px -3px 8px rgba(0,0,0,0.85), 0 0 12px rgba(255,255,255,0.5);
-  border:1.5px solid rgba(255,255,255,0.6);
+  width:6.5px !important;
+  height:6.5px !important;
+  margin:-3.25px 0 0 -3.25px !important;
+  box-shadow:inset -1px -1px 2px rgba(0,0,0,0.85) !important;
+  border:0.6px solid rgba(255,255,255,0.95) !important;
+  transition:transform 0.15s ease, border-color 0.15s ease;
 }
 .orbital-mode .active-orbit-target .moon-icon {
-  transform:scale(0.65);
+  transform:scale(0.13) !important;
 }
 .orbital-mode .active-orbit-target .moon-badge {
-  opacity:1;
-  top:22px;
+  opacity:0.95;
+  top:4.5px !important;
 }
 .orbital-mode .active-orbit-target .moon-name {
-  font-size:11px;
+  font-size:2.6px !important;
   font-weight:700;
-  text-shadow:0 1px 3px rgba(0,0,0,0.95), 0 0 8px rgba(0,0,0,0.85);
+  text-shadow:0 0.5px 1px rgba(0,0,0,0.95), 0 0 3px rgba(0,0,0,0.95);
+  letter-spacing:0.1px;
 }
 .orbital-mode .active-orbit-target .moon-cost {
-  font-size:10px;
+  font-size:2.3px !important;
   font-weight:bold;
+  text-shadow:0 0.5px 1px rgba(0,0,0,0.95);
 }
 .orbital-mode .active-orbit-target .doctrine-moon:hover .moon-sphere {
-  transform:scale(1.4);
-  box-shadow:0 0 20px rgba(120,220,255,1), 0 0 8px #fff;
+  transform:scale(1.4) !important;
+  border-color:#fff !important;
+  box-shadow:inset -1px -1px 2px rgba(0,0,0,0.85) !important;
 }
 
 /* Orbital HUD overlay */
@@ -2004,8 +2018,9 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 		}
 	}
 
-	/** Smoothly focus and zoom camera onto a specific planet node and its moons. */
-	function focusOnPlanet(planetId: number): void {
+	/** Smoothly focus and zoom camera onto a specific planet node and its moons.
+	 *  Optional screenShiftX shifts the center point horizontally (e.g. to balance the HUD). */
+	function focusOnPlanet(planetId: number, screenShiftX: number = 0, explicitZoom?: number): void {
 		const viewport = document.getElementById('doctrineViewport');
 		if (!viewport) return;
 		const vp: HTMLElement = viewport;
@@ -2031,11 +2046,11 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 		const projX = rzX;
 		const projY = rzY * Math.cos(radX) - (pos.z || 0) * Math.sin(radX);
 
-		const targetZoom = Math.max(3.8, Math.min(5.5, _viewZoom < 2 ? 4.2 : _viewZoom));
+		const targetZoom = explicitZoom !== undefined ? explicitZoom : Math.max(3.8, Math.min(5.5, _viewZoom < 2 ? 4.2 : _viewZoom));
 		// Because #doctrineViewport has `translate(var(--ox), var(--oy)) scale(var(--zoom))`,
 		// any point at (px, py) in the viewport renders on screen at (px * zoom + ox, py * zoom + oy).
 		// For the planet to be at screen center (0, 0), ox must equal -projX * zoom.
-		const targetX = -projX * targetZoom;
+		const targetX = -projX * targetZoom + screenShiftX;
 		const targetY = -projY * targetZoom;
 		const startTime = performance.now();
 		const duration = 400;
@@ -2092,8 +2107,9 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 			}
 		}
 
-		// Smoothly zoom in and center the planet
-		focusOnPlanet(planetId);
+		// Smoothly zoom in and center the planet with clearance for HUD
+		const shift = Math.min(150, Math.max(80, window.innerWidth * 0.12));
+		focusOnPlanet(planetId, shift, 3.8);
 
 		// Update top bar
 		const backBtn = document.getElementById('doctrineBackBtn');
@@ -2803,6 +2819,11 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 				planet.appendChild(ring);
 			}
 
+			// Smooth circular aura for outer glow without 3D quad clipping
+			const aura = document.createElement('div');
+			aura.className = 'planet-aura';
+			planet.appendChild(aura);
+
 			// 3D Spherical planet body
 			const sphere = document.createElement('div');
 			sphere.className = 'planet-sphere';
@@ -2813,11 +2834,6 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 			const shine = document.createElement('div');
 			shine.className = 'planet-shine';
 			sphere.appendChild(shine);
-
-			// Rotating surface pattern
-			const surface = document.createElement('div');
-			surface.className = 'planet-surface';
-			sphere.appendChild(surface);
 
 			// Center icon
 			const icon = document.createElement('div');

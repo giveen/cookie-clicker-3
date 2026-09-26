@@ -1346,7 +1346,6 @@ test('doctrine planet orbital view with spinning planet, orbiting moons, and int
 	await expect(hud).toContainText('Orbiting Moons');
 	await expect(hud).toContainText('Phobos-C');
 	await expect(hud).toContainText('Deimos-C');
-
 	// Verify top bar back button updated to solar system return
 	await expect(page.locator('#doctrineBackBtn')).toHaveText('← Back to Solar System');
 
