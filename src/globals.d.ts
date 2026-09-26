@@ -316,6 +316,9 @@ declare global {
 			showNodeDetail: (nodeId: number) => void;
 			showMoonDetail: (moonId: string) => void;
 			focusOnPlanet: (planetId: number) => void;
+			openOrbitalView: (planetId: number) => void;
+			closeOrbitalView: (instant?: boolean) => void;
+			getActiveOrbitalPlanet: () => number | null;
 			resetView: () => void;
 			getView3D: () => { rotX: number; rotZ: number; zoom: number; offX: number; offY: number };
 			_addTranscendUI: () => void;

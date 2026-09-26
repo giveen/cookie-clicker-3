@@ -1633,6 +1633,33 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
   background:radial-gradient(ellipse at center, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0) 80%);
   pointer-events:none; z-index:3;
 }
+/* Axial rotating surface pattern */
+.planet-surface {
+  position:absolute; inset:0; border-radius:50%;
+  overflow:hidden; pointer-events:none; z-index:2;
+}
+.planet-surface::after {
+  content:'';
+  position:absolute; top:0; left:-100%; width:300%; height:100%;
+  background:repeating-linear-gradient(
+    90deg,
+    transparent 0px,
+    rgba(255,255,255,0.08) 22px,
+    transparent 44px,
+    rgba(0,0,0,0.12) 66px,
+    transparent 88px
+  );
+  opacity:0;
+  transition:opacity 0.4s ease;
+}
+.active-orbit-target .planet-surface::after {
+  opacity:1;
+  animation:planetAxialSpin 12s linear infinite;
+}
+@keyframes planetAxialSpin {
+  0% { transform:translateX(0); }
+  100% { transform:translateX(33.333%); }
+}
 /* Branch-specific celestial planet themes */
 .doctrine-planet.branch-glutton .planet-sphere {
   background:radial-gradient(circle at 32% 30%, #ffc272 0%, #ff7a18 35%, #b53800 70%, #440c00 100%);
@@ -1671,7 +1698,7 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 /* The icon centered on the planet face */
 .doctrine-planet .planet-icon {
   width:26px; height:26px; image-rendering:pixelated;
-  background-size:auto; flex-shrink:0; position:relative; z-index:2;
+  background-size:auto; flex-shrink:0; position:relative; z-index:4;
   filter:drop-shadow(0 2px 4px rgba(0,0,0,0.85));
 }
 /* Floating label underneath */
@@ -1835,6 +1862,126 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 .doctrine-full-view.zoomed-in .moon-name {
   font-size:11px;
 }
+/* Orbital Mode: Cinematic focus on selected planet & orbiting moons */
+#doctrineFullView.orbital-mode .doctrine-filament {
+  opacity:0 !important;
+  transition:opacity 0.35s ease;
+}
+#doctrineFullView.orbital-mode .doctrine-orbit-ring {
+  opacity:0.04 !important;
+  transition:opacity 0.35s ease;
+}
+#doctrineFullView.orbital-mode .doctrine-sun {
+  opacity:0.12 !important;
+  filter:blur(3px);
+  pointer-events:none;
+  transition:opacity 0.35s ease, filter 0.35s ease;
+}
+#doctrineFullView.orbital-mode .doctrine-planet:not(.active-orbit-target) {
+  opacity:0.08 !important;
+  filter:blur(3px);
+  pointer-events:none;
+  transition:opacity 0.35s ease, filter 0.35s ease;
+}
+#doctrineFullView.orbital-mode .doctrine-planet.active-orbit-target {
+  opacity:1 !important;
+  z-index:20;
+}
+.active-orbit-target .planet-sphere {
+  animation:planetPulseGlow 3s ease-in-out infinite alternate;
+  box-shadow:inset -6px -6px 18px rgba(0,0,0,0.92), inset 2px 2px 8px rgba(255,255,255,0.65), 0 0 35px rgba(120,200,255,0.8), 0 0 70px rgba(120,200,255,0.3);
+}
+.active-orbit-target.branch-glutton .planet-sphere {
+  box-shadow:inset -6px -6px 18px rgba(0,0,0,0.92), inset 2px 2px 8px rgba(255,255,255,0.65), 0 0 35px rgba(255,140,40,0.85), 0 0 70px rgba(255,100,0,0.35);
+}
+.active-orbit-target.branch-idler .planet-sphere {
+  box-shadow:inset -6px -6px 18px rgba(0,0,0,0.92), inset 2px 2px 8px rgba(255,255,255,0.65), 0 0 35px rgba(60,200,255,0.85), 0 0 70px rgba(0,140,255,0.35);
+}
+.active-orbit-target.branch-fatebinder .planet-sphere {
+  box-shadow:inset -6px -6px 18px rgba(0,0,0,0.92), inset 2px 2px 8px rgba(255,255,255,0.65), 0 0 35px rgba(210,100,255,0.85), 0 0 70px rgba(160,40,255,0.35);
+}
+.active-orbit-target.branch-rebuilder .planet-sphere {
+  box-shadow:inset -6px -6px 18px rgba(0,0,0,0.92), inset 2px 2px 8px rgba(255,255,255,0.65), 0 0 35px rgba(80,240,140,0.85), 0 0 70px rgba(20,200,80,0.35);
+}
+@keyframes planetPulseGlow {
+  0% { transform:scale(1.12); }
+  100% { transform:scale(1.18); }
+}
+
+/* Sub-orbital rings and moons in orbital mode */
+.orbital-mode .active-orbit-target .moon-orbit-ring {
+  border:1.5px dashed rgba(255,255,255,0.45);
+  box-shadow:0 0 10px rgba(140,210,255,0.25);
+}
+.orbital-mode .active-orbit-target.branch-glutton .moon-orbit-ring {
+  border-color:rgba(255,160,60,0.55);
+  box-shadow:0 0 12px rgba(255,140,30,0.3);
+}
+.orbital-mode .active-orbit-target.branch-idler .moon-orbit-ring {
+  border-color:rgba(80,210,255,0.55);
+  box-shadow:0 0 12px rgba(40,180,255,0.3);
+}
+.orbital-mode .active-orbit-target.branch-fatebinder .moon-orbit-ring {
+  border-color:rgba(220,120,255,0.55);
+  box-shadow:0 0 12px rgba(180,60,255,0.3);
+}
+.orbital-mode .active-orbit-target.branch-rebuilder .moon-orbit-ring {
+  border-color:rgba(80,240,140,0.55);
+  box-shadow:0 0 12px rgba(40,220,100,0.3);
+}
+.orbital-mode .active-orbit-target .doctrine-moon {
+  z-index:15;
+}
+.orbital-mode .active-orbit-target .moon-sphere {
+  width:36px; height:36px;
+  margin:-18px 0 0 -18px;
+  box-shadow:inset -3px -3px 8px rgba(0,0,0,0.85), 0 0 12px rgba(255,255,255,0.5);
+  border:1.5px solid rgba(255,255,255,0.6);
+}
+.orbital-mode .active-orbit-target .moon-icon {
+  transform:scale(0.65);
+}
+.orbital-mode .active-orbit-target .moon-badge {
+  opacity:1;
+  top:22px;
+}
+.orbital-mode .active-orbit-target .moon-name {
+  font-size:11px;
+  font-weight:700;
+  text-shadow:0 1px 3px rgba(0,0,0,0.95), 0 0 8px rgba(0,0,0,0.85);
+}
+.orbital-mode .active-orbit-target .moon-cost {
+  font-size:10px;
+  font-weight:bold;
+}
+.orbital-mode .active-orbit-target .doctrine-moon:hover .moon-sphere {
+  transform:scale(1.4);
+  box-shadow:0 0 20px rgba(120,220,255,1), 0 0 8px #fff;
+}
+
+/* Orbital HUD overlay */
+#doctrineOrbitalHUD {
+  position:absolute; top:56px; left:20px;
+  width:330px; max-width:calc(100vw - 40px);
+  max-height:calc(100vh - 80px);
+  overflow-y:auto;
+  background:rgba(14, 10, 26, 0.88);
+  border:1px solid rgba(255, 215, 0, 0.35);
+  border-radius:8px;
+  box-shadow:0 10px 30px rgba(0, 0, 0, 0.75), 0 0 20px rgba(140, 80, 220, 0.25);
+  backdrop-filter:blur(10px);
+  padding:16px;
+  z-index:50;
+  pointer-events:auto;
+  user-select:none;
+  font-family:inherit;
+  color:#e0e0e0;
+  animation:hudFadeIn 0.3s ease-out;
+}
+@keyframes hudFadeIn {
+  from { opacity:0; transform:translateX(-15px); }
+  to { opacity:1; transform:translateX(0); }
+}
 `;
 		document.head.appendChild(s);
 	}
@@ -1915,11 +2062,242 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 		_focusAnimTimer = requestAnimationFrame(step);
 	}
 
+	let _activeOrbitalPlanet: number | null = null;
+
+	/** Get the currently focused planet in orbital view, or null if in galaxy view. */
+	function getActiveOrbitalPlanet(): number | null {
+		return _activeOrbitalPlanet;
+	}
+
+	/** Open the dedicated cinematic Orbital View focused on a specific planet and its orbiting moons. */
+	function openOrbitalView(planetId: number): void {
+		const node = DOCTRINE.find((d) => d.id === planetId);
+		if (!node) return;
+
+		_activeOrbitalPlanet = planetId;
+
+		const fullView = document.getElementById('doctrineFullView');
+		if (fullView) {
+			fullView.classList.add('orbital-mode');
+		}
+
+		// Mark active planet
+		const planets = document.querySelectorAll('.doctrine-planet');
+		for (let i = 0; i < planets.length; i++) {
+			const p = planets[i] as HTMLElement;
+			if (p.dataset['nodeId'] === String(planetId)) {
+				p.classList.add('active-orbit-target');
+			} else {
+				p.classList.remove('active-orbit-target');
+			}
+		}
+
+		// Smoothly zoom in and center the planet
+		focusOnPlanet(planetId);
+
+		// Update top bar
+		const backBtn = document.getElementById('doctrineBackBtn');
+		if (backBtn) backBtn.textContent = '← Back to Solar System';
+		const hint = document.getElementById('doctrineHint');
+		if (hint) hint.textContent = 'Orbital View: Click moons to inspect & buy • Drag to rotate orbit • Click space or ESC to return';
+
+		// Render Orbital HUD card
+		_renderOrbitalHUD(planetId);
+	}
+
+	/** Close orbital view and glide camera back to full galaxy solar system. */
+	function closeOrbitalView(instant?: boolean): void {
+		if (_activeOrbitalPlanet === null) return;
+		_activeOrbitalPlanet = null;
+
+		const fullView = document.getElementById('doctrineFullView');
+		if (fullView) {
+			fullView.classList.remove('orbital-mode');
+		}
+
+		const hud = document.getElementById('doctrineOrbitalHUD');
+		if (hud) hud.remove();
+
+		const oldActive = document.querySelector('.doctrine-planet.active-orbit-target');
+		if (oldActive) oldActive.classList.remove('active-orbit-target');
+
+		const backBtn = document.getElementById('doctrineBackBtn');
+		if (backBtn) backBtn.textContent = '← Back';
+		const hint = document.getElementById('doctrineHint');
+		if (hint) hint.textContent = 'Drag: Rotate • Shift+Drag: Pan • Scroll: Zoom (0.4x–8x) • Dbl-Click: Focus';
+
+		const viewport = document.getElementById('doctrineViewport');
+		if (!viewport) return;
+		const vp: HTMLElement = viewport;
+
+		if (instant) {
+			_viewOffX = 0;
+			_viewOffY = 0;
+			_viewZoom = 1;
+			_applyViewTransform(vp);
+			_updateMoonsLOD();
+			return;
+		}
+
+		if (_focusAnimTimer !== null) {
+			cancelAnimationFrame(_focusAnimTimer);
+			_focusAnimTimer = null;
+		}
+
+		const startX = _viewOffX;
+		const startY = _viewOffY;
+		const startZoom = _viewZoom;
+		const targetX = 0;
+		const targetY = 0;
+		const targetZoom = 1;
+		const startTime = performance.now();
+		const duration = 350;
+
+		function step(now: number) {
+			const elapsed = now - startTime;
+			const progress = Math.min(1, elapsed / duration);
+			const ease = 1 - Math.pow(1 - progress, 3);
+
+			_viewOffX = startX + (targetX - startX) * ease;
+			_viewOffY = startY + (targetY - startY) * ease;
+			_viewZoom = startZoom + (targetZoom - startZoom) * ease;
+
+			_applyViewTransform(vp);
+			_updateMoonsLOD();
+
+			if (progress < 1) {
+				_focusAnimTimer = requestAnimationFrame(step);
+			} else {
+				_focusAnimTimer = null;
+			}
+		}
+		_focusAnimTimer = requestAnimationFrame(step);
+	}
+
+	/** Render or refresh the interactive Orbital HUD overlay. */
+	function _renderOrbitalHUD(planetId: number): void {
+		const fullView = document.getElementById('doctrineFullView');
+		if (!fullView) return;
+
+		const node = DOCTRINE.find((d) => d.id === planetId);
+		if (!node) return;
+
+		let hud = document.getElementById('doctrineOrbitalHUD');
+		if (!hud) {
+			hud = document.createElement('div');
+			hud.id = 'doctrineOrbitalHUD';
+			fullView.appendChild(hud);
+		}
+
+		const owned = doctrineHas(node.id);
+		const canAfford = state.ee >= node.cost;
+		const parentsMet = node.parents.every((pid) => doctrineHas(pid));
+		const canBuy = !owned && canAfford && parentsMet;
+
+		const b = (node.branch && BRANCH_3D[node.branch]) || BRANCH_3D.glutton;
+		const branchTitle = node.branch ? node.branch.charAt(0).toUpperCase() + node.branch.slice(1) + "'s Path" : '';
+		const planetMoons = DOCTRINE_MOONS.filter((m) => m.planetId === node.id);
+
+		let html = '';
+		html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">';
+		html += '<span style="font-size:11px;font-weight:bold;text-transform:uppercase;letter-spacing:1px;color:' + b.color + ';">' + branchTitle + '</span>';
+		html += '<button id="doctrineHudCloseBtn" style="background:none;border:none;color:#aaa;cursor:pointer;font-size:16px;line-height:1;padding:0 4px;" title="Return to Solar System">✕</button>';
+		html += '</div>';
+
+		// Planet identity
+		html += '<div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">';
+		html += '<div style="width:42px;height:42px;border-radius:50%;background:url(img/icons.webp) -' + (node.icon[0] * 48) + 'px -' + (node.icon[1] * 48) + 'px;box-shadow:0 0 14px ' + b.color + ';flex-shrink:0;"></div>';
+		html += '<div style="flex:1;min-width:0;">';
+		html += '<div style="font-size:15px;font-weight:bold;color:#ffd700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + node.name + '</div>';
+		html += '<div style="font-size:12px;color:' + (owned ? '#4ade80' : '#fcd34d') + ';font-weight:600;">' + (owned ? '✓ Owned & Active' : 'Cost: ' + node.cost + ' EE') + '</div>';
+		html += '</div>';
+		html += '</div>';
+
+		// Planet desc
+		html += '<div style="font-size:12px;line-height:1.4;color:#d1d5db;margin-bottom:10px;">' + node.desc + '</div>';
+
+		// Planet action/status
+		if (canBuy) {
+			html += '<button id="doctrineHudBuyPlanetBtn" style="width:100%;background:radial-gradient(ellipse at 50% 50%, rgba(90,40,180,0.9), rgba(30,10,60,0.95));border:1px solid #ffd700;color:#ffd700;padding:6px 12px;border-radius:4px;cursor:pointer;font-weight:bold;font-size:12px;margin-bottom:12px;box-shadow:0 0 10px rgba(180,80,255,0.4);transition:all 0.15s;">✦ Purchase Planet (' + node.cost + ' EE)</button>';
+		} else if (!owned && !parentsMet) {
+			const missing = node.parents.filter((pid) => !doctrineHas(pid)).map((pid) => {
+				const p = DOCTRINE.find((d) => d.id === pid);
+				return p ? p.name : '?';
+			});
+			html += '<div style="font-size:11px;color:#f87171;margin-bottom:12px;padding:4px 8px;background:rgba(239,68,68,0.12);border-radius:4px;border:1px solid rgba(239,68,68,0.3);">Locked: Requires ' + missing.join(', ') + '</div>';
+		} else if (!owned && !canAfford) {
+			html += '<div style="font-size:11px;color:#fbbf24;margin-bottom:12px;padding:4px 8px;background:rgba(245,158,11,0.12);border-radius:4px;border:1px solid rgba(245,158,11,0.3);">Costs ' + node.cost + ' EE (Need ' + (node.cost - state.ee) + ' more)</div>';
+		}
+
+		html += '<div style="height:1px;background:linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);margin:10px 0;"></div>';
+
+		// Orbiting Moons section
+		html += '<div style="font-size:12px;font-weight:bold;color:#93c5fd;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Orbiting Moons (Minor Boosts)</div>';
+
+		for (const moon of planetMoons) {
+			const mOwned = moonHas(moon.id);
+			const canAffordMoon = state.ee >= moon.cost;
+			const canBuyMoon = !mOwned && owned && canAffordMoon;
+
+			html += '<div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:8px 10px;margin-bottom:8px;">';
+			html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">';
+			html += '<div style="display:flex;align-items:center;gap:8px;">';
+			html += '<div style="width:24px;height:24px;border-radius:50%;background:url(img/icons.webp) -' + (moon.icon[0] * 48) + 'px -' + (moon.icon[1] * 48) + 'px;background-size:calc(100% * 48 / 24);border:1px solid rgba(255,255,255,0.3);flex-shrink:0;"></div>';
+			html += '<span style="font-size:12px;font-weight:600;color:#f3f4f6;">' + moon.name + '</span>';
+			html += '</div>';
+			html += '<span style="font-size:11px;font-weight:bold;color:' + (mOwned ? '#4ade80' : '#ffd700') + ';">' + (mOwned ? '✓ Owned' : moon.cost + ' EE') + '</span>';
+			html += '</div>';
+
+			html += '<div style="font-size:11px;line-height:1.35;color:#9ca3af;margin-bottom:6px;">' + moon.desc + '</div>';
+
+			if (canBuyMoon) {
+				html += '<button class="doctrine-hud-buy-moon" data-moon-id="' + moon.id + '" style="width:100%;background:radial-gradient(ellipse at 50% 50%, rgba(30,120,200,0.85), rgba(10,40,90,0.9));border:1px solid #60a5fa;color:#93c5fd;padding:4px 8px;border-radius:4px;cursor:pointer;font-weight:600;font-size:11px;transition:all 0.15s;">✦ Buy ' + moon.name + ' (' + moon.cost + ' EE)</button>';
+			} else if (!mOwned && !owned) {
+				html += '<div style="font-size:10px;color:#f87171;font-style:italic;">Requires parent planet ' + node.name + '</div>';
+			} else if (!mOwned && !canAffordMoon) {
+				html += '<div style="font-size:10px;color:#fbbf24;font-style:italic;">Need ' + (moon.cost - state.ee) + ' more EE</div>';
+			}
+			html += '</div>';
+		}
+
+		// Return button
+		html += '<button id="doctrineHudBackBtn" style="width:100%;margin-top:6px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:#d1d5db;padding:6px 12px;border-radius:4px;cursor:pointer;font-size:11px;transition:all 0.15s;">← Return to Solar System</button>';
+
+		hud.innerHTML = html;
+
+		// Wire HUD listeners
+		const closeBtn = document.getElementById('doctrineHudCloseBtn');
+		if (closeBtn) closeBtn.onclick = function () { PlaySound('snd/tickOff.mp3'); closeOrbitalView(); };
+		const hudBackBtn = document.getElementById('doctrineHudBackBtn');
+		if (hudBackBtn) hudBackBtn.onclick = function () { PlaySound('snd/tickOff.mp3'); closeOrbitalView(); };
+		const buyPlanetBtn = document.getElementById('doctrineHudBuyPlanetBtn');
+		if (buyPlanetBtn) {
+			buyPlanetBtn.onclick = function () {
+				buyInTreeSolar(node.id);
+				_renderOrbitalHUD(planetId);
+			};
+		}
+		const moonBtns = hud.querySelectorAll('.doctrine-hud-buy-moon');
+		for (let i = 0; i < moonBtns.length; i++) {
+			const btn = moonBtns[i] as HTMLElement;
+			const mId = btn.dataset['moonId'];
+			if (mId) {
+				btn.onclick = function () {
+					buyMoon(mId);
+					_renderOrbitalHUD(planetId);
+				};
+			}
+		}
+	}
+
 	/** Reset 3D view angles, pan, and zoom to defaults. */
 	function resetView(): void {
 		if (_focusAnimTimer !== null) {
 			cancelAnimationFrame(_focusAnimTimer);
 			_focusAnimTimer = null;
+		}
+		if (_activeOrbitalPlanet !== null) {
+			closeOrbitalView(true);
 		}
 		_rotX = 58;
 		_rotZ = 0;
@@ -1960,7 +2338,15 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 		const back = document.createElement('div');
 		back.id = 'doctrineBackBtn';
 		back.textContent = '← Back';
-		back.onclick = function () { PlaySound('snd/tickOff.mp3'); closeDoctrineTree(); };
+		back.onclick = function () {
+			if (_activeOrbitalPlanet !== null) {
+				PlaySound('snd/tickOff.mp3');
+				closeOrbitalView();
+			} else {
+				PlaySound('snd/tickOff.mp3');
+				closeDoctrineTree();
+			}
+		};
 		const hint = document.createElement('div');
 		hint.id = 'doctrineHint';
 		hint.textContent = 'Drag: Rotate • Shift+Drag: Pan • Scroll: Zoom (0.4x–8x) • Dbl-Click: Focus';
@@ -2042,6 +2428,9 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 	 *  the function is re-entrant safe: a re-show while closing cancels the
 	 *  pending removal. */
 	function closeDoctrineTree(instant?: boolean): void {
+		_activeOrbitalPlanet = null;
+		const hud = document.getElementById('doctrineOrbitalHUD');
+		if (hud) hud.remove();
 		const view = document.getElementById('doctrineFullView');
 		if (view) {
 			if ((view as any).__cc3CloseTimer) { clearTimeout((view as any).__cc3CloseTimer); (view as any).__cc3CloseTimer = null; }
@@ -2064,6 +2453,13 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 	/** Set up 3D mouse-drag rotation, shift/right-drag panning, and wheel zoom on the canvas. */
 	function _initDoctrinePanZoom(canvas: HTMLElement, viewport: HTMLElement): void {
 		let isMouseDown = false;
+
+		canvas.addEventListener('click', function (e: MouseEvent) {
+			if (_didDrag) return;
+			if (_activeOrbitalPlanet !== null && (e.target === canvas || e.target === viewport || (e.target as HTMLElement).id === 'doctrineSystem')) {
+				closeOrbitalView();
+			}
+		});
 
 		canvas.addEventListener('contextmenu', function (e: MouseEvent) {
 			e.preventDefault();
@@ -2208,7 +2604,11 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 			if (!document.getElementById('doctrineFullView')) return;
 			if (e.key === 'Escape') {
 				e.preventDefault();
-				closeDoctrineTree();
+				if (_activeOrbitalPlanet !== null) {
+					closeOrbitalView();
+				} else {
+					closeDoctrineTree();
+				}
 				return;
 			}
 			const step = 20 / _viewZoom;
@@ -2386,7 +2786,8 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 				(node.branch ? ' branch-' + node.branch : '') +
 				(owned ? ' owned' : '') +
 				(canBuy ? ' buyable' : '') +
-				(!owned && !canBuy ? ' locked' : '');
+				(!owned && !canBuy ? ' locked' : '') +
+				(_activeOrbitalPlanet === node.id ? ' active-orbit-target' : '');
 			planet.style.left = (cx + pos.x) + 'px';
 			planet.style.top = (cy + pos.y) + 'px';
 			planet.style.setProperty('--ps', sphereSize + 'px');
@@ -2412,6 +2813,11 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 			const shine = document.createElement('div');
 			shine.className = 'planet-shine';
 			sphere.appendChild(shine);
+
+			// Rotating surface pattern
+			const surface = document.createElement('div');
+			surface.className = 'planet-surface';
+			sphere.appendChild(surface);
 
 			// Center icon
 			const icon = document.createElement('div');
@@ -2439,14 +2845,20 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 
 			_lastPlanetCoords[node.id] = { x: pos.x, y: pos.y, z: pos.z };
 
-			planet.onclick = function () {
+			planet.onclick = function (e: MouseEvent) {
 				if (_didDrag) return;
-				showNodeDetail(node.id);
+				e.stopPropagation();
+				if (_activeOrbitalPlanet === node.id) {
+					showNodeDetail(node.id);
+				} else {
+					PlaySound('snd/tick.mp3');
+					openOrbitalView(node.id);
+				}
 			};
 
 			planet.ondblclick = function (e: MouseEvent) {
 				e.stopPropagation();
-				focusOnPlanet(node.id);
+				openOrbitalView(node.id);
 			};
 
 			// Moons orbiting this planet
@@ -2503,7 +2915,11 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 				moonEl.onclick = function (e: MouseEvent) {
 					e.stopPropagation();
 					if (_didDrag) return;
-					showMoonDetail(moon.id);
+					if (_activeOrbitalPlanet === null) {
+						openOrbitalView(node.id);
+					} else {
+						showMoonDetail(moon.id);
+					}
 				};
 
 				planet.appendChild(moonEl);
@@ -2596,6 +3012,9 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 				_renderSun(system);
 				_renderSolarSystem(system);
 				_updateDoctrineInfo();
+				if (_activeOrbitalPlanet !== null) {
+					_renderOrbitalHUD(_activeOrbitalPlanet);
+				}
 			}
 		}
 	}
@@ -2610,6 +3029,9 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 			_renderSun(system);
 			_renderSolarSystem(system);
 			_updateDoctrineInfo();
+			if (_activeOrbitalPlanet !== null) {
+				_renderOrbitalHUD(_activeOrbitalPlanet);
+			}
 		}
 	}
 
@@ -2625,6 +3047,9 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 				_renderSun(system);
 				_renderSolarSystem(system);
 				_updateDoctrineInfo();
+				if (_activeOrbitalPlanet !== null) {
+					_renderOrbitalHUD(_activeOrbitalPlanet);
+				}
 			} else {
 				showDoctrineTree();
 			}
@@ -2683,6 +3108,7 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 	}
 
 	/** Purchase a moon node and re-render the solar system view. */
+	/** Purchase a moon node and re-render the solar system view. */
 	function buyMoon(moonId: string): void {
 		const G = window.Game;
 		if (!G) return;
@@ -2693,6 +3119,9 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 				_renderSun(system);
 				_renderSolarSystem(system);
 				_updateDoctrineInfo();
+				if (_activeOrbitalPlanet !== null) {
+					_renderOrbitalHUD(_activeOrbitalPlanet);
+				}
 			} else {
 				showDoctrineTree();
 			}
@@ -2947,6 +3376,9 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 		showNodeDetail,
 		showMoonDetail,
 		focusOnPlanet,
+		openOrbitalView,
+		closeOrbitalView,
+		getActiveOrbitalPlanet,
 		resetView,
 		getView3D: function () {
 			return { rotX: _rotX, rotZ: _rotZ, zoom: _viewZoom, offX: _viewOffX, offY: _viewOffY };
