@@ -303,12 +303,17 @@ M.launch = function (this: SittingRoomMinigame) {
 			var i = M.upgradeNames.indexOf(name);
 			if (!up || i < 0) return false;
 			var price = up.yarnPrice || 0;
-			if (price <= 0 || M.yarn < price) return false;
+			if (price <= 0) return false;
 
 			var mode = M.shopBulkMode || 1;
-			var maxAfford = Math.floor(M.yarn / price);
-			var stacksToBuy = (mode === 'max') ? maxAfford : Math.min(mode, maxAfford);
-			if (stacksToBuy <= 0) return false;
+			var stacksToBuy = 0;
+			if (mode === 'max') {
+				stacksToBuy = Math.floor(M.yarn / price);
+				if (stacksToBuy <= 0) return false;
+			} else {
+				stacksToBuy = typeof mode === 'number' ? mode : 1;
+				if (M.yarn < price * stacksToBuy) return false;
+			}
 
 			M.yarn -= price * stacksToBuy;
 			var n = M.effectiveStacks(name);
@@ -419,16 +424,24 @@ M.launch = function (this: SittingRoomMinigame) {
 			'.roomShelfRate{font-size:9px;opacity:0.7;}' +
 			'.roomShelfComfort{font-size:9px;font-weight:bold;margin-left:auto;white-space:nowrap;}' +
 			/* ---- shop ---- */
-			'.roomShopList{display:flex;flex-direction:column;gap:4px;margin:4px 0;}' +
-			'.roomShopItem{display:flex;align-items:center;gap:8px;padding:4px 6px;border-radius:6px;background:rgba(255,255,255,0.06);font-size:10px;line-height:1.3;}' +
-			'.roomShopInfo{flex:1;}' +
-			'.roomShopName{font-weight:bold;}' +
-			'.roomShopStack{opacity:0.6;}' +
-			'.roomShopDesc{opacity:0.7;font-size:9px;}' +
-			'.roomShopBtn{cursor:pointer;padding:3px 10px;border-radius:4px;background:rgba(100,180,255,0.2);font-size:10px;font-weight:bold;white-space:nowrap;transition:background 0.15s;flex:none;}' +
-			'.roomShopBtn:hover{background:rgba(100,180,255,0.35);}' +
-			'.roomShopBtnLocked{opacity:0.35;cursor:default;}' +
-			'.roomShopBtnLocked:hover{background:rgba(100,180,255,0.2);}' +
+			'.roomChip, .colonyChip{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:bold;margin:0 2px;cursor:pointer;user-select:none;transition:all 0.15s;}' +
+			'.roomChipBlue, .colonyChipBlue{background:rgba(100,150,255,0.2);color:#9cf;border:1px solid rgba(100,150,255,0.35);}' +
+			'.roomChipBlue:hover, .colonyChipBlue:hover{background:rgba(100,150,255,0.4);color:#fff;border-color:rgba(100,150,255,0.6);}' +
+			'.roomChipAmber, .colonyChipAmber{background:rgba(255,180,60,0.35);color:#fff;border:1px solid rgba(255,200,80,0.8);box-shadow:0 0 6px rgba(255,180,60,0.4);}' +
+			'.roomShopList{display:flex;flex-direction:column;gap:5px;margin:6px 0;}' +
+			'.roomShopItem{display:flex;align-items:center;gap:10px;padding:6px 10px;border-radius:8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.08);font-size:11px;line-height:1.3;transition:background 0.15s, border-color 0.15s;}' +
+			'.roomShopItem:hover{background:rgba(255,255,255,0.09);border-color:rgba(255,255,255,0.15);}' +
+			'.roomShopIcon{flex:none;margin:0;}' +
+			'.roomShopInfo{flex:1;min-width:0;}' +
+			'.roomShopName{font-weight:bold;font-size:12px;color:#fff;}' +
+			'.roomShopStack{opacity:0.85;font-size:10px;color:#ffd700;font-weight:bold;margin-left:4px;background:rgba(255,215,0,0.15);padding:1px 5px;border-radius:3px;border:1px solid rgba(255,215,0,0.3);}' +
+			'.roomShopDesc{opacity:0.75;font-size:9.5px;display:block;margin-top:2px;}' +
+			'.roomShopDesc q{display:none;}' +
+			'.roomShopBtn{display:inline-flex;align-items:center;justify-content:center;gap:4px;cursor:pointer;padding:6px 14px;border-radius:6px;background:linear-gradient(180deg, #2e8b57 0%, #1e5c38 100%);border:1px solid #4cdb8b;color:#fff;font-size:11px;font-weight:bold;white-space:nowrap;box-shadow:0 2px 5px rgba(0,0,0,0.35);transition:all 0.15s;flex:none;user-select:none;text-shadow:0 1px 2px rgba(0,0,0,0.6);}' +
+			'.roomShopBtn:hover{background:linear-gradient(180deg, #3cb371 0%, #267347 100%);border-color:#70ffaf;box-shadow:0 0 10px rgba(76,219,139,0.5);transform:translateY(-1px);}' +
+			'.roomShopBtn:active{transform:translateY(1px);box-shadow:0 1px 2px rgba(0,0,0,0.4);}' +
+			'.roomShopBtnLocked{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:rgba(255,255,255,0.4);cursor:not-allowed;box-shadow:none;transform:none;text-shadow:none;}' +
+			'.roomShopBtnLocked:hover{background:rgba(255,255,255,0.06);border-color:rgba(255,255,255,0.12);color:rgba(255,255,255,0.4);box-shadow:none;transform:none;}' +
 			/* ---- misc ---- */
 			'.roomHelpBtn{cursor:pointer;padding:1px 7px;border-radius:4px;background:rgba(255,255,255,0.12);font-size:10px;font-weight:bold;margin-left:6px;white-space:nowrap;}' +
 			'.roomHelpBtn:hover{background:rgba(255,255,255,0.3);}' +
@@ -613,9 +626,9 @@ M.launch = function (this: SittingRoomMinigame) {
 		var shopMode = M.shopBulkMode || 1;
 		var str = '<div class="roomBox"><div class="roomTitle">Sitting Room Upgrades ' +
 			'<span style="float:right;font-size:10px;font-weight:normal;">Buy: ' +
-			'<span class="colonyChip ' + (shopMode === 1 ? 'colonyChipAmber' : 'colonyChipBlue') + '" id="roomShopBulk1" style="cursor:pointer;">x1</span>' +
-			'<span class="colonyChip ' + (shopMode === 10 ? 'colonyChipAmber' : 'colonyChipBlue') + '" id="roomShopBulk10" style="cursor:pointer;">x10</span>' +
-			'<span class="colonyChip ' + (shopMode === 'max' ? 'colonyChipAmber' : 'colonyChipBlue') + '" id="roomShopBulkMax" style="cursor:pointer;">Max</span>' +
+			'<span class="roomChip ' + (shopMode === 1 ? 'roomChipAmber' : 'roomChipBlue') + '" id="roomShopBulk1" style="cursor:pointer;">x1</span>' +
+			'<span class="roomChip ' + (shopMode === 10 ? 'roomChipAmber' : 'roomChipBlue') + '" id="roomShopBulk10" style="cursor:pointer;">x10</span>' +
+			'<span class="roomChip ' + (shopMode === 'max' ? 'roomChipAmber' : 'roomChipBlue') + '" id="roomShopBulkMax" style="cursor:pointer;">Max</span>' +
 			'</span></div>';
 		str += '<div style="font-size:10px;opacity:0.7;margin-bottom:2px;">Each upgrade is repeatable — buy in bulk to boost Grandma output exponentially!</div>';
 		str += '<div class="roomShopList">';
@@ -629,12 +642,15 @@ M.launch = function (this: SittingRoomMinigame) {
 			var maxAfford = Math.floor(M.yarn / price);
 			var countToBuy = (shopMode === 'max') ? Math.max(1, maxAfford) : shopMode;
 			var totalPrice = price * countToBuy;
-			var canBuy = M.yarn >= price;
+			var canBuy = (shopMode === 'max') ? (maxAfford >= 1) : (M.yarn >= totalPrice);
+			var btnLabel = canBuy
+				? ('Buy ' + Beautify(totalPrice) + ' 🧶' + (countToBuy > 1 ? ' (×' + countToBuy + ')' : ''))
+				: (Beautify(totalPrice) + ' 🧶' + (countToBuy > 1 ? ' (×' + countToBuy + ')' : ''));
 
 			str += '<div class="roomShopItem">';
-			str += '<div class="icon shadowFilter" style="flex:none;margin:0;' + writeIcon(up.icon) + '"></div>';
+			str += '<div class="icon shadowFilter roomShopIcon" style="' + writeIcon(up.icon) + '"></div>';
 			str += '<div class="roomShopInfo"><span class="roomShopName">' + name + '</span>' + (stacks > 0 ? ' <span class="roomShopStack">×' + stacks + '</span>' : '') + '<br><span class="roomShopDesc">' + up.baseDesc + '</span></div>';
-			str += '<div class="roomShopBtn' + (canBuy ? '' : ' roomShopBtnLocked') + '" id="roomBuy' + i + '">' + Beautify(totalPrice) + ' 🧶' + (countToBuy > 1 ? ' (x' + countToBuy + ')' : '') + '</div>';
+			str += '<div class="roomShopBtn' + (canBuy ? '' : ' roomShopBtnLocked') + '" id="roomBuy' + i + '">' + btnLabel + '</div>';
 			str += '</div>';
 		}
 		str += '</div>';

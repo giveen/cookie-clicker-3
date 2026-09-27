@@ -127,4 +127,83 @@ test.describe('Minigames Audit Fixes', () => {
 		expect(result.loadedYarn).toBe(expectedOfflineYarn);
 		expect(result.loadedEarned).toBe(expectedOfflineYarn);
 	});
+
+	test('Grandma Sitting Room shop renders bulk buttons and respects bulk affordability', async ({ page }) => {
+		await boot(page);
+
+		const data = await page.evaluate(async () => {
+			const G = window.Game;
+			const gm = G.Objects['Grandma'];
+			gm.amount = 100;
+			gm.level = 1;
+			if (!gm.minigameLoaded && G.LoadMinigames) G.LoadMinigames();
+
+			while (!gm.minigameLoaded) {
+				await new Promise(r => setTimeout(r, 50));
+			}
+
+			const M = gm.minigame;
+			M.yarn = 50; // Lap blanket costs 25, Rocking chair costs 60
+			M.refresh();
+
+			const b1 = document.getElementById('roomShopBulk1');
+			const b10 = document.getElementById('roomShopBulk10');
+			const bMax = document.getElementById('roomShopBulkMax');
+
+			const buy0_x1 = document.getElementById('roomBuy0');
+			const buy1_x1 = document.getElementById('roomBuy1');
+
+			const initial = {
+				bulk1Class: b1?.className,
+				buy0Text: buy0_x1?.innerText,
+				buy0Locked: buy0_x1?.classList.contains('roomShopBtnLocked'),
+				buy1Text: buy1_x1?.innerText,
+				buy1Locked: buy1_x1?.classList.contains('roomShopBtnLocked'),
+			};
+
+			// Switch to x10
+			M.setShopBulkMode(10);
+			const buy0_x10 = document.getElementById('roomBuy0');
+			const x10State = {
+				bulk10Class: b10?.className,
+				buy0Text: buy0_x10?.innerText,
+				buy0Locked: buy0_x10?.classList.contains('roomShopBtnLocked'), // 50 < 250 so locked!
+			};
+
+			// Switch to Max
+			M.setShopBulkMode('max');
+			const buy0_max = document.getElementById('roomBuy0');
+			const maxState = {
+				bulkMaxClass: bMax?.className,
+				buy0Text: buy0_max?.innerText,
+				buy0Locked: buy0_max?.classList.contains('roomShopBtnLocked'), // 50 / 25 = 2, can afford 2!
+			};
+
+			return { initial, x10State, maxState };
+		});
+
+		expect(data.initial.buy0Text).toBe('Buy 25 🧶');
+		expect(data.initial.buy0Locked).toBe(false);
+		expect(data.initial.buy1Text).toBe('60 🧶');
+		expect(data.initial.buy1Locked).toBe(true);
+
+		expect(data.x10State.buy0Text).toBe('250 🧶 (×10)');
+		expect(data.x10State.buy0Locked).toBe(true);
+
+		expect(data.maxState.buy0Text).toBe('Buy 50 🧶 (×2)');
+		expect(data.maxState.buy0Locked).toBe(false);
+
+		// Make rowSpecial visible and take a screenshot of the shop
+		await page.evaluate(() => {
+			const gm = window.Game.Objects['Grandma'];
+			const row = document.getElementById('row' + gm.id);
+			if (row) row.classList.add('onMinigame');
+			const special = document.getElementById('rowSpecial' + gm.id);
+			if (special) special.style.display = 'block';
+			gm.minigame.setShopBulkMode(1);
+		});
+		const shopEl = page.locator('#roomShop');
+		await shopEl.screenshot({ path: '/home/jabbatheduck/.gemini/antigravity/brain/9f24492c-e623-41b9-827b-4d2aa381386f/grandma_sitting_room_shop.png' });
+	});
 });
+
