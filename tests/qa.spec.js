@@ -1646,12 +1646,14 @@ test('transcendence access points: top bar widget, stats menu, and Layer 1 full 
 	await page.evaluate(() => window.__cc3Transcendence.closeDoctrineTree(true));
 	await expect(page.locator('#doctrineFullView')).toHaveCount(0);
 
-	// 4. Verify Layer 1 reset integrity: prestige and heavenly chips wiped
+	// 4. Verify Layer 1 reset integrity: prestige, heavenly chips, and cookiesReset wiped
 	const prestigeState = await page.evaluate(() => ({
+		cookiesReset: window.Game.cookiesReset,
 		prestige: window.Game.prestige,
 		heavenlyChips: window.Game.heavenlyChips,
 		heavenlyChipsSpent: window.Game.heavenlyChipsSpent,
 	}));
+	expect(prestigeState.cookiesReset).toBe(0);
 	expect(prestigeState.prestige).toBe(0);
 	expect(prestigeState.heavenlyChips).toBe(0);
 	expect(prestigeState.heavenlyChipsSpent).toBe(0);
@@ -1972,5 +1974,64 @@ test('heavenly tree: every prestige upgrade is rooted at Legacy; "By branch" sta
 	expect(r.probeLink).toBe(true);
 	expect(r.probeIsland).toBe(false);
 	expect(r.oddsRooted).toBe(true); // casino's late-registered heavenly upgrade hangs off the tree
+	await assertNoUncaughtErrors(page);
+});
+
+test('transcendence: resets heavenly prestige requirements to scratch and auto-heals legacy saves', async ({ page }) => {
+	await boot(page, '&qa=transcend');
+	await qaReport(page, /PASS: transcendence/, 60_000);
+
+	const testResults = await page.evaluate(() => {
+		const G = window.Game;
+		const T = window.__cc3Transcendence;
+
+		// 1. In the post-transcendence run, cookiesReset must be 0 and prestige 0
+		const initialCookiesReset = G.cookiesReset;
+		const initialPrestige = G.prestige;
+
+		// 2. Earning 1 trillion cookies (1e12) should yield 1 prestige level (standard Layer 1 start)
+		G.cookiesEarned = 1e12;
+		const chipsOwned = Math.floor(G.HowMuchPrestige(G.cookiesReset));
+		const ascendNowToOwn = Math.floor(G.HowMuchPrestige(G.cookiesReset + G.cookiesEarned));
+		const ascendNowToGet = ascendNowToOwn - chipsOwned;
+		const cookiesToNext = G.HowManyCookiesReset(ascendNowToOwn + 1) - (G.cookiesEarned + G.cookiesReset);
+
+		// 3. Test legacy un-reset save migration via load():
+		// Simulate an older save that had transcendences: 1, cookiesReset: 3.25e83 (6.882 octillion prestige), and NO fixedReset flag
+		G.cookiesReset = 3.25e83;
+		G.prestige = 6.882e27;
+		const buggedModSave = JSON.stringify({
+			ee: 8,
+			eeSpent: 0,
+			eeEarned: 8,
+			trans: 1,
+			tpa: 6.882e27,
+			milestones: [1],
+			doctrine: [],
+			moons: [],
+			keptUpgrades: [],
+			keptCosmetic: '',
+		});
+		T.load(buggedModSave);
+
+		return {
+			initialCookiesReset,
+			initialPrestige,
+			ascendNowToGet,
+			cookiesToNext,
+			healedCookiesReset: G.cookiesReset,
+			healedPrestige: G.prestige,
+			healedEE: T.state.ee,
+		};
+	});
+
+	expect(testResults.initialCookiesReset).toBe(0);
+	expect(testResults.initialPrestige).toBe(0);
+	expect(testResults.ascendNowToGet).toBe(1);
+	expect(testResults.cookiesToNext).toBeGreaterThan(4e12);
+	expect(testResults.cookiesToNext).toBeLessThan(5e12);
+	expect(testResults.healedCookiesReset).toBe(0);
+	expect(testResults.healedPrestige).toBe(0);
+	expect(testResults.healedEE).toBe(8);
 	await assertNoUncaughtErrors(page);
 });

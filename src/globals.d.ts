@@ -299,6 +299,7 @@ declare global {
 			computeEE: (cookiesTotal: number) => number;
 			canTranscend: () => boolean;
 			doTranscend: (bypass?: boolean) => void;
+			fixPrestigeScaling?: () => boolean;
 			startTranscendWithPicker: () => void;
 			showUpgradePicker: (slots: number, onConfirm: (chosen: string[]) => void) => void;
 			purchase: (nodeId: number) => boolean;

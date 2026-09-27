@@ -1864,7 +1864,7 @@ if (debugSurface && params.get('qa') === 'transcend') {
 			const transOk = trans === 1;
 			// 10 lifetime EE activates the Inner Fire milestone, which grants 3
 			// free Cursors after the reset — so Cursor is expected to be 3, not 0.
-			const resetOk = G.Objects['Cursor'].amount === 3 && G.Objects['Grandma'].amount === 0 && G.prestige === 0 && G.heavenlyChips === 0;
+			const resetOk = G.Objects['Cursor'].amount === 3 && G.Objects['Grandma'].amount === 0 && G.prestige === 0 && G.heavenlyChips === 0 && G.cookiesReset === 0;
 			const savedOk = (() => { try { const s = JSON.parse(T.save()); return s.ee === eeAfter && s.trans === trans; } catch (e) { return false; } })();
 			const gateOk = T.canTranscend();
 			// announcement: the completion dialog (like the daily crumb collect

@@ -347,7 +347,7 @@ import { initDoctrineWebGL } from './doctrineWebGL';
 	function canTranscend(): boolean {
 		const G = window.Game;
 		if (!G) return false;
-		return G.cookiesReset >= GATE_COOKIES || state.totalPrestigeAllTime >= GATE_PRESTIGE;
+		return state.transcendences > 0 || G.cookiesReset >= GATE_COOKIES || state.totalPrestigeAllTime >= GATE_PRESTIGE;
 	}
 
 	/* ================================================================
@@ -516,10 +516,16 @@ import { initDoctrineWebGL } from './doctrineWebGL';
 		G.Reset(1);
 
 		// 4. Reset prestige state
+		G.cookiesReset = 0;
 		G.prestige = 0;
 		G.heavenlyChips = 0;
 		G.heavenlyChipsSpent = 0;
 		G.heavenlyCookies = 0;
+		G.heavenlyChipsDisplayed = 0;
+		if (!hasMilestone(1000)) G.permanentUpgrades = [-1, -1, -1, -1, -1];
+		G.resets = 0;
+		G.gainedPrestige = 0;
+		_prestigeSeen = 0;
 
 		// 4b. Restore kept prestige upgrades (Steady Hand / Timeless milestone).
 		// They were selected by the picker before doTranscend() was called, or are
@@ -3653,11 +3659,13 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 			lmob: _lastMostOwnedBuilding,
 			cUntil: _continuumUntil,
 			cBuilding: _continuumBuildingId,
+			fixedReset: true,
 		};
 		return JSON.stringify(data);
 	}
 
 	function load(str: string): void {
+		let fixedReset = false;
 		try {
 			const data = JSON.parse(str);
 			state.ee = data.ee || 0;
@@ -3673,6 +3681,7 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 			if (typeof data.lmob === 'number') _lastMostOwnedBuilding = data.lmob;
 			if (typeof data.cUntil === 'number') _continuumUntil = data.cUntil;
 			if (typeof data.cBuilding === 'number') _continuumBuildingId = data.cBuilding;
+			fixedReset = !!data.fixedReset;
 		} catch (e) {
 			state.ee = 0;
 			state.eeSpent = 0;
@@ -3684,6 +3693,37 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 			state.moons = [];
 			state.keptUpgrades = [];
 			state.keptCosmetic = '';
+		}
+
+		// Fix migration for saves affected by the un-reset cookiesReset bug:
+		// If player transcended under the older code, cookiesReset and prestige were
+		// carried over, preventing normal heavenly chips and prestige progression.
+		if (state.transcendences > 0 && !fixedReset) {
+			const G = window.Game;
+			if (G && G.cookiesReset > 0) {
+				G.cookiesReset = 0;
+				G.prestige = 0;
+				G.heavenlyChips = 0;
+				G.heavenlyChipsSpent = 0;
+				G.heavenlyCookies = 0;
+				G.heavenlyChipsDisplayed = 0;
+				if (!hasMilestone(1000)) G.permanentUpgrades = [-1, -1, -1, -1, -1];
+				G.resets = 0;
+				G.gainedPrestige = 0;
+				_prestigeSeen = 0;
+				G.recalculateGains = 1;
+				setTimeout(() => {
+					if (G.Notify) {
+						G.Notify(
+							'Transcendence Fix Applied',
+							'Heavenly prestige requirements have been reset from scratch for your Transcendence run.',
+							[19, 7],
+							8
+						);
+					}
+					updateTopBarWidget();
+				}, 500);
+			}
 		}
 
 		// Slumber (4-2): reset 10-minute session timer upon loading bakery
@@ -3809,6 +3849,34 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 		window.addEventListener('load', function () { window.clearInterval(t); }, { once: true });
 	}
 
+	/* Manual recovery method: resets cookiesReset and prestige to 0 so heavenly
+	 * progression starts cleanly from scratch after a Transcendence. */
+	function fixPrestigeScaling(): boolean {
+		const G = window.Game;
+		if (!G) return false;
+		G.cookiesReset = 0;
+		G.prestige = 0;
+		G.heavenlyChips = 0;
+		G.heavenlyChipsSpent = 0;
+		G.heavenlyCookies = 0;
+		G.heavenlyChipsDisplayed = 0;
+		if (!hasMilestone(1000)) G.permanentUpgrades = [-1, -1, -1, -1, -1];
+		G.resets = 0;
+		G.gainedPrestige = 0;
+		_prestigeSeen = 0;
+		G.recalculateGains = 1;
+		updateTopBarWidget();
+		if (G.Notify) {
+			G.Notify(
+				'Prestige Reset',
+				'Heavenly prestige requirements have been reset from scratch.',
+				[19, 7],
+				6
+			);
+		}
+		return true;
+	}
+
 	/* ================================================================
 	 * QA / TEST SURFACE
 	 * ================================================================ */
@@ -3822,6 +3890,7 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 		computeEE,
 		canTranscend,
 		doTranscend,
+		fixPrestigeScaling,
 		startTranscendWithPicker,
 		showUpgradePicker,
 		purchase: purchaseDoctrineNode,
