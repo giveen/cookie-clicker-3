@@ -62,6 +62,10 @@ export function writeIcon(icon: any)
 	{
 		var cell=icon[3]||48;
 		var inset=(48-cell)/2;
+		if (typeof icon[2] === 'string' && icon[2].indexOf('metaGrandma') !== -1)
+		{
+			return 'background-image:url(\''+icon[2].replace(/'/g,"\\'")+'\');background-position:-15px -4px;background-size:78px 78px;background-repeat:no-repeat;';
+		}
 		return 'background-image:url(\''+icon[2].replace(/'/g,"\\'")+'\');background-position:'+(inset-icon[0]*cell)+'px '+(inset-icon[1]*cell)+'px;background-repeat:no-repeat;';
 	}
 	return 'background-position:'+(-icon[0]*48)+'px '+(-icon[1]*48)+'px;';
