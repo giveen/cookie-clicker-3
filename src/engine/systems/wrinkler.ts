@@ -245,6 +245,7 @@ function inRect(x: any,y: any,rect: any)
 						else if (godLvl==2) me.sucked*=1.1;
 						else if (godLvl==3) me.sucked*=1.05;
 					}
+					if (Game.eff) me.sucked*=Game.eff('wrinklerPop');
 					if (me.sucked>0.5)
 					{
 						Game.Notify(me.type==1?loc("Exploded a shiny wrinkler"):loc("Exploded a wrinkler"),loc("Found <b>%1</b>!",loc("%1 cookie",LBeautify(me.sucked))),[19,8],6);

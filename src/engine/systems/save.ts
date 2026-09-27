@@ -801,7 +801,8 @@ export function LoadSave(data?: any,ignoreVersionIssues?: any)
 						if (Math.random()<1/10000) Game.WINKLERS=1;//squeak
 						
 						//compute cookies earned while the game was closed
-						if (Game.mobile || Game.Has('Perfect idling') || Game.Has('Twin Gates of Transcendence'))
+						var offlineBonus = (Game.runModHookOnValue ? Game.runModHookOnValue('offlinePercent', 0) : 0) as number;
+						if (Game.mobile || Game.Has('Perfect idling') || Game.Has('Twin Gates of Transcendence') || offlineBonus > 0)
 						{
 							if (Game.Has('Perfect idling'))
 							{
@@ -819,7 +820,7 @@ export function LoadSave(data?: any,ignoreVersionIssues?: any)
 								if (Game.Has('Beelzebub')) maxTime*=2;
 								if (Game.Has('Lucifer')) maxTime*=2;
 								
-								var percent=5;
+								var percent=Game.Has('Twin Gates of Transcendence') ? 5 : 0;
 								if (Game.Has('Angels')) percent+=10;
 								if (Game.Has('Archangels')) percent+=10;
 								if (Game.Has('Virtues')) percent+=10;
@@ -836,6 +837,7 @@ export function LoadSave(data?: any,ignoreVersionIssues?: any)
 								if (Game.Has('Night watch')) percent+=2;
 								if (Game.Has('Everlasting gravy boat')) percent+=2;//CC3: Heavenly Pantry
 							}
+							percent += offlineBonus;
 							
 							var timeOfflineOptimal=Math.min(timeOffline,maxTime);
 							var timeOfflineReduced=Math.max(0,timeOffline-timeOfflineOptimal);

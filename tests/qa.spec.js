@@ -1403,6 +1403,186 @@ test('doctrine planet orbital view with spinning planet, orbiting moons, and int
 	await assertNoUncaughtErrors(page);
 });
 
+test('doctrine tree and moon perks runtime functionality verification', async ({ page }) => {
+	await boot(page, '');
+
+	const results = await page.evaluate(() => {
+		const G = window.Game;
+		const T = window.__cc3Transcendence;
+		const r = {};
+
+		// Reset doctrine & moon state for controlled testing
+		T.state.doctrine = [];
+		T.state.moons = [];
+		T.state.transcendences = 4;
+		G.ascensionMode = 0;
+		G.T = 100;
+		G.lastClick = 0;
+
+		// ── 1. Glutton's Path ──
+		// Persistent Hand (1) & Phobos-C (1-1)
+		G.cookiesPs = 1000;
+		G.Objects['Cursor'].amount = 200;
+		const baseCpc = G.mouseCps();
+		T.state.doctrine = [1];
+		const cpcWithNode1 = G.mouseCps();
+		r.node1_cpc = cpcWithNode1 - baseCpc; // expected: 1000 * 0.005 * 2 = 10
+
+		T.state.moons = ['1-1'];
+		const cpcWithMoon11 = G.mouseCps();
+		r.moon11_cpc = cpcWithMoon11 - baseCpc; // expected: 1000 * (0.005 + 0.002) * 2 = 14
+
+		// Deimos-C (1-2)
+		T.state.moons.push('1-2');
+		G.Objects['Cursor'].amount = 1000;
+		G.lastClick = 0;
+		G.CalculateGains();
+		const cpsBeforeClick = G.cookiesPs;
+		const cursorCps = G.Objects['Cursor'].storedTotalCps;
+		G.ClickCookie();
+		G.CalculateGains();
+		const cpsAfterClick = G.cookiesPs;
+		r.deimos_boost = cpsAfterClick - cpsBeforeClick;
+		r.expected_deimos = cursorCps * 0.10;
+
+		// Echoing Click (2) & Resonance (2-1) & Harmonic (2-2)
+		T.state.doctrine.push(2);
+		T.state.moons.push('2-1', '2-2');
+		const cookiesBefore = G.cookies;
+		G.cookiesPs = 100;
+		G.lastClick = 0;
+		// 1 click: gives 0.75 * 100 = 75 cookies
+		G.ClickCookie();
+		r.echoing_click = G.cookies - cookiesBefore;
+
+		// ── 2. Idler's Path ──
+		T.state.doctrine = [4, 5, 6];
+		T.state.moons = ['4-1', '4-2', '5-1', '5-2', '6-1', '6-2'];
+
+		// Lazy Oven (4) & Warm Hearth (4-1) offline percent hook
+		r.offline_percent = G.runModHookOnValue('offlinePercent', 0); // 3 idler nodes * 5 + 10 = 25
+
+		// Warm Embers (5) & Insulation (5-2) veil price discount
+		const veilOff = G.Upgrades['Shimmering veil [off]'];
+		if (veilOff) {
+			const originalPrice = 1000;
+			// simulate priceFunc reduction
+			r.veil_discount = veilOff.priceFunc ? veilOff.priceFunc() : 0;
+		}
+
+		// Spark (5-1) veil active CpS boost
+		G.Upgrades['Shimmering veil [on]'].bought = 1;
+		G.recalculateGains = 1;
+		G.CalculateGains();
+		r.spark_active = G.cookiesPs > 0;
+
+		// Ambient Baking (6) & Brood (6-1)
+		const maxWrinklers = G.getWrinklersMax();
+		r.brood_max = maxWrinklers; // base 10 + 1 brood = 11
+		r.wrinklers_len = G.wrinklers.length;
+
+		// Digestive Hive (6-2)
+		r.wrinklerEatEff = G.eff('wrinklerEat'); // 1.15
+		r.wrinklerPopEff = G.eff('wrinklerPop'); // 1.05
+
+		// ── 3. Fatebinder's Path ──
+		T.state.doctrine = [7, 8, 9, 10];
+		T.state.moons = ['7-1', '7-2', '8-1', '8-2', '9-1', '9-2', '10-1', '10-2'];
+
+		// Fortune's Favor (7), Lucky Orbit (7-1), Linger (7-2)
+		r.goldenCookieFreq = G.eff('goldenCookieFreq'); // 1.1 * 1.05 = 1.155
+		r.goldenCookieDur = G.eff('goldenCookieDur'); // 1.1
+		r.goldenCookieEffDur = G.eff('goldenCookieEffDur'); // 1.05
+
+		// Eerie Gloom (8-1)
+		r.wrathCookieGain = G.eff('wrathCookieGain'); // 1.10
+
+		// Baleful Beacon (8-2)
+		const clotBuff = G.gainBuff('clot', 100, 0.5);
+		r.clot_time = clotBuff ? Math.round(clotBuff.maxTime / G.fps) : 0; // expected: 80s (shortened by 20%)
+		if (clotBuff) G.killBuff('clot');
+
+		// Graviton (9-2)
+		const goldenShimmer = new G.shimmer('golden');
+		r.graviton_sizeMult = goldenShimmer.sizeMult; // expected: 1.35
+		goldenShimmer.die();
+
+		// Prolong (10-2) customEffectDurMod
+		const testShimmer = { _doubleDipProlong: true };
+		let durMod = 1;
+		for (const fn of G.customShimmerTypes['golden'].customEffectDurMod) {
+			durMod *= fn(testShimmer);
+		}
+		r.prolong_durMod = durMod; // expected: 1.20
+
+		// ── 4. Rebuilder's Path ──
+		T.state.doctrine = [11, 12, 13];
+		T.state.moons = ['11-1', '11-2', '12-1', '12-2', '13-1', '13-2'];
+
+		// Frugal Start (11) & Cornerstone (11-1)
+		r.buildingCostEff = G.eff('buildingCost'); // 4 trans * 0.025 = 0.10 discount => 0.90
+
+		// Measured Growth (12) & Apprentice Token (12-1)
+		r.upgradeCostEff = G.eff('upgradeCost'); // 4 trans * 0.025 = 0.10 discount => 0.90
+
+		// Architect's Mark (11-2)
+		const cursor = G.Objects['Cursor'];
+		cursor.amount = 99;
+		G.buyBulk = 1;
+		G.buyMode = 1;
+		const price99to100 = G.modifyBuildingPrice(cursor, 1000);
+		cursor.amount = 98;
+		const price98to99 = G.modifyBuildingPrice(cursor, 1000);
+		r.architect_milestone_discount = price99to100; // expected: 850 (15% off)
+		r.architect_normal_price = price98to99; // expected: 1000
+
+		// Bulk Thrift (12-2)
+		G.cookies = 100000;
+		const testUpgrade = G.Upgrades['Reinforced index finger'];
+		testUpgrade.bought = 0;
+		testUpgrade.getPrice = () => 1000;
+		const earnedBefore = G.cookiesEarned;
+		// buy 1st upgrade (sets timestamp)
+		testUpgrade.buy(1);
+		// buy 2nd upgrade in rapid succession
+		testUpgrade.bought = 0;
+		testUpgrade.buy(1);
+		r.bulkThriftRefund = G.cookiesEarned - earnedBefore; // should include 1% refund (10)
+
+		return r;
+	});
+
+	// Assertions for all 4 branches
+	expect(results.node1_cpc).toBeCloseTo(10, 1);
+	expect(results.moon11_cpc).toBeCloseTo(14, 1);
+	expect(results.deimos_boost).toBeCloseTo(results.expected_deimos, 1);
+	expect(results.expected_deimos).toBeGreaterThan(0);
+	expect(results.echoing_click).toBeGreaterThanOrEqual(75);
+
+	expect(results.offline_percent).toBe(25);
+	expect(results.spark_active).toBe(true);
+	expect(results.brood_max).toBeGreaterThanOrEqual(11);
+	expect(results.wrinklers_len).toBeGreaterThanOrEqual(results.brood_max);
+	expect(results.wrinklerEatEff).toBeCloseTo(1.15, 2);
+	expect(results.wrinklerPopEff).toBeCloseTo(1.05, 2);
+
+	expect(results.goldenCookieFreq).toBeCloseTo(1.155, 3);
+	expect(results.goldenCookieDur).toBeCloseTo(1.1, 2);
+	expect(results.goldenCookieEffDur).toBeCloseTo(1.05, 2);
+	expect(results.wrathCookieGain).toBeCloseTo(1.10, 2);
+	expect(results.clot_time).toBe(80);
+	expect(results.graviton_sizeMult).toBeCloseTo(1.35, 2);
+	expect(results.prolong_durMod).toBeCloseTo(1.20, 2);
+
+	expect(results.buildingCostEff).toBeCloseTo(0.90, 2);
+	expect(results.upgradeCostEff).toBeCloseTo(0.90, 2);
+	expect(results.architect_milestone_discount).toBe(765); // 1000 * 0.90 (Frugal) * 0.85 (Architect) = 765
+	expect(results.architect_normal_price).toBe(900); // 1000 * 0.90 (Frugal) = 900
+	expect(results.bulkThriftRefund).toBeGreaterThanOrEqual(10);
+
+	await assertNoUncaughtErrors(page);
+});
+
 test('transcendence access points: top bar widget, stats menu, and Layer 1 full reset', async ({ page }) => {
 	await boot(page, '&qa=transcend');
 	await qaReport(page, /PASS: transcendence/, 60_000);

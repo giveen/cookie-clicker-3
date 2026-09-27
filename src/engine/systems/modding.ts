@@ -77,7 +77,7 @@ export function setupModding()
 	Game.brokenMods=[];
 	Game.modSaveData={};
 	Game.modHooks={};
-	Game.modHooksNames=['logic','draw','reset','reincarnate','ticker','cps','cookiesPerClick','click','create','check'];
+	Game.modHooksNames=['logic','draw','reset','reincarnate','ticker','cps','cookiesPerClick','click','create','check','offlinePercent'];
 	for (var i=0;i<Game.modHooksNames.length;i++){Game.modHooks[Game.modHooksNames[i]]=[];}
 	//CCSE-era extension surfaces (see "CC3 extras mods" — the original
 	//klattmose mods were written against the CCSE framework, whose helper
@@ -164,6 +164,7 @@ export function setupModding()
 	}
 	Game.runModHook=function(hook: any,param: any)
 	{
+		if (!Game.modHooks[hook]) return;
 		for (var i=0;i<Game.modHooks[hook].length;i++)
 		{
 			Game.modHooks[hook][i](param);
@@ -171,6 +172,7 @@ export function setupModding()
 	}
 	Game.runModHookOnValue=function(hook: any,val: any)
 	{
+		if (!Game.modHooks[hook]) return val;
 		for (var i=0;i<Game.modHooks[hook].length;i++)
 		{
 			val=Game.modHooks[hook][i](val);

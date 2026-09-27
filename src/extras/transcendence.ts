@@ -696,9 +696,11 @@ import { initDoctrineWebGL } from './doctrineWebGL';
 	 * GAME HOOKS
 	 * ================================================================ */
 
-	const _slumberUntil = Date.now() + 10 * 60 * 1000;
+	let _slumberUntil = Date.now() + 10 * 60 * 1000;
 	let _harmonicClicks = 0;
 	let _deimosTimer = 0;
+	let _continuumBuildingId: number | null = null;
+	let _continuumUntil = 0;
 
 	/** CpS hook: apply Doctrine and Moon production bonuses. */
 	function cpsHook(cps: number): number {
@@ -708,18 +710,6 @@ import { initDoctrineWebGL } from './doctrineWebGL';
 		if (G.ascensionMode === 1 && !hasMilestone(1000)) return cps;
 
 		let mult = 1;
-
-		// Lazy Oven: +5% offline CpS per Idler node owned (Warm Hearth 4-1: +10% extra)
-		let idlerCount = 0;
-		for (const id of state.doctrine) {
-			const n = DOCTRINE.find((d) => d.id === id);
-			if (n && n.branch === 'idler') idlerCount++;
-		}
-		if (idlerCount > 0) {
-			let idlerBonus = 0.05 * idlerCount;
-			if (moonHas('4-1')) idlerBonus += 0.10;
-			mult *= (1 + idlerBonus);
-		}
 
 		// Slumber (4-2): active CpS boosted by +5% first 10 minutes
 		if (moonHas('4-2') && Date.now() < _slumberUntil) {
@@ -731,7 +721,43 @@ import { initDoctrineWebGL } from './doctrineWebGL';
 			mult *= 1.01;
 		}
 
-		return cps * mult;
+		let totalCps = cps * mult;
+
+		// Deimos-C (1-2): clicking cookie boosts Cursor production by +10% for 5 seconds
+		if (moonHas('1-2') && G.T < _deimosTimer && G.Objects['Cursor']) {
+			totalCps += G.Objects['Cursor'].storedTotalCps * 0.10;
+		}
+
+		// Continuum (13-2): Free buildings granted at run start produce +10% more CpS during first hour
+		if (moonHas('13-2') && Date.now() < _continuumUntil && _continuumBuildingId !== null) {
+			const b = G.ObjectsById[_continuumBuildingId];
+			if (b && b.storedCps) {
+				const count = moonHas('13-1') ? 3 : 1;
+				totalCps += b.storedCps * count * 0.10;
+			}
+		}
+
+		return totalCps;
+	}
+
+	/** Offline CpS hook: Lazy Oven (+5% per Idler node) & Warm Hearth 4-1 (+10% extra). */
+	function offlinePercentHook(percent: number): number {
+		const G = window.Game;
+		if (!G) return percent;
+		if (G.ascensionMode === 1 && !hasMilestone(1000)) return percent;
+
+		let idlerCount = 0;
+		for (const id of state.doctrine) {
+			const n = DOCTRINE.find((d) => d.id === id);
+			if (n && n.branch === 'idler') idlerCount++;
+		}
+		if (idlerCount > 0) {
+			percent += 5 * idlerCount;
+		}
+		if (moonHas('4-1')) {
+			percent += 10;
+		}
+		return percent;
 	}
 
 	/** CookiesPerClick hook: Persistent Hand (+0.5% of CpS per 100 Cursors). */
@@ -747,13 +773,6 @@ import { initDoctrineWebGL } from './doctrineWebGL';
 				cpc += G.cookiesPs * pct * bonusPer100;
 			}
 		}
-		// Deimos-C (1-2): active click boost adds 10% Cursor CpS
-		if (moonHas('1-2') && G.T < _deimosTimer) {
-			const cursorObj = G.Objects['Cursor'];
-			if (cursorObj) {
-				cpc += cursorObj.storedTotalCps * 0.10;
-			}
-		}
 		return cpc;
 	}
 
@@ -764,9 +783,11 @@ import { initDoctrineWebGL } from './doctrineWebGL';
 		const bornAgain = G.ascensionMode === 1 && !hasMilestone(1000);
 		if (bornAgain) return;
 
-		// Deimos-C (1-2): maintain 5s boost window
+		// Deimos-C (1-2): maintain 5s boost window and refresh gains
 		if (moonHas('1-2')) {
+			const wasActive = G.T < _deimosTimer;
 			_deimosTimer = Math.max(_deimosTimer, G.T + 150);
+			if (!wasActive) G.recalculateGains = 1;
 		}
 
 		// Echoing Click: each click triggers passive CpS
@@ -817,11 +838,18 @@ import { initDoctrineWebGL } from './doctrineWebGL';
 		// Close Doctrine view if open when reincarnating
 		closeDoctrineTree(true);
 
+		// Slumber (4-2): reset 10-minute timer for fresh run
+		_slumberUntil = Date.now() + 10 * 60 * 1000;
+
 		// Legacy Echo: grant 1 free building (or 3 with Echo Hearth 13-1)
 		if (doctrineHas(13) && _lastMostOwnedBuilding > 0) {
 			const o = G.ObjectsById[_lastMostOwnedBuilding];
 			const count = moonHas('13-1') ? 3 : 1;
 			if (o) o.getFree(count);
+			if (moonHas('13-2')) {
+				_continuumBuildingId = _lastMostOwnedBuilding;
+				_continuumUntil = Date.now() + 60 * 60 * 1000;
+			}
 		}
 
 		// Milestone: free cursors / grandmas
@@ -860,6 +888,12 @@ import { initDoctrineWebGL } from './doctrineWebGL';
 			if (_origUpdateAscendIntro) G.UpdateAscendIntro = _origUpdateAscendIntro;
 			_origUpdateAscendIntro = null;
 			_transcendIntroRunning = false;
+		}
+
+		// Deimos-C (1-2) expiration check
+		if (_deimosTimer > 0 && G.T >= _deimosTimer) {
+			_deimosTimer = 0;
+			G.recalculateGains = 1;
 		}
 
 		// Track prestige running total
@@ -940,18 +974,29 @@ import { initDoctrineWebGL } from './doctrineWebGL';
 				if (name === 'wrinklerSpawn') v *= 1.2;
 				if (name === 'wrinklerEat') v *= (moonHas('6-2') ? 1.15 : 1.1);
 			}
+			// Digestive Hive (6-2): wrinklers regurgitate 5% more cookies when popped
+			if (name === 'wrinklerPop' && !bornAgain && moonHas('6-2')) {
+				v *= 1.05;
+			}
 			// Warm Embers (node 5): Elder Pledge / veil reactivation costs 50% less (Insulation 5-2: 62.5% less)
 			if (name === 'veilActivateCost' && !bornAgain && doctrineHas(5)) {
 				v *= (moonHas('5-2') ? 0.375 : 0.5);
 			}
 
 			// ── Fatebinder's Path ──
-			// Fortune's Favor (node 7): golden cookies appear 10% more often and last 10% longer (Lucky Orbit 7-1, Linger 7-2)
+			// Fortune's Favor (node 7): golden cookies appear 10% more often and last 10% longer (Lucky Orbit 7-1)
 			if (!bornAgain && doctrineHas(7)) {
 				const freq = 1.1 * (moonHas('7-1') ? 1.05 : 1.0);
-				const dur = 1.1 * (moonHas('7-2') ? 1.05 : 1.0);
 				if (name === 'goldenCookieFreq') v *= freq;
-				if (name === 'goldenCookieDur')  v *= dur;
+				if (name === 'goldenCookieDur')  v *= 1.1;
+			}
+			// Linger (7-2): Golden cookie buff durations increased by +5%
+			if (name === 'goldenCookieEffDur' && !bornAgain && moonHas('7-2')) {
+				v *= 1.05;
+			}
+			// Eerie Gloom (8-1): Wrath cookies grant +10% more direct cookies on successful positive effects
+			if (name === 'wrathCookieGain' && !bornAgain && moonHas('8-1')) {
+				v *= 1.10;
 			}
 
 			return v;
@@ -995,7 +1040,7 @@ import { initDoctrineWebGL } from './doctrineWebGL';
 					if (!window.Game) return;
 					const s = new (window.Game.shimmer as any)('golden');
 					s.force  = choice;
-					if (moonHas('10-2')) s.dur = (s.dur || 13) * 1.2;
+					s._doubleDipProlong = moonHas('10-2');
 					s.spawned = 1;
 				}, 100);
 			}
@@ -1024,6 +1069,18 @@ import { initDoctrineWebGL } from './doctrineWebGL';
 			if (Math.random() < 0.20) me.wrath = 1;
 		});
 
+		// ── customEffectDurMod: Prolong (10-2) ────────────────────────────
+		// Repeated buffs triggered by Double Dip last 20% longer
+		if (!gt.customEffectDurMod) gt.customEffectDurMod = [];
+		gt.customEffectDurMod.push(function (me: any): number {
+			const G2 = window.Game;
+			if (!G2) return 1;
+			if (me && me._doubleDipProlong && moonHas('10-2') && !(G2.ascensionMode === 1 && !hasMilestone(1000))) {
+				return 1.20;
+			}
+			return 1;
+		});
+
 		// ── customBuff: Cascade (3), Strange Attractor (9), Double Dip (10) ──
 		// customBuff runs inside popFunc after the effect choice is resolved,
 		// before the main effect switch. Returning `buff` unchanged leaves normal
@@ -1040,7 +1097,10 @@ import { initDoctrineWebGL } from './doctrineWebGL';
 				window.setTimeout(function () {
 					if (!window.Game) return;
 					const s = new (window.Game.shimmer as any)('golden');
-					if (moonHas('3-2')) s.dur = (s.dur || 13) * 1.25;
+					if (moonHas('3-2')) {
+						s.dur = (s.dur || 13) * 1.25;
+						s.life = Math.ceil((window.Game ? window.Game.fps : 30) * s.dur);
+					}
 					s.spawned = 1;
 				}, 150);
 			}
@@ -1065,6 +1125,88 @@ import { initDoctrineWebGL } from './doctrineWebGL';
 
 			return buff;
 		});
+
+		// ── Graviton (9-2): Golden cookies expand their celestial gravitational field ──
+		if (G.shimmerTypes && G.shimmerTypes['golden'] && !(G.shimmerTypes['golden'] as any)._gravitonHooked) {
+			const origInit = G.shimmerTypes['golden'].initFunc;
+			G.shimmerTypes['golden'].initFunc = function (this: any, me: any) {
+				origInit.call(this, me);
+				const G3 = window.Game;
+				if (G3 && moonHas('9-2') && !(G3.ascensionMode === 1 && !hasMilestone(1000))) {
+					me.sizeMult = (me.sizeMult || 1) * 1.35;
+					if (me.l && !G3.prefs.fancy) {
+						me.l.style.transform = `scale(${me.sizeMult})`;
+					}
+				}
+			};
+			(G.shimmerTypes['golden'] as any)._gravitonHooked = true;
+		}
+	}
+
+	/** Baleful Beacon (8-2): Clot negative debuff duration is shortened by 20%. */
+	let _origGainBuff: any = null;
+	function patchGainBuff(): void {
+		const G = window.Game;
+		if (!G || _origGainBuff) return;
+		_origGainBuff = G.gainBuff.bind(G);
+		G.gainBuff = function (type: any, time: any, arg1: any, arg2: any) {
+			if (type === 'clot' && moonHas('8-2') && !(G.ascensionMode === 1 && !hasMilestone(1000))) {
+				time = Math.round(time * 0.8);
+			}
+			return _origGainBuff(type, time, arg1, arg2);
+		};
+	}
+
+	/** Architect's Mark (11-2): Every 100th building milestone costs 15% less. */
+	let _origModifyBuildingPrice: ((b: any, p: any) => number) | null = null;
+	function patchBuildingPrice(): void {
+		const G = window.Game;
+		if (!G || _origModifyBuildingPrice) return;
+		_origModifyBuildingPrice = G.modifyBuildingPrice.bind(G);
+		G.modifyBuildingPrice = function (building: any, price: any) {
+			let p = _origModifyBuildingPrice!(building, price);
+			if (moonHas('11-2') && G.buyMode !== -1 && !(G.ascensionMode === 1 && !hasMilestone(1000))) {
+				if (building && typeof building.amount === 'number') {
+					const current = building.amount;
+					const bulk = G.buyBulk || 1;
+					const target = current + bulk;
+					if (Math.floor(current / 100) < Math.floor(target / 100)) {
+						p *= 0.85;
+					}
+				}
+			}
+			return p;
+		};
+	}
+
+	/** Bulk Thrift (12-2): Buying upgrades in bulk or rapid succession grants +1% refund as cookies. */
+	let _origUpgradeBuy: ((bypass?: number) => any) | null = null;
+	let _lastUpgradeBuyTime = 0;
+	let _rapidSuccessionCount = 0;
+	function patchUpgradeBuy(): void {
+		const G = window.Game;
+		if (!G || !G.Upgrade || _origUpgradeBuy) return;
+		_origUpgradeBuy = G.Upgrade.prototype.buy;
+		G.Upgrade.prototype.buy = function (this: any, bypass?: number) {
+			const wasBought = this.bought;
+			const price = typeof this.getPrice === 'function' ? this.getPrice() : 0;
+			const res = _origUpgradeBuy!.call(this, bypass);
+			if (!wasBought && this.bought && res && this.pool !== 'prestige') {
+				if (moonHas('12-2') && !(G.ascensionMode === 1 && !hasMilestone(1000))) {
+					const now = Date.now();
+					if (now - _lastUpgradeBuyTime < 3000) {
+						_rapidSuccessionCount++;
+					} else {
+						_rapidSuccessionCount = 0;
+					}
+					_lastUpgradeBuyTime = now;
+					if (_rapidSuccessionCount > 0 && price > 0) {
+						G.Earn(price * 0.01);
+					}
+				}
+			}
+			return res;
+		};
 	}
 
 	/* ================================================================
@@ -3508,6 +3650,9 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 			moons: state.moons,
 			keptUpgrades: state.keptUpgrades,
 			keptCosmetic: state.keptCosmetic,
+			lmob: _lastMostOwnedBuilding,
+			cUntil: _continuumUntil,
+			cBuilding: _continuumBuildingId,
 		};
 		return JSON.stringify(data);
 	}
@@ -3525,6 +3670,9 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 			state.moons = Array.isArray(data.moons) ? data.moons : [];
 			state.keptUpgrades = data.keptUpgrades || [];
 			state.keptCosmetic = data.keptCosmetic || '';
+			if (typeof data.lmob === 'number') _lastMostOwnedBuilding = data.lmob;
+			if (typeof data.cUntil === 'number') _continuumUntil = data.cUntil;
+			if (typeof data.cBuilding === 'number') _continuumBuildingId = data.cBuilding;
 		} catch (e) {
 			state.ee = 0;
 			state.eeSpent = 0;
@@ -3537,6 +3685,9 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 			state.keptUpgrades = [];
 			state.keptCosmetic = '';
 		}
+
+		// Slumber (4-2): reset 10-minute session timer upon loading bakery
+		_slumberUntil = Date.now() + 10 * 60 * 1000;
 
 		// Sync _prestigeSeen from the loaded game state so we don't
 		// double-count the delta.
@@ -3561,6 +3712,23 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 				if (moonHas('6-1') && !(G.ascensionMode === 1 && !hasMilestone(1000))) {
 					max += 1;
 				}
+				if (G.wrinklers && G.wrinklers.length < max) {
+					for (let i = G.wrinklers.length; i < max; i++) {
+						G.wrinklers.push({
+							id: i,
+							close: 0,
+							sucked: 0,
+							phase: 0,
+							x: 0,
+							y: 0,
+							r: 0,
+							hurt: 0,
+							hp: G.wrinklerHP || 2.1,
+							selected: 0,
+							type: 0,
+						});
+					}
+				}
 				return max;
 			};
 		}
@@ -3578,20 +3746,24 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 		G.registerHook('reset', resetHook);
 		G.registerHook('reincarnate', reincarnateHook);
 		G.registerHook('check', checkHook);
+		if (G.registerHook) G.registerHook('offlinePercent', offlinePercentHook);
 
 		// Patch cost discounts, wrinkler cap, and shimmer hooks
 		patchEff();
 		patchWrinklersMax();
 		setupShimmerHooks();
+		patchBuildingPrice();
+		patchUpgradeBuy();
+		patchGainBuff();
 
-		// Warm Embers (node 5): 50% discount on reactivating Shimmering veil
+		// Warm Embers (node 5) & Insulation (5-2): 50% / 62.5% discount on reactivating Shimmering veil
 		const veilOff = G.Upgrades && G.Upgrades['Shimmering veil [off]'];
 		if (veilOff && typeof veilOff.priceFunc === 'function') {
 			const origPriceFunc = veilOff.priceFunc.bind(veilOff);
 			veilOff.priceFunc = function () {
 				let p = origPriceFunc();
 				if (doctrineHas(5) && !(G.ascensionMode === 1 && !hasMilestone(1000))) {
-					p *= 0.5;
+					p *= (moonHas('5-2') ? 0.375 : 0.5);
 				}
 				return p;
 			};
