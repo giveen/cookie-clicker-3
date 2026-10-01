@@ -134,3 +134,28 @@ test('Cat base upgrades appear in store when unlocked', async ({ page }) => {
 	});
 	console.log('Store with 25 Cats:', JSON.stringify(result, null, 2));
 });
+
+test('Kitten upgrade icons appear in store and render cleanly', async ({ page }) => {
+	await boot(page);
+
+	await page.evaluate(() => {
+		const G = window.Game;
+		G.cookies = 1e35;
+		const kittenNames = [
+			'Kitten helpers', 'Kitten workers', 'Kitten engineers', 'Kitten overseers',
+			'Kitten managers', 'Kitten accountants', 'Kitten specialists', 'Kitten experts',
+			'Kitten consultants', 'Kitten assistants to the regional manager', 'Kitten marketeers',
+			'Kitten analysts', 'Kitten executives', 'Fortune #103', 'Kitten admins'
+		];
+		for (const name of kittenNames) {
+			if (G.Upgrades[name]) G.Unlock(name);
+		}
+		G.upgradesToRebuild = 1;
+		G.RebuildUpgrades();
+	});
+
+	await page.waitForTimeout(500);
+	const storeUpgrades = page.locator('#upgrades');
+	await storeUpgrades.screenshot({ path: '/home/jabbatheduck/.gemini/antigravity/brain/9f24492c-e623-41b9-827b-4d2aa381386f/store_kittens_ingame.png' });
+});
+
