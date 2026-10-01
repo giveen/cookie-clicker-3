@@ -1795,6 +1795,41 @@ test('?qa=transcend: transcendence earns EE, hard-resets the run, persists state
 	);
 	expect(report).not.toMatch(/FAIL/);
 	expect(report).not.toMatch(/ERROR/);
+
+	// Verify that reloading a save with transcendence progress does NOT re-trigger achievement notifications
+	const reloadResult = await page.evaluate(() => {
+		const G = window.Game;
+		const T = window.__cc3Transcendence;
+		// Ensure milestone 25 is present so Steady as She Goes is unlocked too
+		if (!T.hasMilestone(25)) T.state.milestones.push(25);
+		T.checkAchievements();
+		const saveStr = G.WriteSave(1);
+
+		// Track any notifications fired during reload & check
+		const notices = [];
+		const origNotify = G.Notify;
+		G.Notify = function (title, desc, pic, quick, noLog) {
+			notices.push(String(title) + ' : ' + String(desc));
+			return origNotify.apply(this, arguments);
+		};
+
+		// Reload the save
+		G.LoadSave(saveStr);
+		// Run mod check hook
+		G.runModHook('check');
+
+		return {
+			notices,
+			firstGlimpseWon: G.Achievements['First Glimpse'] ? G.Achievements['First Glimpse'].won : 0,
+			steadyWon: G.Achievements['Steady as She Goes'] ? G.Achievements['Steady as She Goes'].won : 0,
+		};
+	});
+
+	expect(reloadResult.firstGlimpseWon).toBe(1);
+	expect(reloadResult.steadyWon).toBe(1);
+	const achNotices = reloadResult.notices.filter(n => n.includes('First Glimpse') || n.includes('Steady as She Goes'));
+	expect(achNotices).toHaveLength(0);
+
 	await assertNoUncaughtErrors(page);
 });
 test('heavenly presets: auto/branch/generations/grid arrange the tree, reset restores the default', async ({ page }) => {

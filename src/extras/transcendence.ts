@@ -3630,14 +3630,30 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 	}
 
 	/** Check and award achievements. */
-	function checkAchievements(): void {
+	function checkAchievements(silent = false): void {
 		const G = window.Game;
-		if (!G) return;
-		if (state.transcendences >= 1) G.Win('First Glimpse');
-		if (state.transcendences >= 10) G.Win('The Long View');
-		if (hasMilestone(25)) G.Win('Steady as She Goes');
-		if (state.transcendences >= 100) G.Win('Eternal');
-		if (hasMilestone(1000)) G.Win('Omega');
+		if (!G || !G.Achievements) return;
+		const toCheck: [boolean, string][] = [
+			[state.transcendences >= 1, 'First Glimpse'],
+			[state.transcendences >= 10, 'The Long View'],
+			[hasMilestone(25), 'Steady as She Goes'],
+			[state.transcendences >= 100, 'Eternal'],
+			[hasMilestone(1000), 'Omega'],
+		];
+		for (const [cond, name] of toCheck) {
+			if (cond) {
+				const a = G.Achievements[name];
+				if (a && !a.won) {
+					if (silent) {
+						a.won = 1;
+						if (G.CountsAsAchievementOwned(a.pool)) G.AchievementsOwned++;
+						G.recalculateGains = 1;
+					} else {
+						G.Win(name);
+					}
+				}
+			}
+		}
 	}
 
 	/* ================================================================
@@ -3645,6 +3661,14 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 	 * ================================================================ */
 
 	function save(): string {
+		const G = window.Game;
+		const wonAch: string[] = [];
+		if (G && G.Achievements) {
+			for (const a of ACHIEVEMENTS) {
+				const ach = G.Achievements[a.name];
+				if (ach && ach.won) wonAch.push(a.name);
+			}
+		}
 		const data = {
 			ee: state.ee,
 			eeSpent: state.eeSpent,
@@ -3656,6 +3680,7 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 			moons: state.moons,
 			keptUpgrades: state.keptUpgrades,
 			keptCosmetic: state.keptCosmetic,
+			achievements: wonAch,
 			lmob: _lastMostOwnedBuilding,
 			cUntil: _continuumUntil,
 			cBuilding: _continuumBuildingId,
@@ -3666,6 +3691,7 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 
 	function load(str: string): void {
 		let fixedReset = false;
+		let savedAch: string[] = [];
 		try {
 			const data = JSON.parse(str);
 			state.ee = data.ee || 0;
@@ -3678,6 +3704,7 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 			state.moons = Array.isArray(data.moons) ? data.moons : [];
 			state.keptUpgrades = data.keptUpgrades || [];
 			state.keptCosmetic = data.keptCosmetic || '';
+			if (Array.isArray(data.achievements)) savedAch = data.achievements;
 			if (typeof data.lmob === 'number') _lastMostOwnedBuilding = data.lmob;
 			if (typeof data.cUntil === 'number') _continuumUntil = data.cUntil;
 			if (typeof data.cBuilding === 'number') _continuumBuildingId = data.cBuilding;
@@ -3729,9 +3756,30 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 		// Slumber (4-2): reset 10-minute session timer upon loading bakery
 		_slumberUntil = Date.now() + 10 * 60 * 1000;
 
+		// Restore won achievements silently (no unlock notification spam on load/refresh)
+		if (state.transcendences >= 1 && !savedAch.includes('First Glimpse')) savedAch.push('First Glimpse');
+		if (state.transcendences >= 10 && !savedAch.includes('The Long View')) savedAch.push('The Long View');
+		if (hasMilestone(25) && !savedAch.includes('Steady as She Goes')) savedAch.push('Steady as She Goes');
+		if (state.transcendences >= 100 && !savedAch.includes('Eternal')) savedAch.push('Eternal');
+		if (hasMilestone(1000) && !savedAch.includes('Omega')) savedAch.push('Omega');
+
+		const G = window.Game;
+		if (G) {
+			if (!_declared.done) declareAchievements();
+			if (G.Achievements) {
+				for (const name of savedAch) {
+					const a = G.Achievements[name];
+					if (a && !a.won) {
+						a.won = 1;
+						if (G.CountsAsAchievementOwned(a.pool)) G.AchievementsOwned++;
+					}
+				}
+				G.recalculateGains = 1;
+			}
+		}
+
 		// Sync _prestigeSeen from the loaded game state so we don't
 		// double-count the delta.
-		const G = window.Game;
 		if (G) {
 			_prestigeSeen = G.prestige;
 		}

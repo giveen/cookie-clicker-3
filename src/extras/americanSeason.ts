@@ -983,9 +983,18 @@
 	/* vanilla mod save section (Game.safeSaveString escapes | and ;).     */
 	/* ------------------------------------------------------------------ */
 	function save() {
+		const Game2 = Game;
+		const wonAch: string[] = [];
+		if (Game2 && Game2.Achievements) {
+			for (const name of ['Pyrotechnics', 'July 4th', 'Pyromaniac', 'Rocket scientist', 'Full barrage']) {
+				const a = Game2.Achievements[name];
+				if (a && a.won) wonAch.push(name);
+			}
+		}
 		return JSON.stringify({
 			config: state.config,
 			rocketsPopped: state.rocketsPopped,
+			achievements: wonAch,
 		});
 	}
 
@@ -1003,6 +1012,24 @@
 			}
 		}
 		if (obj.rocketsPopped !== undefined) state.rocketsPopped = obj.rocketsPopped;
+
+		const savedAch: string[] = Array.isArray(obj.achievements) ? obj.achievements : [];
+		if (state.rocketsPopped >= 1 && !savedAch.includes('Pyrotechnics')) savedAch.push('Pyrotechnics');
+		if (state.rocketsPopped >= 74 && !savedAch.includes('July 4th')) savedAch.push('July 4th');
+		if (state.rocketsPopped >= 1776 && !savedAch.includes('Pyromaniac')) savedAch.push('Pyromaniac');
+		if (state.rocketsPopped >= 3552 && !savedAch.includes('Rocket scientist')) savedAch.push('Rocket scientist');
+
+		const Game2 = Game;
+		if (Game2 && Game2.Achievements) {
+			for (const name of savedAch) {
+				const a = Game2.Achievements[name];
+				if (a && !a.won) {
+					a.won = 1;
+					if (Game2.CountsAsAchievementOwned(a.pool)) Game2.AchievementsOwned++;
+				}
+			}
+			Game2.recalculateGains = 1;
+		}
 	}
 
 	/* ------------------------------------------------------------------ */
