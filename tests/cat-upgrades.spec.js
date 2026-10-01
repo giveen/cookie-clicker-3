@@ -159,3 +159,33 @@ test('Kitten upgrade icons appear in store and render cleanly', async ({ page })
 	await storeUpgrades.screenshot({ path: '/home/jabbatheduck/.gemini/antigravity/brain/9f24492c-e623-41b9-827b-4d2aa381386f/store_kittens_ingame.png' });
 });
 
+test('Grandma Tier 1-4 upgrade icons appear in store and render cleanly', async ({ page }) => {
+	await boot(page);
+
+	await page.evaluate(() => {
+		const G = window.Game;
+		G.cookies = 1e35;
+		const grandmaNames = [
+			'Forwards from grandma',
+			'Steel-plated rolling pins',
+			'Lubricated dentures',
+			'Prune juice'
+		];
+		// Lock all other upgrades so only these 4 are shown in the store
+		for (const u of Object.values(G.Upgrades)) {
+			u.unlocked = 0;
+			u.bought = 0;
+		}
+		for (const name of grandmaNames) {
+			if (G.Upgrades[name]) G.Unlock(name);
+		}
+		G.upgradesToRebuild = 1;
+		G.RebuildUpgrades();
+	});
+
+	await page.waitForTimeout(500);
+	const storeUpgrades = page.locator('#upgrades');
+	await storeUpgrades.screenshot({ path: '/home/jabbatheduck/.gemini/antigravity/brain/9f24492c-e623-41b9-827b-4d2aa381386f/store_grandma_tier1_4_ingame.png' });
+});
+
+
