@@ -1388,8 +1388,17 @@ import { initDoctrineWebGL } from './doctrineWebGL';
 		} else {
 			btn.innerHTML = '<span style="color:#f8c0ff;">✦</span> +' + eeGain + ' <small style="font-size:9px;color:#ddd;">EE</small>';
 		}
+
+		// Prevent overlapping the heavenly cookies tracker (#ascendNumber):
+		// When ascendNumber is visible, position the button to the left of its brackets.
+		const ascendNum = document.getElementById('ascendNumber');
+		const ascendVisible = !!ascendNum && window.getComputedStyle(ascendNum).display !== 'none' &&
+			(ascendNum.offsetWidth > 0 || (ascendNum.textContent && ascendNum.textContent.trim().length > 0));
+		const rightOffset = ascendVisible ? (115 + ascendNum.offsetWidth + 20) : 108;
+		btn.style.right = rightOffset + 'px';
+
 		const commentsText = document.getElementById('commentsText');
-		if (commentsText) commentsText.style.right = (btn.offsetWidth + 112) + 'px';
+		if (commentsText) commentsText.style.right = (rightOffset + btn.offsetWidth + 8) + 'px';
 	}
 
 	/* ================================================================
