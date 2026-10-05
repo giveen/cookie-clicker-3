@@ -32,9 +32,9 @@ import { initDoctrineWebGL } from './doctrineWebGL';
 	const GATE_COOKIES = 1e29;
 	const GATE_PRESTIGE = 10000;
 
-	/** EE formula: floor(log₁₀(cookiesTotal / 1e¹²) − offset). */
+	/** EE formula: floor(log₁₀(cookiesTotal / 1e¹²) − offset). (10x requirement: offset=9) */
 	const EE_LOG_BASE = 10;
-	const EE_OFFSET = 8;
+	const EE_OFFSET = 9;
 
 	/* The 13 Doctrine nodes. parents[] references node ids to build the DAG.
 	 * Icon slots are *existing* art from the icons.webp sprite sheet —
