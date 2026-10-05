@@ -298,6 +298,7 @@ declare global {
 			ACHIEVEMENTS: readonly { name: string; desc: string; icon: number[] }[];
 			computeEE: (cookiesTotal: number) => number;
 			canTranscend: () => boolean;
+			hasAllHeavenlyUpgrades?: () => boolean;
 			doTranscend: (bypass?: boolean) => void;
 			fixPrestigeScaling?: () => boolean;
 			startTranscendWithPicker: () => void;

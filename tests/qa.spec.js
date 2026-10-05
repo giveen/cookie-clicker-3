@@ -1665,14 +1665,27 @@ test('transcendence access points: top bar widget, stats menu, and Layer 1 full 
 		T.state.ee = 0;
 		window.Game.cookiesReset = 0;
 		window.Game.cookiesEarned = 0;
+		for (const u of window.Game.PrestigeUpgrades) u.bought = 0;
 		T.updateTopBarWidget();
 	});
 	await expect(topBarWidget).toBeHidden();
 
-	// When player can afford Transcendence (>= 1e36 cookies -> +1 EE) -> widget appears with +1 EE
+	// Gate assertion: without all heavenly upgrades purchased, even 1e63 cookies yields 0 EE
+	const unboughtGain = await page.evaluate(() => {
+		const T = window.__cc3Transcendence;
+		for (const u of window.Game.PrestigeUpgrades) u.bought = 0;
+		window.Game.cookiesReset = 1e63;
+		T.updateTopBarWidget();
+		return T.computeEE(1e63);
+	});
+	expect(unboughtGain).toBe(0);
+	await expect(topBarWidget).toBeHidden();
+
+	// When player has purchased all heavenly upgrades and reaches >= 1e63 cookies -> +1 EE -> widget appears
 	await page.evaluate(() => {
 		const T = window.__cc3Transcendence;
-		window.Game.cookiesReset = 1e36;
+		for (const u of window.Game.PrestigeUpgrades) u.bought = 1;
+		window.Game.cookiesReset = 1e63;
 		T.updateTopBarWidget();
 	});
 	await expect(topBarWidget).toBeVisible();

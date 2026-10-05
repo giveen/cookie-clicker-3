@@ -28,13 +28,11 @@ import { initDoctrineWebGL } from './doctrineWebGL';
 
 	const MOD_ID = 'CC3Transcendence';
 
-	/** Unlock gate: the full ascend meter (1e29 cookiesReset) or 10k prestige. */
-	const GATE_COOKIES = 1e29;
-	const GATE_PRESTIGE = 10000;
-
-	/** EE formula: floor(log₁₀(cookiesTotal / 1e¹²) − offset). (10x requirement: offset=9) */
+	/** EE formula: floor(log₁₀(cookiesTotal / 1e¹²) − offset).
+	 * Destiny (EE) can ONLY be earned after every single heavenly upgrade is bought.
+	 * Base requirement is greatly increased: 1 EE starts at 1e63 cookies (Vigintillion). */
 	const EE_LOG_BASE = 10;
-	const EE_OFFSET = 9;
+	const EE_OFFSET = 50;
 
 	/* The 13 Doctrine nodes. parents[] references node ids to build the DAG.
 	 * Icon slots are *existing* art from the icons.webp sprite sheet —
@@ -329,11 +327,27 @@ import { initDoctrineWebGL } from './doctrineWebGL';
 	let _prestigeSeen = 0;
 
 	/* ================================================================
-	 * EE FORMULA
+	 * HEAVENLY UPGRADE GATE & EE FORMULA
 	 * ================================================================ */
+
+	/**
+	 * Checks whether every heavenly (prestige) upgrade has been purchased.
+	 * Destiny / Eternal Essence points can ONLY be earned once all heavenly upgrades are owned.
+	 */
+	function hasAllHeavenlyUpgrades(): boolean {
+		const G = window.Game;
+		if (!G || !G.PrestigeUpgrades || G.PrestigeUpgrades.length === 0) return false;
+		for (let i = 0; i < G.PrestigeUpgrades.length; i++) {
+			const u = G.PrestigeUpgrades[i];
+			if (u && (u.pool === 'prestige' || !u.pool) && !u.bought) return false;
+		}
+		return true;
+	}
 
 	function computeEE(cookiesTotal: number): number {
 		if (cookiesTotal <= 0) return 0;
+		// Destiny / EE can ONLY start being earned AFTER every single heavenly upgrade is bought
+		if (!hasAllHeavenlyUpgrades()) return 0;
 		// Relative epsilon fixes log() floating-point drift (e.g. log10(1e18)
 		// computes to 17.999999999999996 and would floor to 9 instead of 10).
 		const raw = Math.log(cookiesTotal / 1e12) / Math.log(EE_LOG_BASE) - EE_OFFSET;
@@ -347,7 +361,7 @@ import { initDoctrineWebGL } from './doctrineWebGL';
 	function canTranscend(): boolean {
 		const G = window.Game;
 		if (!G) return false;
-		return state.transcendences > 0 || G.cookiesReset >= GATE_COOKIES || state.totalPrestigeAllTime >= GATE_PRESTIGE;
+		return state.transcendences > 0 || hasAllHeavenlyUpgrades();
 	}
 
 	/* ================================================================
@@ -1417,6 +1431,11 @@ import { initDoctrineWebGL } from './doctrineWebGL';
 		wrap.className = 'selectable';
 
 		const nextGain = computeEE(G.cookiesReset + G.cookiesEarned);
+		const gainDesc = nextGain > 0
+			? '+' + nextGain + ' EE'
+			: (!hasAllHeavenlyUpgrades()
+				? '0 EE <small style="color:#f87171;">(requires all heavenly upgrades purchased)</small>'
+				: '0 EE <small style="color:#aaa;">(requires 1 Vigintillion cookies / 1e63)</small>');
 		let milestoneList = '';
 		if (state.milestones.length > 0) {
 			milestoneList = '<div class="listing"><b>Milestones unlocked:</b> ' +
@@ -1432,7 +1451,7 @@ import { initDoctrineWebGL } from './doctrineWebGL';
 			'<div class="title">Celestial Sphere & Eternal Essence</div>' +
 			'<div class="listing"><b>Eternal Essence:</b> <span style="color:#ffd700;font-weight:bold;">' + state.ee + '</span> <small>(lifetime earned: ' + state.eeEarned + ')</small></div>' +
 			'<div class="listing"><b>Transcendences performed:</b> ' + state.transcendences + '</div>' +
-			'<div class="listing"><b>Current run EE gain:</b> +' + nextGain + ' EE</div>' +
+			'<div class="listing"><b>Current run EE gain:</b> ' + gainDesc + '</div>' +
 			'<div class="listing"><b>Doctrine nodes unlocked:</b> ' + state.doctrine.length + ' / ' + DOCTRINE.length + '</div>' +
 			milestoneList +
 			'<div style="margin-top:8px;">' +
@@ -3593,7 +3612,7 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 		if (state.transcendences === 0) {
 			G.Notify(
 				'Transcendence unlocked!',
-				'You have filled the ascend meter. A new path awaits — check the Legacy tab.',
+				'You have purchased all heavenly upgrades. A new path awaits — check the Legacy tab.',
 				[19, 7],
 				8
 			);
@@ -3946,6 +3965,7 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 		ACHIEVEMENTS,
 		computeEE,
 		canTranscend,
+		hasAllHeavenlyUpgrades,
 		doTranscend,
 		fixPrestigeScaling,
 		startTranscendWithPicker,
@@ -3993,6 +4013,9 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 		seed: function (reset: number) {
 			const G = window.Game;
 			if (!G) return;
+			if (G.PrestigeUpgrades) {
+				for (const u of G.PrestigeUpgrades) u.bought = 1;
+			}
 			G.cookiesReset = reset;
 			state.transcendences = 0;
 			state.ee = 0;

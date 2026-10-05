@@ -1838,8 +1838,8 @@ if (debugSurface && params.get('qa') === 'transcend') {
 			o.style.cssText = 'position:fixed;top:0;left:0;z-index:99999;background:#fff;color:#060;font:12px monospace;white-space:pre-wrap;max-width:640px;';
 			document.body.appendChild(o);
 			try {
-				T.seed(1e31);
-				G.cookiesReset = 1e31; G.cookiesEarned = 1e12;
+				T.seed(1e72);
+				G.cookiesReset = 1e72; G.cookiesEarned = 1e12;
 				G.prestige = 1000;
 				G.heavenlyChips = 500;
 				G.Objects['Cursor'].amount = 50; G.Objects['Grandma'].amount = 20;
@@ -1847,7 +1847,7 @@ if (debugSurface && params.get('qa') === 'transcend') {
 				G.recalculateGains = 1; G.CalculateGains();
 				const eeBefore = T.state.ee;
 				G.__qaTranscend = { out: o, eeBefore, t: Date.now() };
-				o.textContent = '[QA-transcend] seeded cookiesReset=1e31, calling doTranscend(true) (bypassing the intro animation)...';
+				o.textContent = '[QA-transcend] seeded cookiesReset=1e72, calling doTranscend(true) (bypassing the intro animation)...';
 				T.doTranscend(true);
 			} catch (e: any) {
 				o.textContent = '[QA-transcend] ERROR seed: ' + e.message;
