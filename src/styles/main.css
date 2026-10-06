@@ -1665,6 +1665,13 @@ q:after
 	position:absolute;
 	right:115px;
 	top:22px;
+	white-space:nowrap;
+	width:max-content;
+	min-width:12px;
+	box-sizing:content-box;
+	text-align:center;
+	padding:9px 4px;
+	line-height:20px;
 	font-size:var(--fs-6);
 	font-weight:bold;
 	font-family:Georgia;

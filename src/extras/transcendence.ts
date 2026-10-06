@@ -1345,7 +1345,12 @@ import { initDoctrineWebGL } from './doctrineWebGL';
 		if (!canAfford) {
 			if (btn) btn.style.display = 'none';
 			const commentsText = document.getElementById('commentsText');
-			if (commentsText) commentsText.style.right = '';
+			if (commentsText) {
+				const ascendNum = document.getElementById('ascendNumber');
+				const ascendVisible = !!ascendNum && window.getComputedStyle(ascendNum).display !== 'none' &&
+					(ascendNum.offsetWidth > 0 || (ascendNum.textContent && ascendNum.textContent.trim().length > 0));
+				commentsText.style.right = ascendVisible ? (115 + (ascendNum ? ascendNum.offsetWidth : 0) + 20) + 'px' : '';
+			}
 			return;
 		}
 
