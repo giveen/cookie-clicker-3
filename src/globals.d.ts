@@ -299,6 +299,7 @@ declare global {
 			computeEE: (cookiesTotal: number) => number;
 			canTranscend: () => boolean;
 			hasAllHeavenlyUpgrades?: () => boolean;
+			getHeavenlyUpgradeProgress?: () => { owned: number; total: number; missing: any[]; allOwned: boolean };
 			doTranscend: (bypass?: boolean) => void;
 			fixPrestigeScaling?: () => boolean;
 			startTranscendWithPicker: () => void;

@@ -82,3 +82,31 @@ test('ascendNumber dynamically expands with number size on a single line without
 		expect(commentsBox.x + commentsBox.width).toBeLessThanOrEqual(ultraBox.x + 5);
 	}
 });
+
+test('SimpleBeautify formats large numbers cleanly without comma artifacts in scientific notation', async ({ page }) => {
+	await page.goto('/?debug=1', { waitUntil: 'load' });
+	const lang = page.locator('#langSelect-English');
+	try {
+		await lang.waitFor({ state: 'visible', timeout: 5_000 });
+		await lang.click();
+	} catch {}
+	await page.waitForFunction(() => window.Game && window.Game.ready === 1);
+
+	const formatted = await page.evaluate(() => {
+		const num1 = 5.3431212200970294e+35;
+		const num2 = 9.102343857577294e+25;
+		return {
+			formatted1: window.SimpleBeautify(num1),
+			formatted2: window.SimpleBeautify(num2),
+		};
+	});
+
+	// Must not have broken commas inside decimal or exponent
+	expect(formatted.formatted1).not.toContain(',.');
+	expect(formatted.formatted1).not.toContain(',+');
+	expect(formatted.formatted1).not.toContain('e,');
+	expect(formatted.formatted2).not.toContain(',.');
+	expect(formatted.formatted2).not.toContain(',+');
+	expect(formatted.formatted2).not.toContain('e,');
+});
+

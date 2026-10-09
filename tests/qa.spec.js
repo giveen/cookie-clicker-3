@@ -1681,7 +1681,40 @@ test('transcendence access points: top bar widget, stats menu, and Layer 1 full 
 	expect(unboughtGain).toBe(0);
 	await expect(topBarWidget).toBeHidden();
 
-	// When player has purchased all heavenly upgrades and reaches >= 1e63 cookies -> +1 EE -> widget appears
+	// Gate exemption assertion: secret & challenge upgrades (Lucky payout, Unity, etc.) do NOT block the gate
+	const exemptGain = await page.evaluate(() => {
+		const T = window.__cc3Transcendence;
+		for (const u of window.Game.PrestigeUpgrades) u.bought = 1;
+		// Unbuy secret / challenge upgrades
+		const luckyPayout = window.Game.Upgrades['Lucky payout'];
+		const unity = window.Game.Upgrades['Unity'];
+		if (luckyPayout) luckyPayout.bought = 0;
+		if (unity) unity.bought = 0;
+		window.Game.cookiesReset = 1e63;
+		T.updateTopBarWidget();
+		const progress = T.getHeavenlyUpgradeProgress();
+		return { ee: T.computeEE(1e63), allOwned: progress.allOwned, missingCount: progress.missing.length };
+	});
+	expect(exemptGain.allOwned).toBe(true);
+	expect(exemptGain.missingCount).toBe(0);
+	expect(exemptGain.ee).toBe(1);
+
+	// Standard upgrade assertion: unbuying a standard tree upgrade DOES block the gate
+	const standardUnboughtGain = await page.evaluate(() => {
+		const T = window.__cc3Transcendence;
+		for (const u of window.Game.PrestigeUpgrades) u.bought = 1;
+		const heavenlyLuck = window.Game.Upgrades['Heavenly luck'];
+		if (heavenlyLuck) heavenlyLuck.bought = 0;
+		window.Game.cookiesReset = 1e63;
+		T.updateTopBarWidget();
+		const progress = T.getHeavenlyUpgradeProgress();
+		return { ee: T.computeEE(1e63), allOwned: progress.allOwned, missingNames: progress.missing.map(u => u.name) };
+	});
+	expect(standardUnboughtGain.allOwned).toBe(false);
+	expect(standardUnboughtGain.missingNames).toContain('Heavenly luck');
+	expect(standardUnboughtGain.ee).toBe(0);
+
+	// When player has purchased all standard heavenly upgrades and reaches >= 1e63 cookies -> +1 EE -> widget appears
 	await page.evaluate(() => {
 		const T = window.__cc3Transcendence;
 		for (const u of window.Game.PrestigeUpgrades) u.bought = 1;

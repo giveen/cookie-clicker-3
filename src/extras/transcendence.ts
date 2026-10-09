@@ -331,22 +331,75 @@ import { initDoctrineWebGL } from './doctrineWebGL';
 	 * ================================================================ */
 
 	/**
-	 * Checks whether every heavenly (prestige) upgrade has been purchased.
-	 * Destiny / Eternal Essence points can ONLY be earned once all heavenly upgrades are owned.
+	 * Heavenly upgrades that are secret, conditional (e.g. 7-digit prestige),
+	 * or locked behind special challenge runs, and thus excluded from the
+	 * mandatory gate required to earn Destiny / Eternal Essence.
 	 */
-	function hasAllHeavenlyUpgrades(): boolean {
+	const EXCLUDED_GATE_UPGRADES: ReadonlySet<string> = new Set([
+		'Lucky digit',
+		'Lucky number',
+		'Lucky payout',
+		'Scrolling adept',
+		'Golden heart',
+		'Unity',
+		'Minimalist',
+		'Actually, do tell me the odds',
+	]);
+
+	function isGateExemptUpgrade(u: any): boolean {
+		if (!u) return true;
+		if (EXCLUDED_GATE_UPGRADES.has(u.name)) return true;
+		if (typeof u.showIf === 'function') return true;
+		return false;
+	}
+
+	interface HeavenlyProgress {
+		owned: number;
+		total: number;
+		missing: any[];
+		allOwned: boolean;
+	}
+
+	function getHeavenlyUpgradeProgress(): HeavenlyProgress {
 		const G = window.Game;
-		if (!G || !G.PrestigeUpgrades || G.PrestigeUpgrades.length === 0) return false;
+		if (!G || !G.PrestigeUpgrades || G.PrestigeUpgrades.length === 0) {
+			return { owned: 0, total: 0, missing: [], allOwned: false };
+		}
+		const missing: any[] = [];
+		let owned = 0;
+		let total = 0;
 		for (let i = 0; i < G.PrestigeUpgrades.length; i++) {
 			const u = G.PrestigeUpgrades[i];
-			if (u && (u.pool === 'prestige' || !u.pool) && !u.bought) return false;
+			if (!u || (u.pool !== 'prestige' && u.pool !== 'prestigeDecor' && u.pool)) continue;
+			if (isGateExemptUpgrade(u)) {
+				continue;
+			}
+			total++;
+			if (u.bought) {
+				owned++;
+			} else {
+				missing.push(u);
+			}
 		}
-		return true;
+		return {
+			owned,
+			total,
+			missing,
+			allOwned: missing.length === 0,
+		};
+	}
+
+	/**
+	 * Checks whether every standard heavenly (prestige) upgrade has been purchased.
+	 * Excludes secret (Lucky payout series) and challenge-mode upgrades.
+	 */
+	function hasAllHeavenlyUpgrades(): boolean {
+		return getHeavenlyUpgradeProgress().allOwned;
 	}
 
 	function computeEE(cookiesTotal: number): number {
 		if (cookiesTotal <= 0) return 0;
-		// Destiny / EE can ONLY start being earned AFTER every single heavenly upgrade is bought
+		// Destiny / EE can ONLY start being earned AFTER every standard heavenly upgrade is bought
 		if (!hasAllHeavenlyUpgrades()) return 0;
 		// Relative epsilon fixes log() floating-point drift (e.g. log10(1e18)
 		// computes to 17.999999999999996 and would floor to 9 instead of 10).
@@ -1380,6 +1433,9 @@ import { initDoctrineWebGL } from './doctrineWebGL';
 					}
 					if (canT) {
 						content += '<div style="color:#86efac;margin-top:2px;">Transcendence ready: <b>+' + eeGain + ' EE</b></div>';
+					} else if (!hasAllHeavenlyUpgrades()) {
+						const progress = getHeavenlyUpgradeProgress();
+						content += '<div style="color:#f87171;margin-top:2px;font-size:10px;">Heavenly upgrades: ' + progress.owned + '/' + progress.total + '</div>';
 					}
 					content += 'Doctrine Nodes: <b>' + state.doctrine.length + '/' + DOCTRINE.length + '</b>';
 					const desc = '<div style="min-width:180px;text-align:center;font-size:11px;padding:6px;">' +
@@ -1429,17 +1485,18 @@ import { initDoctrineWebGL } from './doctrineWebGL';
 		if (!G) return;
 		const menu = document.getElementById('menu');
 		if (!menu || document.getElementById('cc3TranscendStats')) return;
-		if (!canTranscend() && state.eeEarned === 0 && state.transcendences === 0) return;
+		if (!canTranscend() && state.eeEarned === 0 && state.transcendences === 0 && (!G.prestige || G.prestige < 1000)) return;
 
 		const wrap = document.createElement('div');
 		wrap.id = 'cc3TranscendStats';
 		wrap.className = 'selectable';
 
 		const nextGain = computeEE(G.cookiesReset + G.cookiesEarned);
+		const progress = getHeavenlyUpgradeProgress();
 		const gainDesc = nextGain > 0
 			? '+' + nextGain + ' EE'
-			: (!hasAllHeavenlyUpgrades()
-				? '0 EE <small style="color:#f87171;">(requires all heavenly upgrades purchased)</small>'
+			: (!progress.allOwned
+				? `0 EE <small style="color:#f87171;">(requires all ${progress.total} standard heavenly upgrades purchased — ${progress.missing.length} remaining)</small>`
 				: '0 EE <small style="color:#aaa;">(requires 1 Vigintillion cookies / 1e63)</small>');
 		let milestoneList = '';
 		if (state.milestones.length > 0) {
@@ -1450,6 +1507,21 @@ import { initDoctrineWebGL } from './doctrineWebGL';
 				}).join(', ') + '</div>';
 		}
 
+		let heavenlyStatus = '';
+		if (progress.allOwned) {
+			heavenlyStatus = `<span style="color:#86efac;font-weight:bold;">All standard heavenly upgrades purchased (${progress.owned}/${progress.total})</span>`;
+		} else {
+			heavenlyStatus = `<span style="color:#f87171;font-weight:bold;">${progress.owned} / ${progress.total} owned</span> <small style="color:#aaa;">(${progress.missing.length} remaining to unlock Destiny)</small>`;
+		}
+
+		let missingListHtml = '';
+		if (!progress.allOwned && progress.missing.length > 0) {
+			const maxDisplay = 12;
+			const missingNames = progress.missing.slice(0, maxDisplay).map((u: any) => u.dname || u.name).join(', ');
+			const extra = progress.missing.length > maxDisplay ? ` <em>(+${progress.missing.length - maxDisplay} more)</em>` : '';
+			missingListHtml = `<div class="listing" style="font-size:11px;color:#fca5a5;padding-left:12px;"><b>Missing upgrades:</b> ${missingNames}${extra}</div>`;
+		}
+
 		wrap.innerHTML =
 			'<div class="section" style="margin-top:16px;">Transcendence (Second Prestige Layer)</div>' +
 			'<div class="subsection">' +
@@ -1457,6 +1529,8 @@ import { initDoctrineWebGL } from './doctrineWebGL';
 			'<div class="listing"><b>Eternal Essence:</b> <span style="color:#ffd700;font-weight:bold;">' + state.ee + '</span> <small>(lifetime earned: ' + state.eeEarned + ')</small></div>' +
 			'<div class="listing"><b>Transcendences performed:</b> ' + state.transcendences + '</div>' +
 			'<div class="listing"><b>Current run EE gain:</b> ' + gainDesc + '</div>' +
+			'<div class="listing"><b>Heavenly upgrade progress:</b> ' + heavenlyStatus + '</div>' +
+			missingListHtml +
 			'<div class="listing"><b>Doctrine nodes unlocked:</b> ' + state.doctrine.length + ' / ' + DOCTRINE.length + '</div>' +
 			milestoneList +
 			'<div style="margin-top:8px;">' +
@@ -3971,6 +4045,7 @@ body:not(.noMotion) #doctrineFullView.out { opacity:0; transform:scale(1.03); tr
 		computeEE,
 		canTranscend,
 		hasAllHeavenlyUpgrades,
+		getHeavenlyUpgradeProgress,
 		doTranscend,
 		fixPrestigeScaling,
 		startTranscendWithPicker,

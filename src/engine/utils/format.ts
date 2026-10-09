@@ -71,7 +71,7 @@ export var Beautify=function(val: any, floats?: any)
 	val=Math.floor(Math.abs(val));
 	if (floats>0 && fixed==val+1) val++;
 	//var format=!EN?2:Game.prefs.format?2:1;
-	var format=Game.prefs.format?2:1;
+	var format=(typeof Game!=='undefined' && Game.prefs && Game.prefs.format)?2:1;
 	var formatter=numberFormatters[format];
 	var output=(val.toString().indexOf('e+')!=-1 && format==2)?val.toPrecision(3).toString():formatter(val).toString().replace(/\B(?=(\d{3})+(?!\d))/g,',');
 	//var output=formatter(val).toString().replace(/\B(?=(\d{3})+(?!\d))/g,',');
@@ -99,14 +99,35 @@ export var shortenNumber=function(val: any)
 
 export var SimpleBeautify=function(val: any)
 {
-	var str: any = val.toString();
-	var str2: any = '';
-	for (var i in str)//add commas
+	if (typeof val === 'number')
 	{
-		if ((str.length-(i as any))%3==0 && (i as any)>0) str2+=',';
-		str2+=str[i];
+		if (!isFinite(val)) return 'Infinity';
+		if (Math.abs(val) >= 1e21 || val.toString().indexOf('e') !== -1)
+		{
+			return Beautify(val);
+		}
 	}
-	return str2;
+	var str: any = (val !== null && val !== undefined) ? val.toString() : '';
+	if (str.indexOf('e') !== -1)
+	{
+		return Beautify(parseFloat(val));
+	}
+	var sign = '';
+	if (str.startsWith('-'))
+	{
+		sign = '-';
+		str = str.slice(1);
+	}
+	var parts = str.split('.');
+	var intPart = parts[0];
+	var str2 = '';
+	for (var i = 0; i < intPart.length; i++)
+	{
+		if ((intPart.length - i) % 3 === 0 && i > 0) str2 += ',';
+		str2 += intPart[i];
+	}
+	if (parts.length > 1) str2 += '.' + parts[1];
+	return sign + str2;
 }
 
 export var beautifyInTextFilter=/(([\d]+[,]*)+)/g;//new regex
