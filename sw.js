@@ -11,7 +11,7 @@
  *     can never turn into a failed fetch.
  *
  * Deploy updates: CACHE is stamped at build time (the cc3:stamp-service-worker
- * plugin in vite.config.ts) — `5d36455bcbb2` becomes a content hash of the built
+ * plugin in vite.config.ts) — `dc3d5150b30e` becomes a content hash of the built
  * dist/, so every changed build gets a new cache name. Returning clients then
  * see the changed sw.js on their next navigation, install the new SW, and its
  * activate() drops the old cache. With a static cache name the browser would
@@ -20,7 +20,7 @@
  * file is served as-is with the literal placeholder; the SW only registers in
  * production builds, so the placeholder never becomes a live cache name.
  */
-const CACHE = 'cookie-clicker-3-5d36455bcbb2';
+const CACHE = 'cookie-clicker-3-dc3d5150b30e';
 const MAX_ENTRIES = 512;
 
 self.addEventListener('install', (event) => {
